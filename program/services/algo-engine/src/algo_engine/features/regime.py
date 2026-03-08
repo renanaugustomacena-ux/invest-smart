@@ -37,6 +37,13 @@ _RSI_OVERBOUGHT = Decimal("70")
 _RSI_OVERSOLD = Decimal("30")
 _TWO = Decimal("2")
 
+# Hysteresis thresholds — prevent regime flip-flopping
+_ADX_ENTER_TREND = Decimal("27")    # ADX must exceed this to enter trending
+_ADX_EXIT_TREND = Decimal("23")     # ADX must drop below this to exit trending
+_ATR_ENTER_VOLATILITY = Decimal("2.0")   # ATR ratio to enter high volatility
+_ATR_EXIT_VOLATILITY = Decimal("1.5")    # ATR ratio to exit high volatility
+_HYSTERESIS_BARS = 3  # Consecutive bars required to confirm regime change
+
 # Confidence formula constants for trending regimes.
 # Formula: conf = clamp(BASE + ADX/DIVISOR, BASE, CAP)
 # Rationale: ADX measures trend strength on a 0-100 scale.
@@ -88,9 +95,18 @@ class RegimeClassifier:
         """
         self._atr_history: deque[Decimal] = deque(maxlen=atr_window)
         self._prev_adx: Decimal = ZERO
+        # Hysteresis state
+        self._current_regime: MarketRegime = MarketRegime.RANGING
+        self._candidate_regime: MarketRegime | None = None
+        self._candidate_count: int = 0
 
     def classify(self, features: dict[str, Any]) -> RegimeClassification:
         """Classifica il regime di mercato corrente dagli indicatori.
+
+        Uses hysteresis to prevent regime flip-flopping:
+        - ADX must exceed 27 to enter trend, drop below 23 to exit
+        - ATR ratio must exceed 2.0 to enter high vol, drop below 1.5 to exit
+        - Requires 3 consecutive bars confirming a new regime before switching
 
         Args:
             features: Dizionario indicatori da FeaturePipeline.compute_features().
@@ -120,104 +136,164 @@ class RegimeClassifier:
         if avg_atr > ZERO:
             atr_ratio = atr / avg_atr
 
-        # --- Catena di priorità della classificazione ---
+        # --- Determine raw regime with hysteresis thresholds ---
+        raw_regime, confidence, reasoning = self._classify_raw(
+            adx, atr, atr_ratio, avg_atr, rsi, ema_fast, ema_slow
+        )
 
-        # 1. ALTA VOLATILITÀ: ATR > 2× ATR medio — tempesta in arrivo
-        if avg_atr > ZERO and atr > _ATR_VOLATILITY_MULTIPLIER * avg_atr:
-            confidence = min(
-                Decimal("0.50") + (atr_ratio - _TWO) * Decimal("0.25"),
-                Decimal("0.95"),
-            )
-            result = RegimeClassification(
-                regime=MarketRegime.HIGH_VOLATILITY,
-                confidence=max(confidence, Decimal("0.50")),
-                reasoning=f"Rapporto ATR {atr_ratio:.2f}x supera la soglia 2x",
-                adx=adx,
-                atr_ratio=atr_ratio,
-            )
-            self._prev_adx = adx
-            logger.info(
-                "Regime classificato",
-                regime=result.regime,
-                confidence=str(result.confidence),
-            )
-            return result
+        # --- Apply hysteresis: require consecutive confirmations ---
+        final_regime = self._apply_hysteresis(raw_regime)
 
-        # 2. TREND RIALZISTA: ADX > 25 E EMA veloce > EMA lenta — vento forte da sud
-        if adx > _ADX_TRENDING_THRESHOLD and ema_fast > ema_slow and ema_slow > ZERO:
-            confidence = min(_TREND_CONFIDENCE_BASE + adx / _TREND_CONFIDENCE_DIVISOR, _TREND_CONFIDENCE_CAP)
-            result = RegimeClassification(
-                regime=MarketRegime.TRENDING_UP,
-                confidence=confidence,
-                reasoning=f"ADX={adx:.1f} > 25, EMA veloce > EMA lenta",
-                adx=adx,
-                atr_ratio=atr_ratio,
+        # Recompute confidence/reasoning if hysteresis overrides
+        if final_regime != raw_regime:
+            _, confidence, reasoning = self._classify_raw_for_regime(
+                final_regime, adx, atr_ratio, rsi, ema_fast, ema_slow
             )
-            self._prev_adx = adx
-            logger.info(
-                "Regime classificato",
-                regime=result.regime,
-                confidence=str(result.confidence),
-            )
-            return result
 
-        # 3. TREND RIBASSISTA: ADX > 25 E EMA veloce < EMA lenta — vento forte da nord
-        if adx > _ADX_TRENDING_THRESHOLD and ema_fast < ema_slow and ema_slow > ZERO:
-            confidence = min(_TREND_CONFIDENCE_BASE + adx / _TREND_CONFIDENCE_DIVISOR, _TREND_CONFIDENCE_CAP)
-            result = RegimeClassification(
-                regime=MarketRegime.TRENDING_DOWN,
-                confidence=confidence,
-                reasoning=f"ADX={adx:.1f} > 25, EMA veloce < EMA lenta",
-                adx=adx,
-                atr_ratio=atr_ratio,
-            )
-            self._prev_adx = adx
-            logger.info(
-                "Regime classificato",
-                regime=result.regime,
-                confidence=str(result.confidence),
-            )
-            return result
+        self._prev_adx = adx
 
-        # 4. INVERSIONE: ADX in calo da trend forte + RSI estremo — cambio di stagione
+        result = RegimeClassification(
+            regime=final_regime,
+            confidence=confidence,
+            reasoning=reasoning,
+            adx=adx,
+            atr_ratio=atr_ratio,
+        )
+        logger.info(
+            "Regime classificato",
+            regime=result.regime,
+            confidence=str(result.confidence),
+        )
+        return result
+
+    def _apply_hysteresis(self, raw_regime: MarketRegime) -> MarketRegime:
+        """Apply hysteresis: require N consecutive bars to confirm regime change."""
+        if raw_regime == self._current_regime:
+            # Same regime — reset candidate counter
+            self._candidate_regime = None
+            self._candidate_count = 0
+            return self._current_regime
+
+        # Different regime detected
+        if raw_regime == self._candidate_regime:
+            self._candidate_count += 1
+        else:
+            self._candidate_regime = raw_regime
+            self._candidate_count = 1
+
+        if self._candidate_count >= _HYSTERESIS_BARS:
+            # Confirmed: switch regime
+            self._current_regime = raw_regime
+            self._candidate_regime = None
+            self._candidate_count = 0
+            return raw_regime
+
+        # Not yet confirmed — stay in current regime
+        return self._current_regime
+
+    def _classify_raw(
+        self,
+        adx: Decimal,
+        atr: Decimal,
+        atr_ratio: Decimal,
+        avg_atr: Decimal,
+        rsi: Decimal,
+        ema_fast: Decimal,
+        ema_slow: Decimal,
+    ) -> tuple[MarketRegime, Decimal, str]:
+        """Determine raw regime using hysteresis-aware thresholds.
+
+        Returns (regime, confidence, reasoning).
+        """
+        currently_in = self._current_regime
+
+        # 1. HIGH VOLATILITY — with entry/exit hysteresis
+        if avg_atr > ZERO:
+            if currently_in == MarketRegime.HIGH_VOLATILITY:
+                in_vol = atr_ratio > _ATR_EXIT_VOLATILITY
+            else:
+                in_vol = atr_ratio > _ATR_ENTER_VOLATILITY
+            if in_vol:
+                confidence = min(
+                    Decimal("0.50") + (atr_ratio - _TWO) * Decimal("0.25"),
+                    Decimal("0.95"),
+                )
+                return (
+                    MarketRegime.HIGH_VOLATILITY,
+                    max(confidence, Decimal("0.50")),
+                    f"Rapporto ATR {atr_ratio:.2f}x supera la soglia",
+                )
+
+        # 2/3. TRENDING — with entry/exit hysteresis on ADX
+        if ema_slow > ZERO:
+            if currently_in in (MarketRegime.TRENDING_UP, MarketRegime.TRENDING_DOWN):
+                adx_threshold = _ADX_EXIT_TREND
+            else:
+                adx_threshold = _ADX_ENTER_TREND
+
+            if adx > adx_threshold:
+                confidence = min(
+                    _TREND_CONFIDENCE_BASE + adx / _TREND_CONFIDENCE_DIVISOR,
+                    _TREND_CONFIDENCE_CAP,
+                )
+                if ema_fast > ema_slow:
+                    return (
+                        MarketRegime.TRENDING_UP,
+                        confidence,
+                        f"ADX={adx:.1f} > {adx_threshold}, EMA veloce > EMA lenta",
+                    )
+                elif ema_fast < ema_slow:
+                    return (
+                        MarketRegime.TRENDING_DOWN,
+                        confidence,
+                        f"ADX={adx:.1f} > {adx_threshold}, EMA veloce < EMA lenta",
+                    )
+
+        # 4. REVERSAL — ADX declining from strong + extreme RSI
         if (
             self._prev_adx > _ADX_STRONG_TREND_THRESHOLD
             and adx < self._prev_adx
             and (rsi > _RSI_OVERBOUGHT or rsi < _RSI_OVERSOLD)
         ):
-            confidence = Decimal("0.55")
-            result = RegimeClassification(
-                regime=MarketRegime.REVERSAL,
-                confidence=confidence,
-                reasoning=(
-                    f"ADX in calo da {self._prev_adx:.1f} a {adx:.1f}, "
-                    f"RSI={rsi:.1f} a livello estremo"
-                ),
-                adx=adx,
-                atr_ratio=atr_ratio,
+            return (
+                MarketRegime.REVERSAL,
+                Decimal("0.55"),
+                f"ADX in calo da {self._prev_adx:.1f} a {adx:.1f}, RSI={rsi:.1f} estremo",
             )
-            self._prev_adx = adx
-            logger.info(
-                "Regime classificato",
-                regime=result.regime,
-                confidence=str(result.confidence),
+
+        # 5. RANGING — default
+        confidence = Decimal("0.70") if adx < _ADX_RANGING_THRESHOLD else Decimal("0.60")
+        return (
+            MarketRegime.RANGING,
+            confidence,
+            f"ADX={adx:.1f} sotto la soglia di trend, nessun picco di volatilità",
+        )
+
+    def _classify_raw_for_regime(
+        self,
+        regime: MarketRegime,
+        adx: Decimal,
+        atr_ratio: Decimal,
+        rsi: Decimal,
+        ema_fast: Decimal,
+        ema_slow: Decimal,
+    ) -> tuple[MarketRegime, Decimal, str]:
+        """Get confidence/reasoning for a specific regime (used when hysteresis overrides)."""
+        if regime == MarketRegime.HIGH_VOLATILITY:
+            confidence = min(
+                Decimal("0.50") + (atr_ratio - _TWO) * Decimal("0.25"),
+                Decimal("0.95"),
             )
-            return result
-
-        # 5. LATERALE: default — calma piatta, il mercato si muove di lato
-        confidence = Decimal("0.60")
-        if adx < _ADX_RANGING_THRESHOLD:
-            confidence = Decimal("0.70")
-
-        result = RegimeClassification(
-            regime=MarketRegime.RANGING,
-            confidence=confidence,
-            reasoning=f"ADX={adx:.1f} sotto la soglia di trend, nessun picco di volatilità",
-            adx=adx,
-            atr_ratio=atr_ratio,
-        )
-        self._prev_adx = adx
-        logger.info(
-            "Regime classificato", regime=result.regime, confidence=str(result.confidence)
-        )
-        return result
+            return regime, max(confidence, Decimal("0.50")), f"ATR ratio {atr_ratio:.2f}x (stabile)"
+        if regime in (MarketRegime.TRENDING_UP, MarketRegime.TRENDING_DOWN):
+            confidence = min(
+                _TREND_CONFIDENCE_BASE + adx / _TREND_CONFIDENCE_DIVISOR,
+                _TREND_CONFIDENCE_CAP,
+            )
+            direction = "rialzista" if regime == MarketRegime.TRENDING_UP else "ribassista"
+            return regime, confidence, f"Trend {direction} stabile (ADX={adx:.1f})"
+        if regime == MarketRegime.REVERSAL:
+            return regime, Decimal("0.55"), f"Inversione in corso (RSI={rsi:.1f})"
+        # RANGING
+        confidence = Decimal("0.70") if adx < _ADX_RANGING_THRESHOLD else Decimal("0.60")
+        return regime, confidence, f"Laterale stabile (ADX={adx:.1f})"

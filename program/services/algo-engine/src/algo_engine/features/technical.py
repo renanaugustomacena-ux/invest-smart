@@ -11,11 +11,45 @@ Ogni funzione accetta liste di Decimal e restituisce risultati Decimal.
 
 from __future__ import annotations
 
-from decimal import Decimal
+import functools
+from decimal import Decimal, InvalidOperation
+from typing import Any, Callable
 
 from moneymaker_common.decimal_utils import ONE, ZERO, to_decimal
 
 
+def _has_invalid_decimals(values: list[Decimal]) -> bool:
+    """Check if any Decimal in the list is NaN or Infinite."""
+    for v in values:
+        if isinstance(v, Decimal):
+            if v.is_nan() or v.is_infinite():
+                return True
+    return False
+
+
+def validate_decimal_inputs(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that validates all list[Decimal] arguments for NaN/Inf.
+
+    Returns ZERO (or tuple of ZEROs matching return type) if invalid data found.
+    """
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        for arg in args:
+            if isinstance(arg, list) and arg and isinstance(arg[0], Decimal):
+                if _has_invalid_decimals(arg):
+                    return ZERO
+        for arg in kwargs.values():
+            if isinstance(arg, list) and arg and isinstance(arg[0], Decimal):
+                if _has_invalid_decimals(arg):
+                    return ZERO
+        try:
+            return func(*args, **kwargs)
+        except (InvalidOperation, ZeroDivisionError):
+            return ZERO
+    return wrapper
+
+
+@validate_decimal_inputs
 def calculate_sma(values: list[Decimal], period: int) -> Decimal:
     """Calcola la Media Mobile Semplice (SMA) — come la media dei voti scolastici.
 
@@ -36,6 +70,7 @@ def calculate_sma(values: list[Decimal], period: int) -> Decimal:
     return total / Decimal(str(period))
 
 
+@validate_decimal_inputs
 def calculate_ema(values: list[Decimal], period: int) -> Decimal:
     """Calcola la Media Mobile Esponenziale (EMA) — come una media che dà più peso ai voti recenti.
 
@@ -66,6 +101,7 @@ def calculate_ema(values: list[Decimal], period: int) -> Decimal:
     return ema
 
 
+@validate_decimal_inputs
 def calculate_rsi(closes: list[Decimal], period: int = 14) -> Decimal:
     """Calcola il Relative Strength Index — il "termometro" della forza del prezzo.
 
@@ -122,6 +158,7 @@ def calculate_rsi(closes: list[Decimal], period: int = 14) -> Decimal:
     return rsi
 
 
+@validate_decimal_inputs
 def calculate_macd(
     closes: list[Decimal],
     fast_period: int = 12,
@@ -192,6 +229,7 @@ def calculate_macd(
     return current_macd, signal_line, histogram
 
 
+@validate_decimal_inputs
 def calculate_bollinger_bands(
     closes: list[Decimal],
     period: int = 20,
@@ -240,6 +278,7 @@ def calculate_bollinger_bands(
     return upper, middle, lower
 
 
+@validate_decimal_inputs
 def calculate_atr(
     highs: list[Decimal],
     lows: list[Decimal],
@@ -294,6 +333,7 @@ def calculate_atr(
     return atr
 
 
+@validate_decimal_inputs
 def calculate_adx(
     highs: list[Decimal],
     lows: list[Decimal],
@@ -392,6 +432,7 @@ def calculate_adx(
     return adx, final_plus_di, final_minus_di
 
 
+@validate_decimal_inputs
 def calculate_stochastic(
     highs: list[Decimal],
     lows: list[Decimal],
@@ -449,6 +490,7 @@ def calculate_stochastic(
     return percent_k, percent_d
 
 
+@validate_decimal_inputs
 def calculate_obv(closes: list[Decimal], volumes: list[Decimal]) -> Decimal:
     """Calcola l'On-Balance Volume — il "contatore di flusso" dei volumi.
 
@@ -478,6 +520,7 @@ def calculate_obv(closes: list[Decimal], volumes: list[Decimal]) -> Decimal:
     return obv
 
 
+@validate_decimal_inputs
 def calculate_donchian_channels(
     highs: list[Decimal],
     lows: list[Decimal],
@@ -515,6 +558,7 @@ def calculate_donchian_channels(
     return upper, middle, lower
 
 
+@validate_decimal_inputs
 def calculate_williams_r(
     highs: list[Decimal],
     lows: list[Decimal],
@@ -552,6 +596,7 @@ def calculate_williams_r(
     return ((highest - closes[-1]) / hl_range) * -hundred
 
 
+@validate_decimal_inputs
 def calculate_roc(closes: list[Decimal], period: int = 10) -> Decimal:
     """Calcola il Rate of Change (percentuale) — la "velocità" del prezzo.
 
@@ -579,6 +624,7 @@ def calculate_roc(closes: list[Decimal], period: int = 10) -> Decimal:
     return ((closes[-1] - old_close) / old_close) * hundred
 
 
+@validate_decimal_inputs
 def calculate_cci(
     highs: list[Decimal],
     lows: list[Decimal],

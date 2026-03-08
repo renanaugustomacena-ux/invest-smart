@@ -6,12 +6,14 @@ Pipeline: Data Quality -> MTF -> Features -> Regime -> Strategy -> Signal -> Siz
 
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 
 from moneymaker_common.enums import Direction, SourceTier
 from moneymaker_common.logging import get_logger
 from moneymaker_common.metrics import (
     FEATURES_COMPUTED,
+    PIPELINE_TIMEOUTS,
     REGIME_CLASSIFIED,
     SIGNAL_CONFIDENCE,
     SIGNALS_GENERATED,
@@ -79,6 +81,7 @@ class AlgoEngine:
         self._portfolio_manager = portfolio_manager
         self._kill_switch = kill_switch
         self._bar_counter: int = 0
+        self._pipeline_timeout: float = 5.0
 
     @property
     def bar_counter(self) -> int:
@@ -90,7 +93,27 @@ class AlgoEngine:
         """Process a single OHLCV bar through the deterministic pipeline.
 
         Returns a validated trading signal dict ready for dispatch, or None.
+        Enforces a 5-second timeout to prevent pipeline stalls.
         """
+        try:
+            return await asyncio.wait_for(
+                self._process_bar_inner(symbol, timeframe, bar),
+                timeout=self._pipeline_timeout,
+            )
+        except asyncio.TimeoutError:
+            PIPELINE_TIMEOUTS.labels(symbol=symbol).inc()
+            logger.error(
+                "Pipeline timeout exceeded",
+                symbol=symbol,
+                timeframe=timeframe,
+                timeout_seconds=self._pipeline_timeout,
+            )
+            return None
+
+    async def _process_bar_inner(
+        self, symbol: str, timeframe: str, bar: OHLCVBar
+    ) -> dict | None:
+        """Internal pipeline logic wrapped by process_bar timeout."""
         self._bar_counter += 1
 
         # --- Step 1: Data quality check (algo-engine lines 529-539) ---

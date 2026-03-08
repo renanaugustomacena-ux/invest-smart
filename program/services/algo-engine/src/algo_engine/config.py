@@ -6,6 +6,8 @@ Uses ALGO_ prefix for environment variables.
 
 from __future__ import annotations
 
+from pydantic import field_validator, model_validator
+
 from moneymaker_common.config import MoneyMakerBaseSettings
 
 
@@ -74,6 +76,71 @@ class AlgoEngineSettings(MoneyMakerBaseSettings):
     algo_calendar_blackout_after_min: int = 15
 
     model_config = {"env_prefix": "", "case_sensitive": False}
+
+    @field_validator("algo_risk_per_trade_pct")
+    @classmethod
+    def _validate_risk_per_trade(cls, v: float) -> float:
+        if not 0.1 <= v <= 5.0:
+            raise ValueError(f"risk_per_trade_pct must be 0.1–5.0, got {v}")
+        return v
+
+    @field_validator("algo_max_drawdown_pct")
+    @classmethod
+    def _validate_max_drawdown(cls, v: float) -> float:
+        if not 1.0 <= v <= 25.0:
+            raise ValueError(f"max_drawdown_pct must be 1.0–25.0, got {v}")
+        return v
+
+    @field_validator("algo_max_daily_loss_pct")
+    @classmethod
+    def _validate_max_daily_loss(cls, v: float) -> float:
+        if not 0.5 <= v <= 10.0:
+            raise ValueError(f"max_daily_loss_pct must be 0.5–10.0, got {v}")
+        return v
+
+    @field_validator("algo_confidence_threshold")
+    @classmethod
+    def _validate_confidence_threshold(cls, v: float) -> float:
+        if not 0.0 < v <= 1.0:
+            raise ValueError(f"confidence_threshold must be (0.0, 1.0], got {v}")
+        return v
+
+    @field_validator(
+        "algo_default_rsi_period",
+        "algo_default_ema_fast",
+        "algo_default_ema_slow",
+        "algo_default_sma_period",
+        "algo_default_bb_period",
+        "algo_default_atr_period",
+    )
+    @classmethod
+    def _validate_periods_positive(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"Indicator period must be > 0, got {v}")
+        return v
+
+    @field_validator("algo_max_signals_per_hour")
+    @classmethod
+    def _validate_max_signals(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"max_signals_per_hour must be > 0, got {v}")
+        return v
+
+    @field_validator("algo_max_lots")
+    @classmethod
+    def _validate_max_lots(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError(f"max_lots must be > 0, got {v}")
+        return v
+
+    @model_validator(mode="after")
+    def _validate_ema_ordering(self) -> AlgoEngineSettings:
+        if self.algo_default_ema_fast >= self.algo_default_ema_slow:
+            raise ValueError(
+                f"ema_fast ({self.algo_default_ema_fast}) must be < "
+                f"ema_slow ({self.algo_default_ema_slow})"
+            )
+        return self
 
     def safe_dump(self) -> dict:
         """Return settings dict with sensitive fields masked."""

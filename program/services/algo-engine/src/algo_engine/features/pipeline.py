@@ -11,6 +11,7 @@ di arrotondamento IEEE 754 — precisione chirurgica nei calcoli finanziari.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -103,6 +104,9 @@ class FeaturePipeline:
         self.volume_sma_period = volume_sma_period
         self.sma_long_period = sma_long_period
 
+        # ATR history per symbol for ATR SMA computation (breakout strategy needs this)
+        self._atr_history: dict[str, deque[Decimal]] = {}
+
         # Macro feature provider (opzionale)
         self._macro_provider: Any = None
         if MACRO_FEATURES_AVAILABLE and redis_client is not None:
@@ -189,6 +193,16 @@ class FeaturePipeline:
             closes,
             period=self.atr_period,
         )
+
+        # ATR SMA — media mobile dell'ATR per rilevamento espansione volatilità
+        if features["atr"] > ZERO:
+            if symbol not in self._atr_history:
+                self._atr_history[symbol] = deque(maxlen=20)
+            self._atr_history[symbol].append(features["atr"])
+            atr_hist = self._atr_history[symbol]
+            features["atr_sma"] = sum(atr_hist) / Decimal(str(len(atr_hist)))
+        else:
+            features["atr_sma"] = ZERO
 
         # ATR percentuale — volatilità relativa al prezzo
         if features["atr"] != ZERO:

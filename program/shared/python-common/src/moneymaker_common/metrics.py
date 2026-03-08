@@ -216,3 +216,9 @@ CORRELATION_BLOCKED = Counter(
     "Segnali bloccati per esposizione valutaria eccessiva",
     ["currency"],
 )
+
+PIPELINE_TIMEOUTS = Counter(
+    "moneymaker_brain_pipeline_timeouts_total",
+    "Timeout nella pipeline di elaborazione barre",
+    ["symbol"],
+)
