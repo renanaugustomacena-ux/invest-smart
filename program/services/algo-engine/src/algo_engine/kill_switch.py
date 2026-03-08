@@ -18,18 +18,27 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import asdict, dataclass, field
-from typing import TYPE_CHECKING, Any
+from decimal import Decimal
+from typing import Any
 
 from moneymaker_common.exceptions import RiskLimitExceededError
 from moneymaker_common.logging import get_logger
-
-if TYPE_CHECKING:
-    from decimal import Decimal
 
 logger = get_logger(__name__)
 
 KILL_SWITCH_KEY = "moneymaker:kill_switch"
 KILL_SWITCH_AUDIT_KEY = "moneymaker:kill_switch:audit_log"
+
+
+@dataclass
+class HierarchicalAction:
+    """Result of hierarchical risk check."""
+
+    level: int  # 0=none, 1=strategy, 2=portfolio, 3=global
+    action: str  # "NONE", "PAUSE_STRATEGY", "REDUCE_SIZING", "FLATTEN_ALL"
+    sizing_multiplier: Decimal  # 1.0=normal, 0.5=reduced, 0=stopped
+    reason: str
+    pause_strategy: str | None  # Strategy name to pause (level 1 only)
 
 
 @dataclass
@@ -206,6 +215,93 @@ class KillSwitch:
                 )
             )
             await self.activate(reason, actor="auto_check")
+
+    # ------------------------------------------------------------------
+    # Hierarchical kill switch levels (Phase 4)
+    # ------------------------------------------------------------------
+
+    async def hierarchical_check(
+        self,
+        drawdown_pct: Decimal,
+        strategy_name: str | None = None,
+        strategy_dd_pct: Decimal | None = None,
+    ) -> HierarchicalAction:
+        """Hierarchical risk check with three levels of escalation.
+
+        Level 1 (Strategy): Strategy DD > 5% → pause that strategy
+        Level 2 (Portfolio): Portfolio DD > 3% → reduce all sizing by 50%
+        Level 3 (Global): Portfolio DD > 5% → flatten all, activate kill switch
+
+        Returns:
+            HierarchicalAction indicating what action to take.
+        """
+        from decimal import Decimal as D
+
+        # Level 3: Global kill — flatten everything
+        if drawdown_pct >= D("5"):
+            reason = f"Level 3 kill: portfolio DD {drawdown_pct}% >= 5%"
+            await self.activate(reason, actor="hierarchical_check")
+            return HierarchicalAction(
+                level=3,
+                action="FLATTEN_ALL",
+                sizing_multiplier=D("0"),
+                reason=reason,
+                pause_strategy=None,
+            )
+
+        # Level 2: Portfolio reduction — cut sizing by 50%
+        if drawdown_pct >= D("3"):
+            reason = f"Level 2 warning: portfolio DD {drawdown_pct}% >= 3%"
+            logger.warning(reason)
+            await self._append_audit(
+                KillSwitchAuditEntry(
+                    timestamp=time.time(),
+                    action="LEVEL2_REDUCTION",
+                    reason=reason,
+                    actor="hierarchical_check",
+                    drawdown_pct=str(drawdown_pct),
+                )
+            )
+            return HierarchicalAction(
+                level=2,
+                action="REDUCE_SIZING",
+                sizing_multiplier=D("0.50"),
+                reason=reason,
+                pause_strategy=None,
+            )
+
+        # Level 1: Strategy-level pause
+        if (
+            strategy_name is not None
+            and strategy_dd_pct is not None
+            and strategy_dd_pct >= D("5")
+        ):
+            reason = f"Level 1 pause: {strategy_name} DD {strategy_dd_pct}% >= 5%"
+            logger.warning(reason)
+            await self._append_audit(
+                KillSwitchAuditEntry(
+                    timestamp=time.time(),
+                    action="LEVEL1_STRATEGY_PAUSE",
+                    reason=reason,
+                    actor="hierarchical_check",
+                )
+            )
+            return HierarchicalAction(
+                level=1,
+                action="PAUSE_STRATEGY",
+                sizing_multiplier=D("1"),
+                reason=reason,
+                pause_strategy=strategy_name,
+            )
+
+        # No action needed
+        return HierarchicalAction(
+            level=0,
+            action="NONE",
+            sizing_multiplier=D("1"),
+            reason="All risk levels within limits",
+            pause_strategy=None,
+        )
 
     # ------------------------------------------------------------------
     # Audit log

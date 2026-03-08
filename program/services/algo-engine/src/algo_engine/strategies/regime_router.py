@@ -113,6 +113,11 @@ class RegimeRouter:
 
         suggestion = strategy.analyze(features)
 
+        # Inject strategy name into metadata for attribution
+        if suggestion.metadata is None:
+            suggestion.metadata = {}
+        suggestion.metadata.setdefault("strategy", strategy.name)
+
         logger.info(
             "Analisi strategica completata",
             regime=regime,
@@ -123,3 +128,102 @@ class RegimeRouter:
         )
 
         return suggestion
+
+    def route_probabilistic(
+        self, regime_posteriors: dict[str, Decimal], features: dict[str, Any]
+    ) -> SignalSuggestion:
+        """Route using Bayesian regime posterior probabilities.
+
+        Instead of hard-selecting one regime's strategy, queries all strategies
+        whose regime has non-trivial posterior probability and produces a
+        weighted consensus signal.
+
+        Args:
+            regime_posteriors: {regime_name: posterior_probability} from
+                BayesianRegimeDetector. Probabilities should sum to ~1.
+            features: Technical indicator dictionary.
+
+        Returns:
+            Weighted consensus SignalSuggestion.
+        """
+        _MIN_POSTERIOR = Decimal("0.10")
+
+        # Collect suggestions from all regimes with meaningful probability
+        weighted_suggestions: list[tuple[Decimal, SignalSuggestion]] = []
+        for regime, posterior in regime_posteriors.items():
+            if posterior < _MIN_POSTERIOR:
+                continue
+            strategy = self._strategies.get(regime)
+            if strategy is None:
+                continue
+            suggestion = strategy.analyze(features)
+            weighted_suggestions.append((posterior, suggestion))
+
+        if not weighted_suggestions:
+            # Fallback to default or HOLD
+            if self._default_strategy:
+                return self._default_strategy.analyze(features)
+            return SignalSuggestion(
+                direction=Direction.HOLD,
+                confidence=Decimal("0"),
+                reasoning="No regime has sufficient posterior probability",
+            )
+
+        # Compute weighted directional score: BUY=+1, SELL=-1, HOLD=0
+        total_weight = Decimal("0")
+        directional_score = Decimal("0")
+        blended_confidence = Decimal("0")
+        reasoning_parts: list[str] = []
+
+        for weight, suggestion in weighted_suggestions:
+            total_weight += weight
+            if suggestion.direction == Direction.BUY:
+                directional_score += weight * suggestion.confidence
+            elif suggestion.direction == Direction.SELL:
+                directional_score -= weight * suggestion.confidence
+            blended_confidence += weight * suggestion.confidence
+
+            strategy_name = (
+                suggestion.metadata.get("strategy", "unknown")
+                if suggestion.metadata
+                else "unknown"
+            )
+            reasoning_parts.append(
+                f"{strategy_name}({weight:.0%})→{suggestion.direction}"
+            )
+
+        if total_weight > Decimal("0"):
+            directional_score /= total_weight
+            blended_confidence /= total_weight
+
+        # Determine consensus direction
+        if abs(directional_score) < Decimal("0.10"):
+            direction = Direction.HOLD
+            final_confidence = Decimal("0.30")
+        elif directional_score > Decimal("0"):
+            direction = Direction.BUY
+            final_confidence = min(blended_confidence, Decimal("0.85"))
+        else:
+            direction = Direction.SELL
+            final_confidence = min(blended_confidence, Decimal("0.85"))
+
+        result = SignalSuggestion(
+            direction=direction,
+            confidence=final_confidence,
+            reasoning=f"Probabilistic consensus: {', '.join(reasoning_parts)}",
+            metadata={
+                "strategy": "probabilistic_router",
+                "directional_score": str(directional_score),
+                "regime_posteriors": {k: str(v) for k, v in regime_posteriors.items()},
+            },
+        )
+
+        logger.info(
+            "Probabilistic routing completed",
+            direction=str(direction),
+            confidence=str(final_confidence),
+            directional_score=str(directional_score),
+            n_strategies=len(weighted_suggestions),
+        )
+
+        return result
