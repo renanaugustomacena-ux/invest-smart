@@ -59,7 +59,7 @@ biruleibe.py
 # Internal planning & audit documents
 MONEYMAKER_MASTER_PLAN.md
 MONEYMAKER_FOLLOW_UP_PLANS.md
-audits/
+/audits/
 document_*.md
 audit_rules.md.txt
 lista_coppie_trading.md
