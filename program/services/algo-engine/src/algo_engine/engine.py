@@ -1,13 +1,14 @@
-"""AlgoEngine — Pure algorithmic trading engine with 9-step deterministic pipeline.
+"""AlgoEngine — Pure algorithmic trading engine with extended deterministic pipeline.
 
-Maps to algo-engine/main.py lines 525-900 with all ML sections removed.
-Pipeline: Data Quality -> MTF -> Features -> Regime -> Strategy -> Signal -> Sizing -> Validation
+Core pipeline: Data Quality -> MTF -> Features -> Regime -> Strategy -> Signal -> Sizing -> Validation
+Advanced (optional): Bayesian regime, OU analysis, cycle detection, CVaR sizing, trailing stops
 """
 
 from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
+from typing import Any
 
 from moneymaker_common.enums import Direction, SourceTier
 from moneymaker_common.logging import get_logger
@@ -40,15 +41,26 @@ logger = get_logger(__name__)
 
 
 class AlgoEngine:
-    """Pure algorithmic trading engine — 9-step deterministic pipeline.
+    """Pure algorithmic trading engine with optional advanced mathematical modules.
 
-    Reuses 22 pure-algorithmic modules from algo-engine with zero ML dependencies.
-    Single method: process_bar() -> validated trading signal or None.
+    Core pipeline (always active):
+        Data Quality -> MTF -> Features -> Regime -> Strategy -> Signal -> Sizing -> Validation
+
+    Advanced modules (injected optionally, graceful fallback if absent):
+        - Bayesian regime detector: probabilistic regime posteriors
+        - Spectral cycle detector: dominant cycle for adaptive parameters
+        - OU process analyzer: mean-reversion s-score enrichment
+        - Fractal analyzer: Hurst exponent for trend/MR classification
+        - Information theory: distribution shift detection
+        - Advanced position sizer: CVaR + Half-Kelly
+        - Trailing stop manager: active position management
+        - Adaptive parameter tuner: cycle-driven indicator periods
     """
 
     def __init__(
         self,
         *,
+        # Core components (required)
         feature_pipeline: FeaturePipeline,
         regime_classifier: RegimeClassifier,
         router: RegimeRouter,
@@ -64,7 +76,17 @@ class AlgoEngine:
         attribution: StrategyAttribution,
         portfolio_manager: PortfolioStateManager,
         kill_switch: KillSwitch,
+        # Advanced components (optional — system works without them)
+        bayesian_regime: Any | None = None,
+        spectral_detector: Any | None = None,
+        ou_analyzer: Any | None = None,
+        fractal_analyzer: Any | None = None,
+        shift_detector: Any | None = None,
+        advanced_sizer: Any | None = None,
+        trailing_manager: Any | None = None,
+        adaptive_tuner: Any | None = None,
     ) -> None:
+        # Core
         self._feature_pipeline = feature_pipeline
         self._regime_classifier = regime_classifier
         self._router = router
@@ -82,6 +104,30 @@ class AlgoEngine:
         self._kill_switch = kill_switch
         self._bar_counter: int = 0
         self._pipeline_timeout: float = 5.0
+
+        # Advanced (optional)
+        self._bayesian_regime = bayesian_regime
+        self._spectral_detector = spectral_detector
+        self._ou_analyzer = ou_analyzer
+        self._fractal_analyzer = fractal_analyzer
+        self._shift_detector = shift_detector
+        self._advanced_sizer = advanced_sizer
+        self._trailing_manager = trailing_manager
+        self._adaptive_tuner = adaptive_tuner
+
+        if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
+                shift_detector, advanced_sizer, trailing_manager, adaptive_tuner]):
+            active = [name for name, mod in [
+                ("bayesian_regime", bayesian_regime),
+                ("spectral_detector", spectral_detector),
+                ("ou_analyzer", ou_analyzer),
+                ("fractal_analyzer", fractal_analyzer),
+                ("shift_detector", shift_detector),
+                ("advanced_sizer", advanced_sizer),
+                ("trailing_manager", trailing_manager),
+                ("adaptive_tuner", adaptive_tuner),
+            ] if mod is not None]
+            logger.info("Advanced modules active", modules=active)
 
     @property
     def bar_counter(self) -> int:
@@ -148,10 +194,30 @@ class AlgoEngine:
 
         FEATURES_COMPUTED.labels(symbol=symbol).inc()
 
-        # --- Step 4: Regime classification — single rule-based (algo-engine lines 643-644) ---
-        # Skips: ensemble, vectorizer, drift monitoring
+        # --- Step 3a: Advanced feature enrichment (optional) ---
+        self._enrich_advanced_features(symbol, features, bars)
+
+        # --- Step 3b: Adaptive parameter tuning (optional) ---
+        if self._adaptive_tuner is not None:
+            dominant_cycle = features.get("dominant_cycle")
+            new_params = self._adaptive_tuner.update(dominant_cycle)
+            if new_params:
+                logger.info("Adaptive params updated", params=new_params)
+
+        # --- Step 4: Regime classification ---
         classification = self._regime_classifier.classify(features)
         regime = classification.regime
+
+        # Overlay Bayesian posteriors if available
+        bayesian_posteriors: dict[str, Decimal] | None = None
+        if self._bayesian_regime is not None:
+            try:
+                rsi = features.get("rsi", Decimal("50"))
+                posteriors = self._bayesian_regime.update(rsi)
+                bayesian_posteriors = posteriors
+                features["bayesian_posteriors"] = posteriors
+            except Exception as e:
+                logger.debug("Bayesian regime update failed", error=str(e))
 
         REGIME_CLASSIFIED.labels(regime=regime.value).inc()
 
@@ -163,14 +229,19 @@ class AlgoEngine:
             adx=str(classification.adx),
         )
 
-        # --- Step 5: Session classification (algo-engine lines 657-660) ---
+        # --- Step 5: Session classification ---
         session_name = self._session_classifier.classify(
             bar.timestamp // 3_600_000 % 24
         )
 
-        # --- Step 6: Strategy routing — direct (algo-engine line 782) ---
-        # Skips: advisor cascade, ML proxy, A/B testing
-        suggestion = self._router.route(regime.value, features)
+        # --- Step 6: Strategy routing ---
+        # Use probabilistic routing if Bayesian posteriors available
+        if bayesian_posteriors is not None:
+            suggestion = self._router.route_probabilistic(
+                bayesian_posteriors, features
+            )
+        else:
+            suggestion = self._router.route(regime.value, features)
         source_tier = SourceTier.TECHNICAL
 
         # Record attribution (algo-engine lines 847-854)
@@ -195,15 +266,31 @@ class AlgoEngine:
         if trading_signal is None:
             return None
 
-        # --- Step 8: Position sizing (algo-engine lines 877-885) ---
+        # --- Step 8: Position sizing ---
         portfolio_state = self._portfolio_manager.get_state()
-        sized_lots = self._position_sizer.calculate(
-            symbol=symbol,
-            entry_price=current_price,
-            stop_loss=Decimal(str(trading_signal["stop_loss"])),
-            equity=portfolio_state.get("equity", Decimal("1000")),
-            drawdown_pct=portfolio_state.get("current_drawdown_pct", Decimal("0")),
-        )
+        equity = portfolio_state.get("equity", Decimal("1000"))
+        drawdown_pct = portfolio_state.get("current_drawdown_pct", Decimal("0"))
+
+        if self._advanced_sizer is not None:
+            # CVaR + Half-Kelly sizing
+            cvar = features.get("cvar_1pct")
+            sized_lots = self._advanced_sizer.calculate(
+                symbol=symbol,
+                entry_price=current_price,
+                stop_loss=Decimal(str(trading_signal["stop_loss"])),
+                equity=equity,
+                drawdown_pct=drawdown_pct,
+                confidence=suggestion.confidence,
+                cvar=cvar,
+            )
+        else:
+            sized_lots = self._position_sizer.calculate(
+                symbol=symbol,
+                entry_price=current_price,
+                stop_loss=Decimal(str(trading_signal["stop_loss"])),
+                equity=equity,
+                drawdown_pct=drawdown_pct,
+            )
         trading_signal["suggested_lots"] = sized_lots
         trading_signal["source_tier"] = source_tier.value
 
@@ -266,3 +353,51 @@ class AlgoEngine:
         )
 
         return trading_signal
+
+    def _enrich_advanced_features(
+        self, symbol: str, features: dict[str, Any], bars: list[OHLCVBar]
+    ) -> None:
+        """Enrich feature dict with advanced mathematical indicators.
+
+        Each module is optional — failures are silently caught so the
+        core pipeline is never blocked by an advanced module error.
+        """
+        closes = [bar.close for bar in bars]
+
+        # Hurst exponent (fractal analysis)
+        if self._fractal_analyzer is not None:
+            try:
+                hurst = self._fractal_analyzer(closes)
+                features["hurst"] = hurst
+            except Exception as e:
+                logger.debug("Fractal analysis failed", error=str(e))
+
+        # Dominant cycle (spectral analysis)
+        if self._spectral_detector is not None:
+            try:
+                result = self._spectral_detector.update(closes[-1])
+                if result:
+                    features["dominant_cycle"] = result.get("dominant_cycle", 0)
+                    features["spectral_entropy"] = result.get("spectral_entropy")
+            except Exception as e:
+                logger.debug("Spectral analysis failed", error=str(e))
+
+        # OU process s-score (mean reversion)
+        if self._ou_analyzer is not None:
+            try:
+                params = self._ou_analyzer.update(closes[-1])
+                if params is not None:
+                    features["ou_s_score"] = self._ou_analyzer.get_signal(
+                        closes[-1], params
+                    ).get("s_score")
+                    features["ou_half_life"] = params.half_life
+            except Exception as e:
+                logger.debug("OU analysis failed", error=str(e))
+
+        # Distribution shift detection
+        if self._shift_detector is not None:
+            try:
+                is_shift = self._shift_detector.update(closes[-1])
+                features["distribution_shift"] = is_shift
+            except Exception as e:
+                logger.debug("Shift detection failed", error=str(e))
