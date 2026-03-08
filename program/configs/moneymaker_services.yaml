@@ -1,0 +1,31 @@
+# MONEYMAKER V1 Static Service Discovery
+# In production (Proxmox VMs), these are static IPs.
+# In development (Docker Compose), use container names.
+
+services:
+  data_ingestion:
+    host: 10.0.1.10
+    zmq_pub_port: 5555
+    metrics_port: 9090
+    health_port: 8080
+
+  database:
+    host: 10.0.2.10
+    postgres_port: 5432
+    redis_port: 6379
+
+  brain:
+    host: 10.0.4.10
+    grpc_port: 50054
+    rest_port: 8080
+    metrics_port: 9093
+
+  mt5_bridge:
+    host: 10.0.4.11
+    grpc_port: 50055
+    metrics_port: 9094
+
+  monitoring:
+    host: 10.0.5.10
+    prometheus_port: 9090
+    grafana_port: 3000

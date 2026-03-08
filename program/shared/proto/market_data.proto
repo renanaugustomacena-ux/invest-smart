@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package moneymaker.v1.data;
+
+option go_package = "github.com/moneymaker-v1/shared/proto/gen/go/data";
+
+// MarketTick represents an atomic price update from any data source.
+// All price fields use string-encoded decimals to preserve precision.
+message MarketTick {
+  string symbol    = 1;   // Normalized symbol, e.g., "XAUUSD"
+  int64  timestamp = 2;   // Unix milliseconds UTC
+  string bid       = 3;   // Decimal string, e.g., "2045.67000000"
+  string ask       = 4;   // Decimal string
+  string last      = 5;   // Decimal string (last traded price)
+  string volume    = 6;   // Decimal string
+  string source    = 7;   // Source identifier, e.g., "binance", "mt5"
+  uint32 flags     = 8;   // Bit flags: 0x01=anomaly, 0x02=stale, 0x04=interpolated
+  string spread    = 9;   // Decimal string: ask - bid (pre-computed)
+}
+
+// OHLCVBar represents an aggregated candlestick bar.
+message OHLCVBar {
+  string symbol     = 1;
+  string timeframe  = 2;   // "M1", "M5", "M15", "H1", "H4", "D1"
+  int64  timestamp  = 3;   // Bar open time, Unix milliseconds UTC
+  string open       = 4;   // Decimal string
+  string high       = 5;   // Decimal string
+  string low        = 6;   // Decimal string
+  string close      = 7;   // Decimal string
+  string volume     = 8;   // Decimal string
+  int32  tick_count = 9;   // Number of ticks in this bar
+  bool   complete   = 10;  // True if bar is finalized
+  string spread_avg = 11;  // Average spread during candle
+}
+
+// DataEvent wraps either a tick or a bar for unified streaming.
+message DataEvent {
+  oneof payload {
+    MarketTick tick = 1;
+    OHLCVBar   bar  = 2;
+  }
+}

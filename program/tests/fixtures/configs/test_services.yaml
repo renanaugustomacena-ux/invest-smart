@@ -1,0 +1,23 @@
+# Test service discovery configuration (localhost)
+services:
+  data_ingestion:
+    host: localhost
+    zmq_pub_port: 15555
+    metrics_port: 19090
+    health_port: 18080
+
+  database:
+    host: localhost
+    postgres_port: 15432
+    redis_port: 16379
+
+  brain:
+    host: localhost
+    grpc_port: 50054
+    rest_port: 18081
+    metrics_port: 19093
+
+  mt5_bridge:
+    host: localhost
+    grpc_port: 50055
+    metrics_port: 19094

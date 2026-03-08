@@ -1,0 +1,99 @@
+# MONEYMAKER Trading System — Prometheus Alert Rules
+# These rules trigger alerts when safety conditions are breached.
+
+groups:
+  - name: moneymaker_safety
+    interval: 15s
+    rules:
+      - alert: KillSwitchActivated
+        expr: moneymaker_kill_switch_active == 1
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kill switch attivato"
+          description: "Il kill switch e' stato attivato. Tutto il trading e' sospeso."
+
+      - alert: CriticalDrawdown
+        expr: moneymaker_portfolio_drawdown_pct > 5
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drawdown critico > 5%"
+          description: "Il drawdown ha superato il 5%. Kill switch imminente."
+
+      - alert: HighDrawdown
+        expr: moneymaker_portfolio_drawdown_pct > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Drawdown elevato > 3%"
+          description: "Il drawdown e' al {{ $value }}%. Monitorare attentamente."
+
+      - alert: DailyLossApproaching
+        expr: moneymaker_daily_loss_pct > 1.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Perdita giornaliera al 75% del limite"
+          description: "La perdita giornaliera e' al {{ $value }}% (limite: 2%)."
+
+      - alert: SpiralProtectionActive
+        expr: moneymaker_spiral_consecutive_losses > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spiral protection attiva"
+          description: "{{ $value }} perdite consecutive. Sizing ridotto."
+
+  - name: moneymaker_infrastructure
+    interval: 30s
+    rules:
+      - alert: NoTicksReceived
+        expr: rate(moneymaker_ticks_received_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nessun tick ricevuto"
+          description: "Data Ingestion non riceve tick da 5 minuti."
+
+      - alert: HighPipelineLatency
+        expr: histogram_quantile(0.99, rate(moneymaker_pipeline_latency_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latenza pipeline P99 > 100ms"
+          description: "La latenza P99 della pipeline e' {{ $value }}s."
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Servizio non raggiungibile"
+          description: "Il servizio {{ $labels.job }} non risponde."
+
+      - alert: HighErrorRate
+        expr: rate(moneymaker_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error rate elevato"
+          description: "Il servizio {{ $labels.service }} ha un error rate di {{ $value }}/s."
+
+      - alert: BridgeUnavailable
+        expr: moneymaker_bridge_available == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MT5 Bridge non disponibile"
+          description: "Il bridge verso MetaTrader 5 non e' raggiungibile da 2 minuti."

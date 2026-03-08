@@ -1,0 +1,86 @@
+name: MONEYMAKER Security Scan
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # ogni lunedì alle 06:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - "**/pyproject.toml"
+      - "**/go.mod"
+      - "**/go.sum"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-audit:
+    name: Python Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Install algo-engine deps
+        run: pip install -e "services/algo-engine/"
+
+      - name: Audit algo-engine
+        run: pip-audit --strict --desc
+
+      - name: Install mt5-bridge deps
+        run: pip install -e "services/mt5-bridge/"
+
+      - name: Audit mt5-bridge
+        run: pip-audit --strict --desc
+
+  go-vuln:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/data-ingestion
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: services/data-ingestion/go.sum
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install trufflehog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Scan for secrets
+        run: |
+          trufflehog filesystem . \
+            --exclude-paths=AI_Trading_Brain_Concepts/ \
+            --fail \
+            --no-update

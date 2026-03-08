@@ -1,0 +1,23 @@
+[project]
+name = "moneymaker-proto"
+version = "0.1.0"
+description = "MONEYMAKER V1 generated protobuf stubs"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+
+dependencies = [
+    "grpcio>=1.60,<2.0",
+    "protobuf>=4.25,<7.0",
+]
+
+[project.optional-dependencies]
+codegen = [
+    "grpcio-tools>=1.60,<2.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["gen"]

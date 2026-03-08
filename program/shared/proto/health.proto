@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package moneymaker.v1;
+
+option go_package = "github.com/moneymaker-v1/shared/proto/gen/go/health";
+
+message HealthCheckRequest {
+  string service_name = 1;
+}
+
+message HealthCheckResponse {
+  enum Status {
+    UNKNOWN = 0;
+    HEALTHY = 1;
+    DEGRADED = 2;
+    UNHEALTHY = 3;
+  }
+  Status status              = 1;
+  string message             = 2;
+  map<string, string> details = 3;
+  int64 timestamp            = 4;   // Unix nanoseconds UTC
+  double uptime_seconds      = 5;
+}

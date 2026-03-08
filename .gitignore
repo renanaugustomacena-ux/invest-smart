@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Go
+/vendor/
+
+# Generated protobuf
+*_pb2.py
+*_pb2_grpc.py
+*_pb2.pyi
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Redis dump
+dump.rdb
+
+# Excluded from this repo
+biruleibe.py
+
+# Internal planning & audit documents
+MONEYMAKER_MASTER_PLAN.md
+MONEYMAKER_FOLLOW_UP_PLANS.md
+audits/
+document_*.md
+audit_rules.md.txt
+lista_coppie_trading.md
+new1111.txt
+
+# Legacy reference repositories
+Macena_cs2_analyzer-main/
+AI_Trading_Brain_Concepts/
+skills_analysis/
+
+# Windows null device artifact
+nul

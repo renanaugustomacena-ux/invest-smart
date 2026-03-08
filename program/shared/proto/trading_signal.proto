@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package moneymaker.v1;
+
+option go_package = "github.com/moneymaker-v1/shared/proto/gen/go/signal";
+
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_BUY = 1;
+  DIRECTION_SELL = 2;
+  DIRECTION_HOLD = 3;
+}
+
+enum SourceTier {
+  SOURCE_TIER_UNSPECIFIED = 0;
+  SOURCE_TIER_ML_PRIMARY = 1;
+  SOURCE_TIER_TECHNICAL = 2;
+  SOURCE_TIER_SENTIMENT = 3;
+  SOURCE_TIER_RULE_BASED = 4;
+}
+
+enum AckStatus {
+  ACK_STATUS_UNSPECIFIED = 0;
+  ACK_STATUS_ACCEPTED = 1;
+  ACK_STATUS_REJECTED = 2;
+  ACK_STATUS_ERROR = 3;
+}
+
+// TradingSignal from Algo Engine to MT5 Bridge.
+// Uses string-encoded decimals for all financial values.
+message TradingSignal {
+  string signal_id       = 1;
+  string symbol          = 2;
+  Direction direction    = 3;
+  string confidence      = 4;   // Decimal string, 0.0 to 1.0
+  string suggested_lots  = 5;   // Decimal string
+  string stop_loss       = 6;   // Decimal string, price level
+  string take_profit     = 7;   // Decimal string, price level
+  int64 timestamp        = 8;   // Unix nanoseconds UTC
+  string model_version   = 9;
+  string regime          = 10;  // Current market regime label
+  SourceTier source_tier = 11;
+  string reasoning       = 12;  // Human-readable explanation
+  string risk_reward_ratio = 13;
+}
+
+message SignalAck {
+  string signal_id  = 1;
+  AckStatus status  = 2;
+  string reason     = 3;
+  int64 timestamp   = 4;
+}
+
+// Service definition for Brain -> MT5 Bridge communication.
+service TradingSignalService {
+  rpc SendSignal(TradingSignal) returns (SignalAck);
+  rpc StreamSignals(stream TradingSignal) returns (stream SignalAck);
+}

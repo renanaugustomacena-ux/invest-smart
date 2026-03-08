@@ -1,0 +1,16 @@
+# Data Ingestion development configuration
+exchanges:
+  binance:
+    enabled: true
+    symbols:
+      - BTCUSDT
+    channels:
+      - trade
+      - kline_1m
+
+database:
+  batch_size: 100
+  flush_interval_sec: 5
+
+redis:
+  price_ttl_sec: 60

@@ -1,0 +1,24 @@
+# ============================================================
+# MONEYMAKER Docker Certificate Directory - Git Ignore
+# ============================================================
+# SECURITY: Never commit private keys or certificates to the repository.
+# Copy certificates from ../certs/ after running generate-certs.sh
+# ============================================================
+
+# Private keys - NEVER commit these
+*.key
+*.pem
+
+# Certificates - exclude from repo (regenerate per environment)
+*.crt
+*.cert
+
+# OpenSSL serial file
+*.srl
+
+# macOS
+.DS_Store
+
+# Keep this gitignore and the readme
+!.gitignore
+!README.md

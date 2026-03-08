@@ -1,0 +1,16 @@
+# Development overrides: debug logging, relaxed resource limits
+services:
+  data-ingestion:
+    environment:
+      - MONEYMAKER_ENV=development
+      - MONEYMAKER_LOG_LEVEL=DEBUG
+
+  algo-engine:
+    environment:
+      - MONEYMAKER_ENV=development
+      - MONEYMAKER_LOG_LEVEL=DEBUG
+
+  mt5-bridge:
+    environment:
+      - MONEYMAKER_ENV=development
+      - MONEYMAKER_LOG_LEVEL=DEBUG

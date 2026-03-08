@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Python artifacts
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/*.egg-info
+**/.venv
+**/venv
+
+# Go artifacts
+services/data-ingestion/tmp/
+
+# Node (proto tools)
+**/node_modules
+
+# Test files (not needed in runtime image)
+**/tests/
+**/test_*.py
+**/*_test.go
+**/.coverage
+**/htmlcov
+
+# Documentation
+**/*.md
+LICENSE
+
+# Docker & CI
+**/Dockerfile
+**/docker-compose*.yml
+**/.dockerignore
+Makefile
+.pre-commit-config.yaml
+
+# Reference material (NOT part of runtime)
+AI_Trading_Brain_Concepts/
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Env files (secrets)
+**/.env
+**/.env.*

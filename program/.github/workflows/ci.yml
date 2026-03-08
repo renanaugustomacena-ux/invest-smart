@@ -1,0 +1,236 @@
+name: MONEYMAKER CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test-python:
+    name: Python Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e shared/python-common/
+          pip install -e "services/algo-engine/[dev]"
+          pip install -e "services/mt5-bridge/[dev]"
+          pip install -e "services/ml-training/[dev]"
+          pip install -e "services/console/[dev]"
+          pip install -e "services/dashboard/[dev]"
+
+      - name: Ruff lint
+        run: |
+          ruff check \
+            services/algo-engine/src/ \
+            services/mt5-bridge/src/ \
+            services/ml-training/src/ \
+            services/console/src/ \
+            shared/python-common/src/ \
+            services/dashboard/backend/
+
+      - name: Black format check
+        run: |
+          black --check \
+            services/algo-engine/src/ services/algo-engine/tests/ \
+            services/mt5-bridge/src/ services/mt5-bridge/tests/ \
+            services/ml-training/src/ services/ml-training/tests/ \
+            services/console/src/ services/console/tests/ \
+            shared/python-common/src/ shared/python-common/tests/ \
+            services/dashboard/backend/
+
+      - name: Mypy type check
+        run: |
+          mypy --ignore-missing-imports \
+            services/algo-engine/src/ \
+            services/ml-training/src/ \
+            shared/python-common/src/
+
+      - name: Test python-common
+        run: |
+          cd shared/python-common && python -m pytest tests/ -q --tb=short
+
+      - name: Test Algo Engine
+        run: |
+          cd services/algo-engine && python -m pytest tests/ -q --tb=short
+
+      - name: Test ML Training
+        run: |
+          cd services/ml-training && python -m pytest tests/ -q --tb=short
+
+      - name: Test MT5 Bridge
+        run: |
+          cd services/mt5-bridge && python -m pytest tests/unit/ -q --tb=short
+
+      - name: Test Console
+        run: |
+          cd services/console && python -m pytest tests/ -q --tb=short
+
+      - name: Test Dashboard Backend
+        run: |
+          cd services/dashboard && python -m pytest backend/tests/ -q --tb=short --cov=backend --cov-report=term-missing --cov-fail-under=60
+
+      - name: MONEYMAKER Health Check
+        run: |
+          cd services/algo-engine && python -m tools.dev_health --ci --json reports/
+
+      - name: MONEYMAKER Brain Verification (quick)
+        run: |
+          cd services/algo-engine && python -m tools.brain_verification.brain_verify --quick --json reports/brain_verify.json
+
+  test-python-windows:
+    name: Python Test (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e shared/python-common/
+          pip install -e "services/algo-engine/[dev]"
+
+      - name: Run regression tests (Windows signal handlers)
+        run: |
+          cd services/algo-engine && python -m pytest tests/regression/ -q --tb=short
+
+  test-dashboard-frontend:
+    name: Dashboard Frontend Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/dashboard/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: services/dashboard/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+  lint-and-test-go:
+    name: Go Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/data-ingestion
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: services/data-ingestion/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: services/data-ingestion
+
+      - name: Go test
+        run: go test -v -race ./...
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build data-ingestion
+        uses: docker/build-push-action@v5
+        with:
+          context: services/data-ingestion
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build algo-engine
+        uses: docker/build-push-action@v5
+        with:
+          context: services/algo-engine
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build mt5-bridge
+        uses: docker/build-push-action@v5
+        with:
+          context: services/mt5-bridge
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build ml-training
+        uses: docker/build-push-action@v5
+        with:
+          context: services/ml-training
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build dashboard
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/dashboard/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

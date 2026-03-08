@@ -1,0 +1,14 @@
+# MT5 Bridge production configuration
+trading:
+  max_lot_size: 1.0
+  max_position_count: 5
+  max_daily_loss_pct: 2.0
+  max_drawdown_pct: 10.0
+
+trailing_stop:
+  enabled: true
+  pips: 50
+
+signal:
+  dedup_window_sec: 60
+  max_age_sec: 15

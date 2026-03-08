@@ -1,0 +1,341 @@
+# MONEYMAKER V1 - Docker Compose Stack
+#
+# SECURITY NOTES:
+# - All passwords MUST be set via .env file (copy from .env.example)
+# - Never use default passwords in production
+# - Generate strong passwords with: openssl rand -base64 24
+# - TLS is optional (MONEYMAKER_TLS_ENABLED=false by default)
+# - For TLS: generate certs with ../certs/generate-certs.sh first
+
+services:
+  # === Infrastructure Dependencies ===
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: macena-postgres
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "${MONEYMAKER_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${MONEYMAKER_DB_NAME:-moneymaker}
+      POSTGRES_USER: ${MONEYMAKER_DB_USER:-moneymaker}
+      # SECURITY: Password is REQUIRED - no default value
+      POSTGRES_PASSWORD: ${MONEYMAKER_DB_PASSWORD:?MONEYMAKER_DB_PASSWORD is required - set in .env file}
+      # RBAC: Service passwords for per-service database users
+      # Set these to enable least-privilege access control
+      DI_DB_PASSWORD: ${DI_DB_PASSWORD:-}
+      BRAIN_DB_PASSWORD: ${BRAIN_DB_PASSWORD:-}
+      MT5_DB_PASSWORD: ${MT5_DB_PASSWORD:-}
+      ADMIN_DB_PASSWORD: ${ADMIN_DB_PASSWORD:-}
+    # TLS Configuration: enabled via command when MONEYMAKER_TLS_ENABLED=true
+    # Without TLS, PostgreSQL runs with default settings
+    # TLS Configuration disabled for local development
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+      # TLS certificates (mounted even if TLS disabled - no impact)
+      - ./certs/postgres-server.crt:/etc/ssl/certs/postgres-server.crt:ro
+      - ./certs/postgres-server.key:/etc/ssl/private/postgres-server.key:ro
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MONEYMAKER_DB_USER:-moneymaker} -d ${MONEYMAKER_DB_NAME:-moneymaker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: macena-redis
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "${MONEYMAKER_REDIS_PORT:-6379}:6379"
+    # SECURITY: Password is REQUIRED
+    # TLS: When enabled, Redis listens only on TLS port (--port 0 disables non-TLS)
+    command: redis-server --requirepass ${MONEYMAKER_REDIS_PASSWORD:?MONEYMAKER_REDIS_PASSWORD is required}
+    volumes:
+      - redis-data:/data
+      # TLS certificates (mounted even if TLS disabled - no impact)
+      - ./certs/redis-server.crt:/etc/ssl/certs/redis-server.crt:ro
+      - ./certs/redis-server.key:/etc/ssl/private/redis-server.key:ro
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+    healthcheck:
+      test: ["CMD-SHELL", "if [ \"$MONEYMAKER_TLS_ENABLED\" = 'true' ]; then redis-cli --tls --cacert /etc/ssl/certs/ca.crt -a $MONEYMAKER_REDIS_PASSWORD ping; else redis-cli -a $MONEYMAKER_REDIS_PASSWORD ping; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - backend
+
+  # === MONEYMAKER Services ===
+  data-ingestion:
+    build:
+      context: ../..
+      dockerfile: services/data-ingestion/Dockerfile
+    container_name: macena-data-ingestion
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "5555:5555"     # ZeroMQ PUB
+      - "9090:9090"     # Prometheus metrics
+      - "${DATA_INGESTION_HEALTH_PORT:-8081}:9091"     # Health (container: 9091)
+    environment:
+      - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}
+      - MONEYMAKER_DB_HOST=postgres
+      - MONEYMAKER_DB_PORT=5432
+      - MONEYMAKER_DB_NAME=${MONEYMAKER_DB_NAME:-moneymaker}
+      # RBAC: Use per-service user if DI_DB_PASSWORD is set, otherwise fallback to default
+      - MONEYMAKER_DB_USER=${DI_DB_USER:-${MONEYMAKER_DB_USER:-moneymaker}}
+      - MONEYMAKER_DB_PASSWORD=${DI_DB_PASSWORD:-${MONEYMAKER_DB_PASSWORD:?required}}
+      - MONEYMAKER_REDIS_HOST=redis
+      - MONEYMAKER_REDIS_PORT=6379
+      - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - MONEYMAKER_ZMQ_PUB_ADDR=tcp://*:5555
+      - POLYGON_API_KEY=${POLYGON_API_KEY:-}
+      - MONEYMAKER_BINANCE_API_KEY=${MONEYMAKER_BINANCE_API_KEY:-}
+      - MONEYMAKER_BINANCE_API_SECRET=${MONEYMAKER_BINANCE_API_SECRET:-}
+      # TLS Configuration (for DB/Redis connections)
+      - MONEYMAKER_TLS_ENABLED=${MONEYMAKER_TLS_ENABLED:-false}
+      - MONEYMAKER_TLS_CA_CERT=/etc/ssl/certs/ca.crt
+      # mTLS: Client certificates for gRPC inter-service communication
+      - MONEYMAKER_TLS_CLIENT_CERT=/etc/ssl/certs/data-ingestion.crt
+      - MONEYMAKER_TLS_CLIENT_KEY=/etc/ssl/private/data-ingestion.key
+    volumes:
+      # TLS certificates for mTLS
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./certs/data-ingestion.crt:/etc/ssl/certs/data-ingestion.crt:ro
+      - ./certs/data-ingestion.key:/etc/ssl/private/data-ingestion.key:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  algo-engine:
+    build:
+      context: ../..
+      dockerfile: services/algo-engine/Dockerfile
+    container_name: macena-algo-engine
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "${MONEYMAKER_ALGO_GRPC_PORT:-50057}:50057"   # gRPC
+      - "${ALGO_REST_PORT:-8087}:8087"                 # REST/Health
+      - "${ALGO_METRICS_PORT:-9097}:9097"              # Prometheus metrics
+    environment:
+      - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}
+      - MONEYMAKER_DB_HOST=postgres
+      - MONEYMAKER_DB_PORT=5432
+      - MONEYMAKER_DB_NAME=${MONEYMAKER_DB_NAME:-moneymaker}
+      - MONEYMAKER_DB_USER=${ALGO_DB_USER:-${MONEYMAKER_DB_USER:-moneymaker}}
+      - MONEYMAKER_DB_PASSWORD=${ALGO_DB_PASSWORD:-${MONEYMAKER_DB_PASSWORD:?required}}
+      - MONEYMAKER_REDIS_HOST=redis
+      - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - ALGO_ZMQ_DATA_FEED=tcp://data-ingestion:5555
+      - ALGO_MT5_BRIDGE_TARGET=mt5-bridge:50055
+      # TLS Configuration (for DB/Redis connections)
+      - MONEYMAKER_TLS_ENABLED=${MONEYMAKER_TLS_ENABLED:-false}
+      - MONEYMAKER_TLS_CA_CERT=/etc/ssl/certs/ca.crt
+      # mTLS: Client certificates for gRPC calls to MT5 Bridge
+      - MONEYMAKER_TLS_CLIENT_CERT=/etc/ssl/certs/algo-engine.crt
+      - MONEYMAKER_TLS_CLIENT_KEY=/etc/ssl/private/algo-engine.key
+    volumes:
+      # TLS certificates for mTLS
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./certs/algo-engine.crt:/etc/ssl/certs/algo-engine.crt:ro
+      - ./certs/algo-engine.key:/etc/ssl/private/algo-engine.key:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9097/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      data-ingestion:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+
+  mt5-bridge:
+    build:
+      context: ../..
+      dockerfile: services/mt5-bridge/Dockerfile
+    container_name: macena-mt5-bridge
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "50055:50055"   # gRPC
+      - "9094:9094"     # Prometheus metrics
+    environment:
+      - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}
+      - MONEYMAKER_DB_HOST=postgres
+      - MONEYMAKER_DB_PORT=5432
+      - MONEYMAKER_DB_NAME=${MONEYMAKER_DB_NAME:-moneymaker}
+      # RBAC: Use per-service user if MT5_DB_PASSWORD is set, otherwise fallback to default
+      - MONEYMAKER_DB_USER=${MT5_DB_USER:-${MONEYMAKER_DB_USER:-moneymaker}}
+      - MONEYMAKER_DB_PASSWORD=${MT5_DB_PASSWORD:-${MONEYMAKER_DB_PASSWORD:?required}}
+      - MONEYMAKER_REDIS_HOST=redis
+      - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - MT5_ACCOUNT=${MT5_ACCOUNT:-}
+      - MT5_PASSWORD=${MT5_PASSWORD:-}
+      - MT5_SERVER=${MT5_SERVER:-}
+      # TLS Configuration (for DB/Redis connections)
+      - MONEYMAKER_TLS_ENABLED=${MONEYMAKER_TLS_ENABLED:-false}
+      - MONEYMAKER_TLS_CA_CERT=/etc/ssl/certs/ca.crt
+      # mTLS: Server certificates for gRPC ExecutionBridgeService
+      - MONEYMAKER_TLS_SERVER_CERT=/etc/ssl/certs/mt5-bridge.crt
+      - MONEYMAKER_TLS_SERVER_KEY=/etc/ssl/private/mt5-bridge.key
+      # mTLS: Client certificates (if this service calls others)
+      - MONEYMAKER_TLS_CLIENT_CERT=/etc/ssl/certs/mt5-bridge.crt
+      - MONEYMAKER_TLS_CLIENT_KEY=/etc/ssl/private/mt5-bridge.key
+      # Rate Limiting: Protects against DoS and HFT abuse
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-10}
+      - RATE_LIMIT_BURST_SIZE=${RATE_LIMIT_BURST_SIZE:-5}
+    volumes:
+      # TLS certificates for mTLS
+      - ./certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./certs/mt5-bridge.crt:/etc/ssl/certs/mt5-bridge.crt:ro
+      - ./certs/mt5-bridge.key:/etc/ssl/private/mt5-bridge.key:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; ch = grpc.insecure_channel('localhost:50055'); grpc.channel_ready_future(ch).result(timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      algo-engine:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  # === Dashboard (Unified Monitoring UI) ===
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: services/dashboard/Dockerfile
+    container_name: macena-dashboard
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "${DASHBOARD_PORT:-8888}:8888"
+    environment:
+      - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}
+      - MONEYMAKER_DB_HOST=postgres
+      - MONEYMAKER_DB_PORT=5432
+      - MONEYMAKER_DB_NAME=${MONEYMAKER_DB_NAME:-moneymaker}
+      - MONEYMAKER_DB_USER=${MONEYMAKER_DB_USER:-moneymaker}
+      - MONEYMAKER_DB_PASSWORD=${MONEYMAKER_DB_PASSWORD:?required}
+      - MONEYMAKER_REDIS_HOST=redis
+      - MONEYMAKER_REDIS_PORT=6379
+      - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - DASHBOARD_PORT=8888
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # === Monitoring ===
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: macena-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    volumes:
+      - ../../services/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../services/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring
+      - frontend
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: macena-grafana
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      # Allow anonymous access in dev (no login required)
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ../../services/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../services/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+      - frontend
+
+# Network segmentation for security
+networks:
+  frontend:
+    driver: bridge
+    # External-facing services (Grafana)
+  backend:
+    driver: bridge
+    internal: true
+    # Internal services (DB, Redis, MONEYMAKER services) — no external access
+  monitoring:
+    driver: bridge
+    # Metrics collection network
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:

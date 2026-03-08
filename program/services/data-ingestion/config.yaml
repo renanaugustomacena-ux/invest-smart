@@ -1,0 +1,226 @@
+# ============================================================================
+# MONEYMAKER V1 Data Ingestion Service Configuration
+# ============================================================================
+# This file defines the service-level configuration. Environment-specific
+# overrides (DB credentials, hostnames) come from environment variables
+# loaded by the shared go-common/config package.
+# ============================================================================
+
+server:
+  # ZeroMQ PUB socket address for broadcasting normalized market data.
+  # Downstream services (Algo Engine, ML Training) connect as SUB clients.
+  zmq_pub_addr: "tcp://*:5555"
+
+  # Prometheus metrics endpoint port.
+  metrics_port: 9090
+
+  # Health check HTTP server port (liveness, readiness, deep checks).
+  health_port: 9091
+
+  # Number of normalizer worker goroutines.
+  normalizer_workers: 4
+
+  # Maximum number of reconnection attempts before giving up on an exchange.
+  max_reconnect_attempts: 50
+
+# ============================================================================
+# Exchange Connections
+# ============================================================================
+exchanges:
+  # Polygon.io - PRIMARY for MONEYMAKER V1 (Forex/CFD focus)
+  polygon:
+    enabled: true
+    ws_url: "wss://socket.polygon.io/forex"
+    # API key loaded from environment variable: POLYGON_API_KEY
+
+    # Forex pairs for MONEYMAKER V1
+    symbols:
+      - "C:XAUUSD"    # Gold/USD (Primary asset)
+      - "C:EURUSD"    # Euro/USD
+      - "C:GBPUSD"    # Pound/USD
+      - "C:USDJPY"    # USD/Yen
+      - "C:AUDUSD"    # Australian Dollar/USD
+      - "C:USDCAD"    # USD/Canadian Dollar
+      - "C:NZDUSD"    # New Zealand Dollar/USD
+      - "C:USDCHF"    # USD/Swiss Franc
+
+    channels:
+      - trade       # Tick-level trade data (bid/ask)
+      - aggregate   # Minute aggregates (OHLCV candles)
+
+    # Connection parameters
+    reconnect_delay_ms: 2000
+    max_reconnect_delay_ms: 60000
+    ping_interval_ms: 30000
+
+  # Binance - Secondary (Crypto data for diversification)
+  binance:
+    enabled: false  # Disabled for MONEYMAKER V1 (Forex focus)
+    ws_url: "wss://stream.binance.com:9443/ws"
+    # For testnet: "wss://testnet.binance.vision/ws"
+
+    symbols:
+      - btcusdt
+      - ethusdt
+      - bnbusdt
+      - solusdt
+      - xrpusdt
+      - adausdt
+      - dogeusdt
+      - avaxusdt
+
+    channels:
+      - trade
+      - depth
+      - kline_1m
+      - bookTicker
+
+    # Connection parameters
+    reconnect_delay_ms: 1000
+    max_reconnect_delay_ms: 60000
+    ping_interval_ms: 20000
+
+    # Rate limiting (Binance allows 5 messages/second for subscriptions)
+    subscribe_rate_limit: 5
+
+  # bybit:
+  #   enabled: false
+  #   ws_url: "wss://stream.bybit.com/v5/public/linear"
+  #   symbols:
+  #     - BTCUSDT
+  #     - ETHUSDT
+  #   channels:
+  #     - publicTrade
+  #     - orderbook.50
+
+# ============================================================================
+# Symbol Mapping
+# ============================================================================
+# Maps exchange-native symbol names to canonical MONEYMAKER identifiers.
+# The canonical format is "BASE/QUOTE" (e.g., "XAU/USD", "EUR/USD").
+symbols:
+  mapping:
+    # Forex pairs (Polygon.io format: "c:xauusd" or "xau/usd")
+    "c:xauusd": "XAU/USD"
+    "xau/usd": "XAU/USD"
+    "xauusd": "XAU/USD"
+    "c:eurusd": "EUR/USD"
+    "eur/usd": "EUR/USD"
+    "eurusd": "EUR/USD"
+    "c:gbpusd": "GBP/USD"
+    "gbp/usd": "GBP/USD"
+    "gbpusd": "GBP/USD"
+    "c:usdjpy": "USD/JPY"
+    "usd/jpy": "USD/JPY"
+    "usdjpy": "USD/JPY"
+    "c:audusd": "AUD/USD"
+    "aud/usd": "AUD/USD"
+    "audusd": "AUD/USD"
+    "c:usdcad": "USD/CAD"
+    "usd/cad": "USD/CAD"
+    "usdcad": "USD/CAD"
+    "c:nzdusd": "NZD/USD"
+    "nzd/usd": "NZD/USD"
+    "nzdusd": "NZD/USD"
+    "c:usdchf": "USD/CHF"
+    "usd/chf": "USD/CHF"
+    "usdchf": "USD/CHF"
+
+    # Crypto pairs (Binance format - if enabled)
+    btcusdt: "BTC/USDT"
+    ethusdt: "ETH/USDT"
+    bnbusdt: "BNB/USDT"
+    solusdt: "SOL/USDT"
+    xrpusdt: "XRP/USDT"
+    adausdt: "ADA/USDT"
+    dogeusdt: "DOGE/USDT"
+    avaxusdt: "AVAX/USDT"
+
+  # Internal numeric IDs for compact storage and fast lookups.
+  ids:
+    # Forex (Priority 1-99)
+    "XAU/USD": 1   # Gold - Primary asset
+    "EUR/USD": 2   # Most liquid Forex pair
+    "GBP/USD": 3   # Cable
+    "USD/JPY": 4   # Yen
+    "AUD/USD": 5   # Aussie
+    "USD/CAD": 6   # Loonie
+    "NZD/USD": 7   # Kiwi
+    "USD/CHF": 8   # Swissie
+
+    # Crypto (Priority 100+)
+    "BTC/USDT": 101
+    "ETH/USDT": 102
+    "BNB/USDT": 103
+    "SOL/USDT": 104
+    "XRP/USDT": 105
+    "ADA/USDT": 106
+    "DOGE/USDT": 107
+    "AVAX/USDT": 108
+
+# ============================================================================
+# Database (TimescaleDB / PostgreSQL)
+# ============================================================================
+# Connection parameters (host, port, credentials) come from environment
+# variables via go-common/config. These settings control batch behavior.
+database:
+  # Number of ticks to accumulate before flushing a batch INSERT.
+  batch_size: 1000
+
+  # Maximum time to hold a partial batch before flushing (milliseconds).
+  flush_interval_ms: 5000
+
+  # Number of concurrent batch writer goroutines.
+  writer_workers: 2
+
+  # Table name for raw tick storage (TimescaleDB hypertable).
+  ticks_table: "market_ticks"
+
+  # Enable/disable database recording (useful for dry-run mode).
+  enabled: true
+
+# ============================================================================
+# Redis Cache
+# ============================================================================
+# Connection parameters come from environment variables via go-common/config.
+redis:
+  # TTL for cached latest ticks (seconds). After this period, stale entries
+  # are automatically evicted.
+  tick_ttl_seconds: 300
+
+  # Key prefix for all data-ingestion keys in Redis.
+  key_prefix: "moneymaker:tick:"
+
+  # Enable/disable Redis caching.
+  enabled: true
+
+# ============================================================================
+# Aggregation
+# ============================================================================
+# Real-time OHLCV candle aggregation from the raw tick stream.
+aggregation:
+  enabled: true
+  timeframes:
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "1d"
+
+  # ZMQ topic prefix for aggregated candles.
+  # Full topic: "candle.binance.BTC/USDT.1m"
+  zmq_topic_prefix: "candle"
+
+# ============================================================================
+# Logging
+# ============================================================================
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+
+  # Log format: json, console
+  format: "json"
+
+  # Log raw messages for debugging (WARNING: very verbose, disable in prod)
+  log_raw_messages: false

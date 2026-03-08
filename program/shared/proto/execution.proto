@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package moneymaker.v1;
+
+option go_package = "github.com/moneymaker-v1/shared/proto/gen/go/execution";
+
+import "trading_signal.proto";
+import "health.proto";
+
+// TradeExecution records the full lifecycle of an executed trade.
+message TradeExecution {
+  string order_id        = 1;
+  string signal_id       = 2;
+  string symbol          = 3;
+  Direction direction    = 4;
+  string requested_price = 5;   // Decimal string
+  string executed_price  = 6;   // Decimal string
+  string quantity        = 7;   // Lots, decimal string
+  string stop_loss       = 8;   // Decimal string
+  string take_profit     = 9;   // Decimal string
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_FILLED = 2;
+    STATUS_PARTIALLY_FILLED = 3;
+    STATUS_REJECTED = 4;
+    STATUS_CANCELLED = 5;
+    STATUS_EXPIRED = 6;
+  }
+  Status status           = 10;
+  string slippage_pips    = 11;  // Decimal string
+  string commission       = 12;  // Decimal string
+  string swap             = 13;  // Decimal string
+  int64  executed_at      = 14;  // Unix nanoseconds UTC
+  string rejection_reason = 15;
+}
+
+// Service definition for trade execution via MT5 Bridge.
+service ExecutionBridgeService {
+  rpc ExecuteTrade(TradingSignal) returns (TradeExecution);
+  rpc StreamTradeUpdates(HealthCheckRequest) returns (stream TradeExecution);
+  rpc CheckHealth(HealthCheckRequest) returns (HealthCheckResponse);
+}
