@@ -87,6 +87,7 @@ class AlgoEngine:
         adaptive_tuner: Any | None = None,
         feature_scorer: Any | None = None,
         belief_state: Any | None = None,
+        composite_confidence: Any | None = None,
     ) -> None:
         # Core
         self._feature_pipeline = feature_pipeline
@@ -118,10 +119,11 @@ class AlgoEngine:
         self._adaptive_tuner = adaptive_tuner
         self._feature_scorer = feature_scorer
         self._belief_state = belief_state
+        self._composite_confidence = composite_confidence
 
         if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
                 shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
-                feature_scorer, belief_state]):
+                feature_scorer, belief_state, composite_confidence]):
             active = [name for name, mod in [
                 ("bayesian_regime", bayesian_regime),
                 ("spectral_detector", spectral_detector),
@@ -133,6 +135,7 @@ class AlgoEngine:
                 ("adaptive_tuner", adaptive_tuner),
                 ("feature_scorer", feature_scorer),
                 ("belief_state", belief_state),
+                ("composite_confidence", composite_confidence),
             ] if mod is not None]
             logger.info("Advanced modules active", modules=active)
 
@@ -299,6 +302,19 @@ class AlgoEngine:
         )
         if trading_signal is None:
             return None
+
+        # --- Step 7a: Composite confidence override (optional) ---
+        if self._composite_confidence is not None:
+            try:
+                belief_edge = features.get("belief_edge", Decimal("0"))
+                calibrated = self._composite_confidence.compute(
+                    features=features,
+                    direction=str(suggestion.direction),
+                    belief_edge=belief_edge,
+                )
+                trading_signal["confidence"] = str(calibrated)
+            except Exception as e:
+                logger.debug("Composite confidence failed", error=str(e))
 
         # --- Step 8: Position sizing ---
         portfolio_state = self._portfolio_manager.get_state()
