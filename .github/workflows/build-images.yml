@@ -1,0 +1,123 @@
+name: Build & Push Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'program/services/**'
+      - 'program/shared/**'
+  workflow_call:
+    inputs:
+      tag:
+        required: false
+        type: string
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/renanaugustomacena-ux/invest-smart
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      data-ingestion: ${{ steps.filter.outputs.data-ingestion }}
+      algo-engine: ${{ steps.filter.outputs.algo-engine }}
+      mt5-bridge: ${{ steps.filter.outputs.mt5-bridge }}
+      dashboard: ${{ steps.filter.outputs.dashboard }}
+      external-data: ${{ steps.filter.outputs.external-data }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            data-ingestion:
+              - 'program/services/data-ingestion/**'
+              - 'program/shared/go-common/**'
+              - 'program/shared/proto/**'
+            algo-engine:
+              - 'program/services/algo-engine/**'
+              - 'program/shared/python-common/**'
+              - 'program/shared/proto/**'
+            mt5-bridge:
+              - 'program/services/mt5-bridge/**'
+              - 'program/shared/python-common/**'
+              - 'program/shared/proto/**'
+            dashboard:
+              - 'program/services/dashboard/**'
+              - 'program/shared/python-common/**'
+            external-data:
+              - 'program/services/external-data/**'
+              - 'program/shared/python-common/**'
+
+  build-push:
+    name: Build ${{ matrix.service }}
+    needs: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: data-ingestion
+            dockerfile: program/services/data-ingestion/Dockerfile
+            changed: ${{ needs.changes.outputs.data-ingestion }}
+          - service: algo-engine
+            dockerfile: program/services/algo-engine/Dockerfile
+            changed: ${{ needs.changes.outputs.algo-engine }}
+          - service: mt5-bridge
+            dockerfile: program/services/mt5-bridge/Dockerfile
+            changed: ${{ needs.changes.outputs.mt5-bridge }}
+          - service: dashboard
+            dockerfile: program/services/dashboard/Dockerfile
+            changed: ${{ needs.changes.outputs.dashboard }}
+          - service: external-data
+            dockerfile: program/services/external-data/Dockerfile
+            changed: ${{ needs.changes.outputs.external-data }}
+    steps:
+      - name: Skip if unchanged
+        if: matrix.changed != 'true' && inputs.tag == ''
+        run: echo "Skipping ${{ matrix.service }} — no changes detected"
+
+      - uses: actions/checkout@v4
+        if: matrix.changed == 'true' || inputs.tag != ''
+
+      - uses: docker/setup-buildx-action@v3
+        if: matrix.changed == 'true' || inputs.tag != ''
+
+      - name: Login to GHCR
+        if: matrix.changed == 'true' || inputs.tag != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate metadata
+        if: matrix.changed == 'true' || inputs.tag != ''
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/main' && inputs.tag == '' }}
+            type=sha,prefix=dev-,enable=${{ github.ref == 'refs/heads/main' && inputs.tag == '' }}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Build and push
+        if: matrix.changed == 'true' || inputs.tag != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./program
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

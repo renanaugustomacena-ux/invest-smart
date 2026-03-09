@@ -26,6 +26,20 @@ dependencies = [
     "asyncpg>=0.29,<1.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=4.1,<6.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "pytest-mock>=3.12,<4.0",
+    "pytest-xdist>=3.5,<4.0",
+    "pytest-timeout>=2.2,<3.0",
+    "pytest-benchmark>=4.0,<5.0",
+    "black>=23.12,<25.0",
+    "ruff>=0.4,<1.0",
+    "mypy>=1.8,<2.0",
+]
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -43,3 +57,22 @@ target-version = ["py311"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-v",
+]
+markers = [
+    "slow: tests taking >5s (deselect with -m 'not slow')",
+    "integration: requires real components",
+    "financial: financial math precision tests",
+    "benchmark: performance benchmarks",
+    "smoke: quick validation tests",
+]
+timeout = 30
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:google.protobuf.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+]

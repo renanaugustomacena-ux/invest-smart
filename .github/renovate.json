@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "schedule": ["every weekend"],
+  "packageRules": [
+    {
+      "description": "Python patch updates — auto-merge if CI passes",
+      "matchManagers": ["pip_requirements", "pep621"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Go patch updates — auto-merge if CI passes",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Node patch updates — auto-merge if CI passes",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Minor and major updates — grouped weekly PR, manual review",
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false,
+      "schedule": ["before 9am on monday"],
+      "groupName": "non-patch-updates"
+    },
+    {
+      "description": "Docker base image updates — grouped, manual review",
+      "matchManagers": ["dockerfile"],
+      "automerge": false,
+      "groupName": "docker-base-images"
+    },
+    {
+      "description": "GitHub Actions updates — auto-merge patch and minor",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "groupName": "github-actions"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}

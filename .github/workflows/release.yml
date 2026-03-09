@@ -1,0 +1,136 @@
+name: Release Service
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to release'
+        required: true
+        type: choice
+        options:
+          - algo-engine
+          - data-ingestion
+          - mt5-bridge
+          - dashboard
+          - external-data
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    name: Release ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate version
+        id: version
+        run: |
+          SERVICE="${{ inputs.service }}"
+          BUMP="${{ inputs.bump }}"
+
+          # Get latest tag for this service
+          LATEST_TAG=$(git tag --list "${SERVICE}/v*" --sort=-v:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            CURRENT="0.1.0"
+          else
+            CURRENT="${LATEST_TAG#${SERVICE}/v}"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=${NEW}" >> "$GITHUB_OUTPUT"
+          echo "tag=${SERVICE}/v${NEW}" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${SERVICE} v${NEW} (was: ${CURRENT})"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          SERVICE="${{ inputs.service }}"
+          PREV="${{ steps.version.outputs.prev_tag }}"
+          if [ -z "$PREV" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV}..HEAD"
+          fi
+
+          CHANGELOG_FILE=$(mktemp)
+          {
+            echo "## What's Changed in ${SERVICE} v${{ steps.version.outputs.version }}"
+            echo ""
+
+            FEATS=$(git log "$RANGE" --pretty=format:"- %s" -- \
+              "program/services/${SERVICE}/" "program/shared/" 2>/dev/null \
+              | grep -i "^- feat" || true)
+            if [ -n "$FEATS" ]; then
+              echo "### Features"
+              echo "$FEATS"
+              echo ""
+            fi
+
+            FIXES=$(git log "$RANGE" --pretty=format:"- %s" -- \
+              "program/services/${SERVICE}/" "program/shared/" 2>/dev/null \
+              | grep -i "^- fix" || true)
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+
+            OTHER=$(git log "$RANGE" --pretty=format:"- %s" -- \
+              "program/services/${SERVICE}/" "program/shared/" 2>/dev/null \
+              | grep -iv "^- feat\|^- fix" || true)
+            if [ -n "$OTHER" ]; then
+              echo "### Other Changes"
+              echo "$OTHER"
+              echo ""
+            fi
+          } > "$CHANGELOG_FILE"
+
+          # Use delimiter for multiline output
+          echo "body<<CHANGELOG_EOF" >> "$GITHUB_OUTPUT"
+          cat "$CHANGELOG_FILE" >> "$GITHUB_OUTPUT"
+          echo "CHANGELOG_EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update version in pyproject.toml
+        if: inputs.service != 'data-ingestion'
+        run: |
+          FILE="program/services/${{ inputs.service }}/pyproject.toml"
+          if [ -f "$FILE" ]; then
+            sed -i "s/^version = .*/version = \"${{ steps.version.outputs.version }}\"/" "$FILE"
+            git add "$FILE"
+          fi
+
+      - name: Create release commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "release(${{ inputs.service }}): v${{ steps.version.outputs.version }}"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "${{ inputs.service }} v${{ steps.version.outputs.version }}"
+          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: false

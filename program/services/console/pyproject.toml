@@ -17,8 +17,12 @@ full = [
     "python-dotenv>=1.0",
 ]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.0",
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=4.1,<6.0",
+    "pytest-xdist>=3.5,<4.0",
+    "pytest-timeout>=2.2,<3.0",
+    "black>=23.12,<25.0",
+    "ruff>=0.4,<1.0",
 ]
 
 [project.scripts]
@@ -30,3 +34,20 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-v",
+]
+timeout = 30

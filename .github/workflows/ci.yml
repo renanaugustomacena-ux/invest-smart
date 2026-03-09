@@ -1,4 +1,4 @@
-name: CI
+name: MONEYMAKER CI
 
 on:
   push:
@@ -6,77 +6,589 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # ─── Change Detection ─────────────────────────────────────────────────────
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      algo-engine: ${{ steps.filter.outputs.algo-engine }}
+      mt5-bridge: ${{ steps.filter.outputs.mt5-bridge }}
+      data-ingestion: ${{ steps.filter.outputs.data-ingestion }}
+      dashboard-backend: ${{ steps.filter.outputs.dashboard-backend }}
+      dashboard-frontend: ${{ steps.filter.outputs.dashboard-frontend }}
+      console: ${{ steps.filter.outputs.console }}
+      python-common: ${{ steps.filter.outputs.python-common }}
+      proto: ${{ steps.filter.outputs.proto }}
+      go-common: ${{ steps.filter.outputs.go-common }}
+      docker: ${{ steps.filter.outputs.docker }}
+      external-data: ${{ steps.filter.outputs.external-data }}
+      any-python: ${{ steps.filter.outputs.any-python }}
+      any-go: ${{ steps.filter.outputs.any-go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            algo-engine:
+              - 'program/services/algo-engine/**'
+              - 'program/shared/python-common/**'
+              - 'program/shared/proto/**'
+            mt5-bridge:
+              - 'program/services/mt5-bridge/**'
+              - 'program/shared/python-common/**'
+              - 'program/shared/proto/**'
+            data-ingestion:
+              - 'program/services/data-ingestion/**'
+              - 'program/shared/go-common/**'
+              - 'program/shared/proto/**'
+            dashboard-backend:
+              - 'program/services/dashboard/backend/**'
+              - 'program/services/dashboard/pyproject.toml'
+              - 'program/shared/python-common/**'
+            dashboard-frontend:
+              - 'program/services/dashboard/frontend/**'
+            console:
+              - 'program/services/console/**'
+              - 'program/shared/python-common/**'
+            python-common:
+              - 'program/shared/python-common/**'
+            proto:
+              - 'program/shared/proto/**/*.proto'
+              - 'program/shared/proto/Makefile'
+            go-common:
+              - 'program/shared/go-common/**'
+            docker:
+              - 'program/services/*/Dockerfile'
+              - 'program/infra/docker/**'
+            external-data:
+              - 'program/services/external-data/**'
+              - 'program/shared/python-common/**'
+            any-python:
+              - 'program/services/algo-engine/**'
+              - 'program/services/mt5-bridge/**'
+              - 'program/services/console/**'
+              - 'program/services/dashboard/backend/**'
+              - 'program/services/external-data/**'
+              - 'program/shared/python-common/**'
+            any-go:
+              - 'program/services/data-ingestion/**'
+              - 'program/shared/go-common/**'
+
+  # ─── Python Lint ──────────────────────────────────────────────────────────
   lint-python:
+    name: Python Lint
+    needs: changes
+    if: needs.changes.outputs.any-python == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Install ruff
-        run: pip install ruff
-      - name: Lint algo-engine
-        run: ruff check program/services/algo-engine/src/
-      - name: Lint mt5-bridge
-        run: ruff check program/services/mt5-bridge/src/
-      - name: Lint python-common
-        run: ruff check program/shared/python-common/src/
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-lint-${{ runner.os }}-${{ hashFiles('program/**/pyproject.toml') }}
+          restore-keys: pip-lint-${{ runner.os }}-
+      - name: Install tools
+        run: pip install ruff black mypy
+      - name: Ruff check
+        run: |
+          ruff check \
+            program/services/algo-engine/src/ \
+            program/services/mt5-bridge/src/ \
+            program/services/console/src/ \
+            program/shared/python-common/src/ \
+            program/services/dashboard/backend/
+      - name: Black format check
+        run: |
+          black --check --line-length=100 --target-version=py311 \
+            program/services/algo-engine/src/ program/services/algo-engine/tests/ \
+            program/services/mt5-bridge/src/ program/services/mt5-bridge/tests/ \
+            program/services/console/src/ program/services/console/tests/ \
+            program/shared/python-common/src/ program/shared/python-common/tests/ \
+            program/services/dashboard/backend/
+      - name: Mypy type check
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e program/shared/proto/
+          pip install pydantic pydantic-settings structlog prometheus-client \
+                      grpcio protobuf numpy scipy redis sqlalchemy asyncpg pyzmq
+          mypy --ignore-missing-imports \
+            program/services/algo-engine/src/ \
+            program/shared/python-common/src/
 
+  # ─── Test: python-common ──────────────────────────────────────────────────
+  test-python-common:
+    name: Test python-common
+    needs: changes
+    if: needs.changes.outputs.python-common == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-common-${{ runner.os }}-${{ hashFiles('program/shared/python-common/pyproject.toml') }}
+          restore-keys: pip-common-${{ runner.os }}-
+      - name: Install
+        run: pip install -e "program/shared/python-common/[dev]"
+      - name: Test
+        working-directory: program/shared/python-common
+        run: |
+          python -m pytest tests/ \
+            -n auto \
+            --cov=moneymaker_common \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=85 \
+            --timeout=10 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-common-results
+          path: program/shared/python-common/reports/
+      - name: Publish test report
+        if: always() && github.event_name == 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: python-common Tests
+          path: program/shared/python-common/reports/junit.xml
+          reporter: java-junit
+
+  # ─── Test: algo-engine ────────────────────────────────────────────────────
   test-algo-engine:
+    name: Test Algo Engine
+    needs: changes
+    if: needs.changes.outputs.algo-engine == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Install dependencies
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-algo-${{ runner.os }}-${{ hashFiles('program/services/algo-engine/pyproject.toml', 'program/shared/python-common/pyproject.toml') }}
+          restore-keys: pip-algo-${{ runner.os }}-
+      - name: Install
         run: |
-          pip install -e program/shared/python-common
-          pip install -e program/shared/proto
-          pip install -e program/services/algo-engine
-          pip install pytest pytest-asyncio
-      - name: Run unit tests
+          pip install -e program/shared/python-common/
+          pip install -e program/shared/proto/
+          pip install -e "program/services/algo-engine/[dev]"
+      - name: Unit tests
+        working-directory: program/services/algo-engine
         run: |
-          cd program/services/algo-engine
-          python -m pytest tests/unit/ -v --tb=short
+          python -m pytest tests/unit/ \
+            -n auto \
+            --cov=algo_engine \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=80 \
+            --timeout=10 \
+            -m "not slow and not benchmark" \
+            -v --tb=short
+      - name: Integration tests
+        working-directory: program/services/algo-engine
+        run: |
+          python -m pytest tests/integration/ \
+            --cov=algo_engine \
+            --cov-append \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit-integration.xml \
+            --timeout=30 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: algo-engine-results
+          path: program/services/algo-engine/reports/
+      - name: Publish test report
+        if: always() && github.event_name == 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: Algo Engine Tests
+          path: program/services/algo-engine/reports/junit*.xml
+          reporter: java-junit
 
+  # ─── Test: mt5-bridge ─────────────────────────────────────────────────────
   test-mt5-bridge:
+    name: Test MT5 Bridge
+    needs: changes
+    if: needs.changes.outputs.mt5-bridge == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Install dependencies
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-mt5-${{ runner.os }}-${{ hashFiles('program/services/mt5-bridge/pyproject.toml', 'program/shared/python-common/pyproject.toml') }}
+          restore-keys: pip-mt5-${{ runner.os }}-
+      - name: Install
         run: |
-          pip install -e program/shared/python-common
-          pip install -e program/shared/proto
-          pip install -e program/services/mt5-bridge
-          pip install pytest pytest-asyncio
-      - name: Run unit tests
+          pip install -e program/shared/python-common/
+          pip install -e program/shared/proto/
+          pip install -e "program/services/mt5-bridge/[dev]"
+      - name: Unit tests
+        working-directory: program/services/mt5-bridge
         run: |
-          cd program/services/mt5-bridge
-          python -m pytest tests/unit/ -v --tb=short
+          python -m pytest tests/unit/ \
+            -n auto \
+            --cov=mt5_bridge \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=75 \
+            --timeout=10 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt5-bridge-results
+          path: program/services/mt5-bridge/reports/
+      - name: Publish test report
+        if: always() && github.event_name == 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: MT5 Bridge Tests
+          path: program/services/mt5-bridge/reports/junit.xml
+          reporter: java-junit
 
-  lint-go:
+  # ─── Test: dashboard-backend ──────────────────────────────────────────────
+  test-dashboard-backend:
+    name: Test Dashboard Backend
+    needs: changes
+    if: needs.changes.outputs.dashboard-backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-dash-${{ runner.os }}-${{ hashFiles('program/services/dashboard/pyproject.toml') }}
+          restore-keys: pip-dash-${{ runner.os }}-
+      - name: Install
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e "program/services/dashboard/[dev]"
+      - name: Test
+        working-directory: program/services/dashboard
+        run: |
+          python -m pytest backend/tests/ \
+            -n auto \
+            --cov=backend \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=70 \
+            --timeout=10 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-backend-results
+          path: program/services/dashboard/reports/
+      - name: Publish test report
+        if: always() && github.event_name == 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: Dashboard Backend Tests
+          path: program/services/dashboard/reports/junit.xml
+          reporter: java-junit
+
+  # ─── Test: dashboard-frontend ─────────────────────────────────────────────
+  test-dashboard-frontend:
+    name: Test Dashboard Frontend
+    needs: changes
+    if: needs.changes.outputs.dashboard-frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: program/services/dashboard/frontend/package-lock.json
+      - name: Install
+        working-directory: program/services/dashboard/frontend
+        run: npm ci
+      - name: Lint
+        working-directory: program/services/dashboard/frontend
+        run: npm run lint
+      - name: Test
+        working-directory: program/services/dashboard/frontend
+        run: npm test -- --reporter=default --reporter=junit --outputFile=reports/junit.xml
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-results
+          path: program/services/dashboard/frontend/reports/
+
+  # ─── Test: console ────────────────────────────────────────────────────────
+  test-console:
+    name: Test Console
+    needs: changes
+    if: needs.changes.outputs.console == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e "program/services/console/[dev]"
+      - name: Test
+        working-directory: program/services/console
+        run: |
+          python -m pytest tests/ \
+            --cov=moneymaker_console \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=50 \
+            --timeout=10 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-results
+          path: program/services/console/reports/
+
+  # ─── Go Lint & Test ───────────────────────────────────────────────────────
+  lint-and-test-go:
+    name: Go Lint & Test
+    needs: changes
+    if: needs.changes.outputs.any-go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-      - name: Vet data-ingestion
+          go-version: "1.25"
+          cache-dependency-path: program/services/data-ingestion/go.sum
+      - name: Download dependencies
+        working-directory: program/services/data-ingestion
+        run: go mod download
+      - name: Go vet
         working-directory: program/services/data-ingestion
         run: go vet ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: program/services/data-ingestion
+      - name: Test with coverage
+        working-directory: program/services/data-ingestion
+        run: |
+          go test -v -race -count=1 \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            ./... 2>&1 | tee test-output.txt
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          echo "Go coverage: ${COVERAGE}%"
+          if [ "$(echo "$COVERAGE < 70" | bc)" -eq 1 ]; then
+            echo "::error::Go coverage ${COVERAGE}% is below 70% threshold"
+            exit 1
+          fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-test-results
+          path: |
+            program/services/data-ingestion/coverage.out
+            program/services/data-ingestion/test-output.txt
 
-  security-scan:
+  # ─── Proto Verification ───────────────────────────────────────────────────
+  verify-proto:
+    name: Verify Proto
+    needs: changes
+    if: needs.changes.outputs.proto == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: Install protoc tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          pip install grpcio-tools
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+      - name: Regenerate and diff
+        working-directory: program/shared/proto
+        run: |
+          make clean && make all
+          if ! git diff --exit-code gen/; then
+            echo "::error::Generated proto code is stale. Run 'make proto' and commit."
+            exit 1
+          fi
+
+  # ─── Docker Build + Scan ──────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build (${{ matrix.service }})
+    needs: changes
+    if: >-
+      needs.changes.outputs.docker == 'true' ||
+      needs.changes.outputs.algo-engine == 'true' ||
+      needs.changes.outputs.data-ingestion == 'true' ||
+      needs.changes.outputs.mt5-bridge == 'true' ||
+      needs.changes.outputs.dashboard-backend == 'true' ||
+      needs.changes.outputs.dashboard-frontend == 'true' ||
+      needs.changes.outputs.external-data == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: data-ingestion
+            dockerfile: program/services/data-ingestion/Dockerfile
+          - service: algo-engine
+            dockerfile: program/services/algo-engine/Dockerfile
+          - service: mt5-bridge
+            dockerfile: program/services/mt5-bridge/Dockerfile
+          - service: dashboard
+            dockerfile: program/services/dashboard/Dockerfile
+          - service: external-data
+            dockerfile: program/services/external-data/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          failure-threshold: warning
+          ignore: DL3008,DL3013
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./program
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: true
+          tags: moneymaker-${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: moneymaker-${{ matrix.service }}:ci
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: moneymaker-${{ matrix.service }}:ci
+          artifact-name: sbom-${{ matrix.service }}
+
+  # ─── Security Scan ────────────────────────────────────────────────────────
+  security-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run gitleaks
+      - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── PR Labeler ───────────────────────────────────────────────────────────
+  label-pr:
+    name: Label PR
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          configuration-path: .github/labeler.yml
+
+  # ─── Merge Gate ───────────────────────────────────────────────────────────
+  merge-gate:
+    name: Merge Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - lint-python
+      - test-python-common
+      - test-algo-engine
+      - test-mt5-bridge
+      - test-dashboard-backend
+      - test-dashboard-frontend
+      - test-console
+      - lint-and-test-go
+      - verify-proto
+      - docker-build
+      - security-scan
+    steps:
+      - name: Check all required jobs
+        run: |
+          echo "Job results:"
+          echo "  lint-python:          ${{ needs.lint-python.result }}"
+          echo "  test-python-common:   ${{ needs.test-python-common.result }}"
+          echo "  test-algo-engine:     ${{ needs.test-algo-engine.result }}"
+          echo "  test-mt5-bridge:      ${{ needs.test-mt5-bridge.result }}"
+          echo "  test-dashboard-back:  ${{ needs.test-dashboard-backend.result }}"
+          echo "  test-dashboard-front: ${{ needs.test-dashboard-frontend.result }}"
+          echo "  test-console:         ${{ needs.test-console.result }}"
+          echo "  lint-and-test-go:     ${{ needs.lint-and-test-go.result }}"
+          echo "  verify-proto:         ${{ needs.verify-proto.result }}"
+          echo "  docker-build:         ${{ needs.docker-build.result }}"
+          echo "  security-scan:        ${{ needs.security-scan.result }}"
+
+          # Fail if any required job failed (skipped is OK due to path filtering)
+          RESULTS='${{ toJSON(needs.*.result) }}'
+          if echo "$RESULTS" | grep -q '"failure"'; then
+            echo "::error::One or more required jobs failed"
+            exit 1
+          fi
+          echo "All required checks passed (failed: 0, skipped jobs are OK)"

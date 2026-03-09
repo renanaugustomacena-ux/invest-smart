@@ -1,0 +1,32 @@
+# MONEYMAKER Staging Environment Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+# Pulls pre-built images from GHCR instead of building locally.
+# Requires DEPLOY_TAG environment variable (e.g., dev-abc1234, 1.2.3)
+
+services:
+  data-ingestion:
+    image: ghcr.io/renanaugustomacena-ux/invest-smart/data-ingestion:${DEPLOY_TAG:?DEPLOY_TAG required}
+    build: !reset null
+    environment:
+      - MONEYMAKER_ENV=staging
+      - MONEYMAKER_LOG_LEVEL=INFO
+
+  algo-engine:
+    image: ghcr.io/renanaugustomacena-ux/invest-smart/algo-engine:${DEPLOY_TAG}
+    build: !reset null
+    environment:
+      - MONEYMAKER_ENV=staging
+      - MONEYMAKER_LOG_LEVEL=INFO
+
+  mt5-bridge:
+    image: ghcr.io/renanaugustomacena-ux/invest-smart/mt5-bridge:${DEPLOY_TAG}
+    build: !reset null
+    environment:
+      - MONEYMAKER_ENV=staging
+      - MONEYMAKER_LOG_LEVEL=INFO
+
+  dashboard:
+    image: ghcr.io/renanaugustomacena-ux/invest-smart/dashboard:${DEPLOY_TAG}
+    build: !reset null
+    environment:
+      - MONEYMAKER_ENV=staging

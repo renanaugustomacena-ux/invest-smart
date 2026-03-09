@@ -7,6 +7,7 @@ global:
 
 rule_files:
   - /etc/prometheus/alert_rules.yml
+  - /etc/prometheus/deployment_rules.yml
 
 scrape_configs:
   - job_name: "data-ingestion"

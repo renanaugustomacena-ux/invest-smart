@@ -1,0 +1,55 @@
+algo-engine:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/algo-engine/**'
+
+data-ingestion:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/data-ingestion/**'
+
+mt5-bridge:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/mt5-bridge/**'
+
+dashboard:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/dashboard/**'
+
+console:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/console/**'
+
+external-data:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/external-data/**'
+
+infrastructure:
+  - changed-files:
+    - any-glob-to-any-file: 'program/infra/**'
+
+monitoring:
+  - changed-files:
+    - any-glob-to-any-file: 'program/services/monitoring/**'
+
+proto:
+  - changed-files:
+    - any-glob-to-any-file: 'program/shared/proto/**'
+
+shared-libs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'program/shared/python-common/**'
+      - 'program/shared/go-common/**'
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/pyproject.toml'
+      - '**/go.mod'
+      - '**/go.sum'
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/requirements.txt'

@@ -1,0 +1,47 @@
+groups:
+  - name: deployment_alerts
+    interval: 15s
+    rules:
+      # Post-deployment error spike detection
+      # Fires if error rate doubles compared to the 1-hour baseline
+      - alert: PostDeployErrorSpike
+        expr: |
+          rate(moneymaker_errors_total[5m]) >
+          2 * avg_over_time(rate(moneymaker_errors_total[5m])[1h:5m])
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate doubled after deployment for {{ $labels.service }}"
+          description: >
+            The error rate for {{ $labels.service }} has more than doubled
+            compared to the 1-hour baseline. This may indicate a bad deployment.
+            Current rate: {{ $value | printf "%.2f" }}/s
+
+      # Service restart loop after deployment
+      - alert: ServiceRestartLoop
+        expr: |
+          increase(process_start_time_seconds[10m]) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} restarted multiple times in 10 minutes"
+          description: >
+            Service {{ $labels.job }} has restarted more than 2 times
+            in the last 10 minutes. Possible crash loop after deployment.
+
+      # Pipeline latency regression after deployment
+      - alert: PostDeployLatencyRegression
+        expr: |
+          histogram_quantile(0.99, rate(moneymaker_pipeline_duration_seconds_bucket[5m])) >
+          1.5 * histogram_quantile(0.99, rate(moneymaker_pipeline_duration_seconds_bucket[1h]))
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency increased 50%+ for {{ $labels.service }}"
+          description: >
+            P99 pipeline latency for {{ $labels.service }} has increased
+            by more than 50% compared to the 1-hour baseline.
+            Current P99: {{ $value | printf "%.3f" }}s

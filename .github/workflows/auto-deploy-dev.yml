@@ -1,0 +1,45 @@
+name: Auto Deploy Dev
+
+on:
+  workflow_run:
+    workflows: ["Build & Push Images"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: sha
+        run: |
+          SHORT=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
+          echo "Deploying dev-${SHORT} to dev environment"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/moneymaker
+            export DEPLOY_TAG="dev-${{ steps.sha.outputs.short }}"
+            export DEPLOY_ENV=dev
+            export DEPLOY_SERVICE=all
+            bash scripts/deploy/deploy.sh
+
+      - name: Smoke test
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: bash /opt/moneymaker/scripts/deploy/smoke-test.sh dev

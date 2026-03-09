@@ -1,0 +1,136 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      service:
+        description: 'Service to deploy (or all)'
+        required: false
+        type: choice
+        options:
+          - all
+          - algo-engine
+          - data-ingestion
+          - mt5-bridge
+          - dashboard
+          - external-data
+        default: all
+      image_tag:
+        description: 'Image tag to deploy (e.g., dev-abc1234 or 1.2.3)'
+        required: true
+        type: string
+      force_market_hours:
+        description: 'Force deployment during market hours (emergency only)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false  # NEVER cancel an in-progress deployment
+
+jobs:
+  validate:
+    name: Pre-Deploy Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Market hours check (production only)
+        if: inputs.environment == 'production' && !inputs.force_market_hours
+        run: bash program/scripts/deploy/market-hours-check.sh
+
+      - name: Verify images exist in registry
+        run: |
+          SERVICES="${{ inputs.service }}"
+          if [ "$SERVICES" = "all" ]; then
+            SERVICES="algo-engine data-ingestion mt5-bridge dashboard external-data"
+          fi
+          for svc in $SERVICES; do
+            echo "Checking ghcr.io/renanaugustomacena-ux/invest-smart/${svc}:${{ inputs.image_tag }}"
+            docker manifest inspect \
+              "ghcr.io/renanaugustomacena-ux/invest-smart/${svc}:${{ inputs.image_tag }}" \
+              > /dev/null 2>&1 || {
+                echo "::error::Image not found: ${svc}:${{ inputs.image_tag }}"
+                exit 1
+              }
+          done
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets[format('{0}_HOST', inputs.environment)] }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_TAG,DEPLOY_ENV,DEPLOY_SERVICE
+          script: |
+            cd /opt/moneymaker
+            export DEPLOY_TAG="${{ inputs.image_tag }}"
+            export DEPLOY_ENV="${{ inputs.environment }}"
+            export DEPLOY_SERVICE="${{ inputs.service }}"
+            bash scripts/deploy/deploy.sh
+        env:
+          DEPLOY_TAG: ${{ inputs.image_tag }}
+          DEPLOY_ENV: ${{ inputs.environment }}
+          DEPLOY_SERVICE: ${{ inputs.service }}
+
+      - name: Post-deploy smoke tests
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets[format('{0}_HOST', inputs.environment)] }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: bash /opt/moneymaker/scripts/deploy/smoke-test.sh ${{ inputs.environment }}
+
+      - name: Annotate Grafana deployment
+        if: success()
+        run: |
+          bash program/scripts/deploy/grafana-annotation.sh \
+            "${{ inputs.service }}" \
+            "${{ inputs.image_tag }}" \
+            "${{ inputs.environment }}"
+        env:
+          GRAFANA_HOST: ${{ secrets.GRAFANA_HOST }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+
+  rollback-on-failure:
+    name: Auto-Rollback
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Rollback to previous version
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets[format('{0}_HOST', inputs.environment)] }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/moneymaker
+            bash scripts/deploy/rollback.sh
+      - name: Alert rollback occurred
+        run: |
+          echo "::warning::Deployment to ${{ inputs.environment }} failed. Automatic rollback executed."
+          echo "Service: ${{ inputs.service }}"
+          echo "Tag: ${{ inputs.image_tag }}"

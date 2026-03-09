@@ -1,0 +1,70 @@
+# MONEYMAKER Test Infrastructure
+# Lightweight containers for CI integration/E2E tests.
+# Usage: docker compose -f docker-compose.test.yml up -d --wait
+
+services:
+  postgres-test:
+    image: timescale/timescaledb:latest-pg16
+    container_name: moneymaker-test-postgres
+    tmpfs: /var/lib/postgresql/data   # RAM disk — fast, disposable
+    environment:
+      POSTGRES_DB: moneymaker_test
+      POSTGRES_USER: moneymaker_test
+      POSTGRES_PASSWORD: test_password_ci
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moneymaker_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+    networks:
+      - test-net
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: moneymaker-test-redis
+    command: redis-server --requirepass test_password_ci --save ""
+    ports:
+      - "16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "test_password_ci", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    networks:
+      - test-net
+
+  db-seed:
+    image: timescale/timescaledb:latest-pg16
+    container_name: moneymaker-test-seed
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./init-db:/init-db:ro
+      - ../../tests/fixtures:/fixtures:ro
+    environment:
+      PGHOST: postgres-test
+      PGUSER: moneymaker_test
+      PGPASSWORD: test_password_ci
+      PGDATABASE: moneymaker_test
+    entrypoint: >
+      sh -c "
+        echo 'Seeding database...' &&
+        for f in /init-db/*.sql; do
+          echo \"Applying $$f\" &&
+          psql -f $$f 2>/dev/null || true
+        done &&
+        echo 'Applying test fixtures...' &&
+        for f in /fixtures/*.sql; do
+          psql -f $$f 2>/dev/null || true
+        done &&
+        echo 'Database seeded successfully'
+      "
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge

@@ -1,0 +1,222 @@
+name: MONEYMAKER Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # Daily at 03:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  # ─── Integration Tests with Real Infrastructure ────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: moneymaker_test
+          POSTGRES_USER: moneymaker_test
+          POSTGRES_PASSWORD: test_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U moneymaker_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Seed database
+        run: |
+          sudo apt-get install -y postgresql-client
+          for f in program/infra/docker/init-db/*.sql; do
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+          done
+
+      - name: Install dependencies
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e program/shared/proto/
+          pip install -e "program/services/algo-engine/[dev]"
+          pip install -e "program/services/mt5-bridge/[dev]"
+          pip install httpx
+
+      - name: Database migration verification
+        run: |
+          TABLE_COUNT=$(PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test \
+            -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+          echo "Tables created: ${TABLE_COUNT}"
+          if [ "$TABLE_COUNT" -lt 5 ]; then
+            echo "::error::Expected at least 5 tables, got ${TABLE_COUNT}"
+            exit 1
+          fi
+
+      - name: Proto contract tests
+        if: always()
+        run: |
+          if [ -d "program/tests/integration" ]; then
+            python -m pytest program/tests/integration/ -v --timeout=60 --tb=short || true
+          fi
+
+      - name: Algo engine full test suite
+        run: |
+          cd program/services/algo-engine
+          python -m pytest tests/ \
+            --cov=algo_engine \
+            --cov-report=xml:reports/coverage-nightly.xml \
+            --junitxml=reports/junit-nightly.xml \
+            --timeout=30 \
+            -v --tb=short
+
+      - name: MT5 bridge full test suite
+        run: |
+          cd program/services/mt5-bridge
+          python -m pytest tests/ \
+            --cov=mt5_bridge \
+            --junitxml=reports/junit-nightly.xml \
+            --timeout=30 \
+            -v --tb=short
+
+      - name: Upload nightly results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-integration-results
+          path: |
+            program/services/algo-engine/reports/
+            program/services/mt5-bridge/reports/
+          retention-days: 30
+
+  # ─── E2E Tests with Full Docker Stack ──────────────────────────────────────
+  e2e-tests:
+    name: E2E Tests
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test .env
+        working-directory: program
+        run: |
+          cp .env.example .env 2>/dev/null || true
+          cat > .env << 'ENVEOF'
+          MONEYMAKER_ENV=test
+          MONEYMAKER_DB_PASSWORD=test_ci
+          MONEYMAKER_DB_NAME=moneymaker
+          MONEYMAKER_DB_USER=moneymaker
+          MONEYMAKER_REDIS_PASSWORD=test_ci
+          POLYGON_API_KEY=
+          MONEYMAKER_BINANCE_API_KEY=
+          MONEYMAKER_BINANCE_API_SECRET=
+          MT5_ACCOUNT=
+          MT5_PASSWORD=
+          MT5_SERVER=
+          GRAFANA_PASSWORD=admin
+          MONEYMAKER_TLS_ENABLED=false
+          ENVEOF
+
+      - name: Build and start stack
+        working-directory: program
+        run: |
+          docker compose -f infra/docker/docker-compose.yml build --parallel
+          docker compose -f infra/docker/docker-compose.yml up -d
+        timeout-minutes: 10
+
+      - name: Wait for services healthy
+        run: |
+          echo "Waiting for postgres..."
+          timeout 60 bash -c 'until docker inspect macena-postgres --format="{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 3; done'
+          echo "Waiting for redis..."
+          timeout 60 bash -c 'until docker inspect macena-redis --format="{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 3; done'
+          echo "Infrastructure healthy"
+
+      - name: Run E2E tests
+        if: always()
+        run: |
+          pip install httpx pytest
+          if [ -d "program/tests/e2e" ]; then
+            python -m pytest program/tests/e2e/ -v --timeout=60 --tb=short || true
+          fi
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker compose -f program/infra/docker/docker-compose.yml logs --tail=100 > e2e-logs.txt 2>&1
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-logs
+          path: e2e-logs.txt
+
+      - name: Teardown
+        if: always()
+        working-directory: program
+        run: docker compose -f infra/docker/docker-compose.yml down -v --remove-orphans
+
+  # ─── Performance Benchmarks ────────────────────────────────────────────────
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: program/services/data-ingestion/go.sum
+
+      - name: Install algo-engine
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e program/shared/proto/
+          pip install -e "program/services/algo-engine/[dev]"
+
+      - name: Python benchmarks
+        working-directory: program/services/algo-engine
+        run: |
+          if [ -d "tests/benchmark" ]; then
+            python -m pytest tests/benchmark/ \
+              --benchmark-only \
+              --benchmark-json=reports/benchmark.json \
+              --benchmark-min-rounds=5
+          else
+            echo "No benchmark tests found yet — skipping"
+          fi
+
+      - name: Go benchmarks
+        working-directory: program/services/data-ingestion
+        run: |
+          go test -bench=. -benchmem -benchtime=3s -run='^$' ./... 2>&1 | tee benchmark-go.txt || true
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            program/services/algo-engine/reports/benchmark.json
+            program/services/data-ingestion/benchmark-go.txt
+          retention-days: 90

@@ -292,6 +292,7 @@ services:
     volumes:
       - ../../services/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ../../services/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ../../services/monitoring/prometheus/deployment_rules.yml:/etc/prometheus/deployment_rules.yml:ro
       - prometheus-data:/prometheus
     networks:
       - monitoring
