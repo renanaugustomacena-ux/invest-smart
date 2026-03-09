@@ -113,9 +113,9 @@ func key(symbol string, tf Timeframe) string {
 // Se il tempo supera il limite del pacco, quello corrente viene chiuso e spedito
 // tramite onComplete, e ne viene iniziato uno nuovo.
 func (a *Aggregator) AddTick(symbol string, price decimal.Decimal, volume decimal.Decimal, tickTime time.Time) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	var completedBars []Bar
 
+	a.mu.Lock()
 	for _, tf := range a.timeframes {
 		k := key(symbol, tf)
 		barOpen := floorTime(tickTime, tf)
@@ -125,7 +125,7 @@ func (a *Aggregator) AddTick(symbol string, price decimal.Decimal, volume decima
 
 		if exists && barOpen.After(pending.openTime) {
 			// Limite temporale superato — chiudiamo il pacco corrente.
-			completed := Bar{
+			completedBars = append(completedBars, Bar{
 				Symbol:    pending.symbol,
 				Timeframe: pending.timeframe,
 				OpenTime:  pending.openTime,
@@ -136,10 +136,7 @@ func (a *Aggregator) AddTick(symbol string, price decimal.Decimal, volume decima
 				Close:     pending.close,
 				Volume:    pending.volume,
 				TickCount: pending.tickCount,
-			}
-			if a.onComplete != nil {
-				a.onComplete(completed)
-			}
+			})
 			exists = false
 		}
 
@@ -170,14 +167,20 @@ func (a *Aggregator) AddTick(symbol string, price decimal.Decimal, volume decima
 			pending.tickCount++
 		}
 	}
+	a.mu.Unlock()
+
+	// Invoke callbacks outside the lock to avoid blocking tick processing
+	for _, bar := range completedBars {
+		if a.onComplete != nil {
+			a.onComplete(bar)
+		}
+	}
 }
 
 // FlushAll finalizza ed emette tutti i pacchi aperti ignorando i limiti di tempo.
 // Utile durante la chiusura del servizio per non perdere materiale parziale.
 func (a *Aggregator) FlushAll() []Bar {
 	a.mu.Lock()
-	defer a.mu.Unlock()
-
 	var flushed []Bar
 	for k, pending := range a.bars {
 		bar := Bar{
@@ -193,10 +196,15 @@ func (a *Aggregator) FlushAll() []Bar {
 			TickCount: pending.tickCount,
 		}
 		flushed = append(flushed, bar)
+		delete(a.bars, k)
+	}
+	a.mu.Unlock()
+
+	// Invoke callbacks outside the lock
+	for _, bar := range flushed {
 		if a.onComplete != nil {
 			a.onComplete(bar)
 		}
-		delete(a.bars, k)
 	}
 	return flushed
 }

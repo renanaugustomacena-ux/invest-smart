@@ -333,7 +333,7 @@ func (w *DBWriter) WriteBar(symbol string, timeframe string, openTime time.Time,
 		Close:     close,
 		Volume:    volume,
 		TickCount: tickCount,
-		SpreadAvg: decimal.Zero, // Calcolato se disponibile
+		SpreadAvg: decimal.Zero, // TODO: requires bid/ask data from connector
 		Source:    source,
 	}
 
