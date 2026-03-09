@@ -181,6 +181,34 @@ class OrderManager:
         if sl <= ZERO:
             raise SignalRejectedError(signal["signal_id"], "lo stop loss è obbligatorio")
 
+        # Controlla la coerenza direzionale SL/TP
+        tp = to_decimal(signal.get("take_profit", "0"))
+        direction = signal.get("direction", "")
+        entry_price = to_decimal(signal.get("entry_price", "0"))
+        if entry_price > ZERO and direction in ("BUY", "SELL"):
+            if direction == "BUY":
+                if sl >= entry_price:
+                    raise SignalRejectedError(
+                        signal["signal_id"],
+                        f"BUY: stop loss ({sl}) deve essere sotto entry ({entry_price})",
+                    )
+                if tp > ZERO and tp <= entry_price:
+                    raise SignalRejectedError(
+                        signal["signal_id"],
+                        f"BUY: take profit ({tp}) deve essere sopra entry ({entry_price})",
+                    )
+            else:  # SELL
+                if sl <= entry_price:
+                    raise SignalRejectedError(
+                        signal["signal_id"],
+                        f"SELL: stop loss ({sl}) deve essere sopra entry ({entry_price})",
+                    )
+                if tp > ZERO and tp >= entry_price:
+                    raise SignalRejectedError(
+                        signal["signal_id"],
+                        f"SELL: take profit ({tp}) deve essere sotto entry ({entry_price})",
+                    )
+
         # Controlla il limite di posizioni — "posti disponibili allo sportello"
         open_positions = self._connector.get_open_positions()
         if len(open_positions) >= self._max_position_count:

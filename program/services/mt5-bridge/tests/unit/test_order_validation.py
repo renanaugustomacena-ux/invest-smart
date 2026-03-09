@@ -22,6 +22,11 @@ def connector():
         "volume_max": Decimal("100"),
     }
     mock.check_margin.return_value = None
+    mock.get_account_info.return_value = {
+        "balance": Decimal("10000"),
+        "equity": Decimal("10000"),
+        "profit": Decimal("0"),
+    }
     return mock
 
 
@@ -88,6 +93,30 @@ class TestValidateSignal:
         sig = _make_signal()
         with pytest.raises(SignalRejectedError, match="spread"):
             manager._validate_signal(sig)
+
+    def test_rejects_buy_sl_above_entry(self, manager):
+        sig = _make_signal(direction="BUY", entry_price="1.0900", stop_loss="1.0950")
+        with pytest.raises(SignalRejectedError, match="stop loss.*sotto entry"):
+            manager._validate_signal(sig)
+
+    def test_rejects_buy_tp_below_entry(self, manager):
+        sig = _make_signal(direction="BUY", entry_price="1.0900", stop_loss="1.0800", take_profit="1.0850")
+        with pytest.raises(SignalRejectedError, match="take profit.*sopra entry"):
+            manager._validate_signal(sig)
+
+    def test_rejects_sell_sl_below_entry(self, manager):
+        sig = _make_signal(direction="SELL", entry_price="1.0900", stop_loss="1.0850")
+        with pytest.raises(SignalRejectedError, match="stop loss.*sopra entry"):
+            manager._validate_signal(sig)
+
+    def test_rejects_sell_tp_above_entry(self, manager):
+        sig = _make_signal(direction="SELL", entry_price="1.0900", stop_loss="1.1000", take_profit="1.0950")
+        with pytest.raises(SignalRejectedError, match="take profit.*sotto entry"):
+            manager._validate_signal(sig)
+
+    def test_skips_sl_tp_check_without_entry_price(self, manager):
+        sig = _make_signal(direction="BUY", stop_loss="1.0950")
+        manager._validate_signal(sig)  # should not raise (no entry_price to compare)
 
     def test_accepts_valid_signal(self, manager):
         sig = _make_signal()
