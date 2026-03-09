@@ -88,6 +88,7 @@ class AlgoEngine:
         feature_scorer: Any | None = None,
         belief_state: Any | None = None,
         composite_confidence: Any | None = None,
+        mtf_confirmation: Any | None = None,
     ) -> None:
         # Core
         self._feature_pipeline = feature_pipeline
@@ -120,10 +121,12 @@ class AlgoEngine:
         self._feature_scorer = feature_scorer
         self._belief_state = belief_state
         self._composite_confidence = composite_confidence
+        self._mtf_confirmation = mtf_confirmation
 
         if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
                 shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
-                feature_scorer, belief_state, composite_confidence]):
+                feature_scorer, belief_state, composite_confidence,
+                mtf_confirmation]):
             active = [name for name, mod in [
                 ("bayesian_regime", bayesian_regime),
                 ("spectral_detector", spectral_detector),
@@ -136,6 +139,7 @@ class AlgoEngine:
                 ("feature_scorer", feature_scorer),
                 ("belief_state", belief_state),
                 ("composite_confidence", composite_confidence),
+                ("mtf_confirmation", mtf_confirmation),
             ] if mod is not None]
             logger.info("Advanced modules active", modules=active)
 
@@ -218,6 +222,17 @@ class AlgoEngine:
                 features["feature_composite_score"] = assessment.composite
             except Exception as e:
                 logger.debug("Feature scoring failed", error=str(e))
+
+        # --- Step 3a-iii: MTF confirmation matrix (optional) ---
+        if self._mtf_confirmation is not None:
+            try:
+                direction_hint = "BUY" if features.get("ema_fast", Decimal("0")) > features.get("ema_slow", Decimal("0")) else "SELL"
+                mtf_result = self._mtf_confirmation.compute(features, direction_hint)
+                features["mtf_confirmation_ratio"] = mtf_result.confirmation_ratio
+                features["mtf_trend_agreement"] = mtf_result.trend_agreement
+                features["mtf_momentum_agreement"] = mtf_result.momentum_agreement
+            except Exception as e:
+                logger.debug("MTF confirmation failed", error=str(e))
 
         # --- Step 3b: Adaptive parameter tuning (optional) ---
         if self._adaptive_tuner is not None:
