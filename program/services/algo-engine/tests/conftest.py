@@ -88,6 +88,12 @@ def sample_lows(sample_ohlcv_bars: list[OHLCVBar]) -> list[Decimal]:
     return [bar.low for bar in sample_ohlcv_bars]
 
 
+@pytest.fixture
+def sample_volumes(sample_ohlcv_bars: list[OHLCVBar]) -> list[Decimal]:
+    """Extract volumes from the sample OHLCV bars."""
+    return [bar.volume for bar in sample_ohlcv_bars]
+
+
 # ---------------------------------------------------------------------------
 # Strategy fixtures
 # ---------------------------------------------------------------------------

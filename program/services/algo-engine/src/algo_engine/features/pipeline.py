@@ -25,14 +25,24 @@ from algo_engine.features.technical import (
     calculate_atr,
     calculate_bollinger_bands,
     calculate_cci,
+    calculate_cmf,
+    calculate_dema,
     calculate_donchian_channels,
     calculate_ema,
+    calculate_force_index,
+    calculate_historical_volatility,
+    calculate_keltner_channels,
     calculate_macd,
     calculate_obv,
+    calculate_parabolic_sar,
+    calculate_parkinson_volatility,
     calculate_roc,
     calculate_rsi,
     calculate_sma,
     calculate_stochastic,
+    calculate_stochastic_rsi,
+    calculate_ultimate_oscillator,
+    calculate_vwap,
     calculate_williams_r,
 )
 
@@ -88,6 +98,18 @@ class FeaturePipeline:
         cci_period: int = 20,
         volume_sma_period: int = 20,
         sma_long_period: int = 200,
+        dema_period: int = 20,
+        keltner_ema_period: int = 20,
+        keltner_atr_period: int = 14,
+        keltner_multiplier: int = 2,
+        cmf_period: int = 20,
+        stoch_rsi_period: int = 14,
+        uo_period1: int = 7,
+        uo_period2: int = 14,
+        uo_period3: int = 28,
+        hist_vol_period: int = 20,
+        parkinson_vol_period: int = 20,
+        force_index_period: int = 13,
         redis_client: Any = None,
     ) -> None:
         self.rsi_period = rsi_period
@@ -103,6 +125,18 @@ class FeaturePipeline:
         self.cci_period = cci_period
         self.volume_sma_period = volume_sma_period
         self.sma_long_period = sma_long_period
+        self.dema_period = dema_period
+        self.keltner_ema_period = keltner_ema_period
+        self.keltner_atr_period = keltner_atr_period
+        self.keltner_multiplier = keltner_multiplier
+        self.cmf_period = cmf_period
+        self.stoch_rsi_period = stoch_rsi_period
+        self.uo_period1 = uo_period1
+        self.uo_period2 = uo_period2
+        self.uo_period3 = uo_period3
+        self.hist_vol_period = hist_vol_period
+        self.parkinson_vol_period = parkinson_vol_period
+        self.force_index_period = force_index_period
 
         # ATR history per symbol for ATR SMA computation (breakout strategy needs this)
         self._atr_history: dict[str, deque[Decimal]] = {}
@@ -136,6 +170,7 @@ class FeaturePipeline:
         closes = [bar.close for bar in ohlcv_bars]
         highs = [bar.high for bar in ohlcv_bars]
         lows = [bar.low for bar in ohlcv_bars]
+        volumes = [bar.volume for bar in ohlcv_bars]
 
         features: dict[str, Any] = {
             "symbol": symbol,
@@ -233,7 +268,6 @@ class FeaturePipeline:
         features["stoch_d"] = stoch_d
 
         # On-Balance Volume — il "contatore di flusso" dei volumi
-        volumes = [bar.volume for bar in ohlcv_bars]
         features["obv"] = calculate_obv(closes, volumes)
 
         # Canali di Donchian — i "confini" di massimo e minimo
@@ -254,6 +288,65 @@ class FeaturePipeline:
 
         # CCI — il "radar" delle deviazioni dal prezzo tipico
         features["cci"] = calculate_cci(highs, lows, closes, period=self.cci_period)
+
+        # --- Phase D indicators ---
+
+        # DEMA — media mobile a doppia esponenziale (più reattiva)
+        features["dema"] = calculate_dema(closes, period=self.dema_period)
+
+        # Keltner Channels — canali basati su volatilità ATR
+        kelt_upper, kelt_middle, kelt_lower = calculate_keltner_channels(
+            highs, lows, closes,
+            ema_period=self.keltner_ema_period,
+            atr_period=self.keltner_atr_period,
+            multiplier=self.keltner_multiplier,
+        )
+        features["keltner_upper"] = kelt_upper
+        features["keltner_middle"] = kelt_middle
+        features["keltner_lower"] = kelt_lower
+
+        # Parabolic SAR — trailing stop dinamico
+        sar_value, sar_trend = calculate_parabolic_sar(highs, lows)
+        features["parabolic_sar"] = sar_value
+        features["parabolic_sar_trend"] = sar_trend
+
+        # VWAP — prezzo medio ponderato per volume
+        features["vwap"] = calculate_vwap(highs, lows, closes, volumes)
+
+        # CMF — Chaikin Money Flow
+        features["cmf"] = calculate_cmf(
+            highs, lows, closes, volumes, period=self.cmf_period,
+        )
+
+        # Stochastic RSI — oscillatore stocastico applicato all'RSI
+        stoch_rsi_k, stoch_rsi_d = calculate_stochastic_rsi(
+            closes, rsi_period=self.rsi_period, stoch_period=self.stoch_rsi_period,
+        )
+        features["stoch_rsi_k"] = stoch_rsi_k
+        features["stoch_rsi_d"] = stoch_rsi_d
+
+        # Ultimate Oscillator — pressione di acquisto multi-periodo
+        features["ultimate_osc"] = calculate_ultimate_oscillator(
+            highs, lows, closes,
+            period1=self.uo_period1,
+            period2=self.uo_period2,
+            period3=self.uo_period3,
+        )
+
+        # Volatilità storica close-to-close
+        features["hist_vol"] = calculate_historical_volatility(
+            closes, period=self.hist_vol_period,
+        )
+
+        # Volatilità di Parkinson (range high-low)
+        features["parkinson_vol"] = calculate_parkinson_volatility(
+            highs, lows, period=self.parkinson_vol_period,
+        )
+
+        # Force Index — forza del movimento ponderata per volume
+        features["force_index"] = calculate_force_index(
+            closes, volumes, period=self.force_index_period,
+        )
 
         # SMA 200 — il "faro" del trend di lungo periodo
         features["sma_200"] = calculate_sma(closes, period=self.sma_long_period)
