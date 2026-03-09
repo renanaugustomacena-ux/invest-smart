@@ -17,8 +17,7 @@ python:
 		$(PROTO_DIR)/market_data.proto \
 		$(PROTO_DIR)/trading_signal.proto \
 		$(PROTO_DIR)/execution.proto \
-		$(PROTO_DIR)/health.proto \
-		$(PROTO_DIR)/ml_inference.proto
+		$(PROTO_DIR)/health.proto
 	touch $(PYTHON_OUT)/__init__.py
 	@# Fix generated imports to use relative (intra-package) imports.
 	@cd $(PYTHON_OUT) && \
@@ -36,8 +35,7 @@ go:
 		$(PROTO_DIR)/market_data.proto \
 		$(PROTO_DIR)/trading_signal.proto \
 		$(PROTO_DIR)/execution.proto \
-		$(PROTO_DIR)/health.proto \
-		$(PROTO_DIR)/ml_inference.proto
+		$(PROTO_DIR)/health.proto
 
 clean:
 	rm -rf $(GEN_DIR)

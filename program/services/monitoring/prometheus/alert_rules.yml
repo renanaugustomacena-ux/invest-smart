@@ -6,7 +6,7 @@ groups:
     interval: 15s
     rules:
       - alert: KillSwitchActivated
-        expr: moneymaker_kill_switch_active == 1
+        expr: moneymaker_brain_kill_switch_active == 1
         for: 0m
         labels:
           severity: critical
@@ -15,7 +15,7 @@ groups:
           description: "Il kill switch e' stato attivato. Tutto il trading e' sospeso."
 
       - alert: CriticalDrawdown
-        expr: moneymaker_portfolio_drawdown_pct > 5
+        expr: moneymaker_brain_drawdown_pct > 5
         for: 0m
         labels:
           severity: critical
@@ -24,7 +24,7 @@ groups:
           description: "Il drawdown ha superato il 5%. Kill switch imminente."
 
       - alert: HighDrawdown
-        expr: moneymaker_portfolio_drawdown_pct > 3
+        expr: moneymaker_brain_drawdown_pct > 3
         for: 5m
         labels:
           severity: warning
@@ -33,7 +33,7 @@ groups:
           description: "Il drawdown e' al {{ $value }}%. Monitorare attentamente."
 
       - alert: DailyLossApproaching
-        expr: moneymaker_daily_loss_pct > 1.5
+        expr: moneymaker_brain_daily_loss_pct > 1.5
         for: 1m
         labels:
           severity: warning
@@ -42,7 +42,7 @@ groups:
           description: "La perdita giornaliera e' al {{ $value }}% (limite: 2%)."
 
       - alert: DailyLossCritical
-        expr: moneymaker_daily_loss_pct >= 2.0
+        expr: moneymaker_brain_daily_loss_pct >= 2.0
         for: 0m
         labels:
           severity: critical

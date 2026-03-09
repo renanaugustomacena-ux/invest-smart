@@ -315,7 +315,9 @@ class OrderManager:
 
         executed_price = to_decimal(result.price)
         requested_price = to_decimal(price)
-        slippage = executed_price - requested_price
+        raw_slippage = executed_price - requested_price
+        # Normalize: positive = unfavorable (paid more for BUY, received less for SELL)
+        slippage = raw_slippage if direction == "BUY" else -raw_slippage
 
         return {
             "status": "FILLED",

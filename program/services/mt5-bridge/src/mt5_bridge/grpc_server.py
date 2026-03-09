@@ -155,7 +155,7 @@ _STATUS_STR_TO_PROTO: dict[str, int] = {
     "REJECTED": 4,
     "CANCELLED": 5,
     "EXPIRED": 6,
-    "ERROR": 4,     # Mappa ERROR → REJECTED nel proto
+    "ERROR": 7,     # STATUS_ERROR, distinct from REJECTED (4)
     "UNKNOWN": 0,
 }
 

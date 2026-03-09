@@ -27,6 +27,7 @@ message TradeExecution {
     STATUS_REJECTED = 4;
     STATUS_CANCELLED = 5;
     STATUS_EXPIRED = 6;
+    STATUS_ERROR = 7;
   }
   Status status           = 10;
   string slippage_pips    = 11;  // Decimal string
