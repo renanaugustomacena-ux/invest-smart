@@ -806,3 +806,90 @@ def _calculate_rsi_series(closes: list[Decimal], period: int = 14) -> list[Decim
             rsi_values.append(hundred - (hundred / (ONE + rs)))
 
     return rsi_values
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D1: DEMA + Keltner Channels
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_dema(values: list[Decimal], period: int) -> Decimal:
+    """Double Exponential Moving Average — EMA più reattiva ai cambiamenti.
+
+    DEMA = 2 * EMA(close, period) - EMA(EMA(close, period), period)
+    Riduce il ritardo dell'EMA standard pur mantenendo la lisciatura.
+
+    Args:
+        values: Lista di prezzi Decimal (dal più vecchio al più recente).
+        period: Numero di periodi di lookback.
+
+    Returns:
+        DEMA corrente come Decimal. ZERO se dati insufficienti.
+    """
+    if len(values) < 2 * period or period <= 0:
+        return ZERO
+
+    # EMA dei prezzi originali
+    ema1 = calculate_ema(values, period)
+
+    # Per calcolare EMA(EMA), serve la serie intermedia di valori EMA
+    two = Decimal("2")
+    multiplier = two / (Decimal(str(period)) + ONE)
+
+    # Costruisci la serie EMA per poterci calcolare EMA sopra
+    ema_series: list[Decimal] = []
+    ema_val = calculate_sma(values[:period], period)
+    ema_series.append(ema_val)
+    for value in values[period:]:
+        ema_val = (value * multiplier) + (ema_val * (ONE - multiplier))
+        ema_series.append(ema_val)
+
+    # EMA della serie EMA
+    if len(ema_series) < period:
+        return ZERO
+    ema2 = calculate_ema(ema_series, period)
+
+    return two * ema1 - ema2
+
+
+@validate_decimal_inputs
+def calculate_keltner_channels(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    closes: list[Decimal],
+    ema_period: int = 20,
+    atr_period: int = 14,
+    multiplier: int = 2,
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Keltner Channels — canali basati su volatilità ATR.
+
+    Middle = EMA(close, ema_period)
+    Upper  = Middle + multiplier * ATR(atr_period)
+    Lower  = Middle - multiplier * ATR(atr_period)
+
+    A differenza delle Bollinger Bands (basate su deviazione standard),
+    i Keltner usano ATR — più stabili e meno sensibili agli spike.
+
+    Args:
+        highs: Lista dei prezzi massimi.
+        lows: Lista dei prezzi minimi.
+        closes: Lista dei prezzi di chiusura.
+        ema_period: Periodo EMA per la linea centrale.
+        atr_period: Periodo ATR per la larghezza del canale.
+        multiplier: Moltiplicatore ATR (default 2).
+
+    Returns:
+        Tupla (upper, middle, lower). (ZERO, ZERO, ZERO) se insufficienti.
+    """
+    middle = calculate_ema(closes, ema_period)
+    atr = calculate_atr(highs, lows, closes, atr_period)
+
+    if middle == ZERO or atr == ZERO:
+        return ZERO, ZERO, ZERO
+
+    mult_d = Decimal(str(multiplier))
+    upper = middle + mult_d * atr
+    lower = middle - mult_d * atr
+
+    return upper, middle, lower
