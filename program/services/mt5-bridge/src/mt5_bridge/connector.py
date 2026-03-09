@@ -74,20 +74,32 @@ class MT5Connector:
         self._connected = True
         logger.info("Connesso a MT5", server=self._server, account=self._account)
 
-    def reconnect(self, max_retries: int = 3, delay_sec: float = 5.0) -> bool:
-        """Tenta la riconnessione al terminale MT5."""
+    def reconnect(
+        self,
+        max_retries: int = 5,
+        initial_delay_sec: float = 1.0,
+        max_delay_sec: float = 60.0,
+    ) -> bool:
+        """Tenta la riconnessione al terminale MT5 con backoff esponenziale."""
         import time as _time
 
+        delay = initial_delay_sec
         for attempt in range(1, max_retries + 1):
             try:
-                logger.info("Tentativo riconnessione MT5", attempt=attempt, max=max_retries)
+                logger.info(
+                    "Tentativo riconnessione MT5",
+                    attempt=attempt,
+                    max=max_retries,
+                    delay_sec=delay,
+                )
                 self.disconnect()
-                _time.sleep(delay_sec)
+                _time.sleep(delay)
                 self.connect()
-                logger.info("Riconnessione MT5 riuscita")
+                logger.info("Riconnessione MT5 riuscita", attempt=attempt)
                 return True
             except Exception as exc:
                 logger.warning("Riconnessione fallita", attempt=attempt, error=str(exc))
+                delay = min(delay * 2, max_delay_sec)
         logger.error("Riconnessione MT5 fallita dopo %d tentativi", max_retries)
         return False
 
