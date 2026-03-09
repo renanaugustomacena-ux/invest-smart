@@ -60,6 +60,7 @@ class SignalValidator:
         correlation_checker: Any = None,
         session_classifier: Any = None,
         calendar_filter: Any = None,
+        spread_tracker: Any = None,
         default_leverage: int = 100,
         margin_buffer_pct: Decimal = Decimal("0.80"),
     ) -> None:
@@ -85,6 +86,7 @@ class SignalValidator:
         self._correlation_checker = correlation_checker
         self._session_classifier = session_classifier
         self._calendar_filter = calendar_filter
+        self._spread_tracker = spread_tracker
         self._default_leverage = default_leverage
         self._margin_buffer_pct = margin_buffer_pct
 
@@ -176,6 +178,21 @@ class SignalValidator:
                 min_confidence=str(self.min_confidence),
             )
             return False, reason
+
+        # Controllo 5b: Spread percentile — spread anomalo rispetto alla storia
+        if self._spread_tracker is not None:
+            symbol = signal.get("symbol", "")
+            current_spread = Decimal(str(signal.get("spread", "0")))
+            if current_spread > ZERO:
+                spread_ok, spread_reason = self._spread_tracker.check(symbol, current_spread)
+                if not spread_ok:
+                    logger.warning(
+                        "Segnale rifiutato: spread anomalo",
+                        signal_id=signal.get("signal_id"),
+                        spread=str(current_spread),
+                        reason=spread_reason,
+                    )
+                    return False, spread_reason
 
         # Controllo 6: Posizionamento valido dello stop-loss — la rete è al posto giusto?
         stop_loss = Decimal(str(signal.get("stop_loss", "0")))
