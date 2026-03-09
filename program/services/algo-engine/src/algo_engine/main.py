@@ -121,6 +121,11 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         logger.warning("Redis unavailable for portfolio", error=str(e))
         redis_client = None
 
+    # Inject Redis into spiral protection for state persistence (F-S2)
+    if redis_client is not None:
+        spiral_protection._redis = redis_client
+        await spiral_protection.sync_from_redis()
+
     # --- 8. Feature pipeline (algo-engine lines 238-244) ---
     feature_pipeline = FeaturePipeline(
         rsi_period=settings.algo_default_rsi_period,

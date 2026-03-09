@@ -12,13 +12,18 @@ Utilizzo:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
 from decimal import Decimal
+from typing import Any
 
 from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
 
 logger = get_logger(__name__)
+
+SPIRAL_REDIS_KEY = "moneymaker:spiral_protection"
 
 
 class SpiralProtection:
@@ -37,6 +42,7 @@ class SpiralProtection:
         size_reduction_factor: Decimal = Decimal("0.5"),
         *,
         max_consecutive_losses: int | None = None,
+        redis_client: Any = None,
     ) -> None:
         # max_consecutive_losses è l'alias semplificato che unifica soglia
         # e cooldown nello stesso valore (T3_15 interface).
@@ -49,6 +55,7 @@ class SpiralProtection:
 
         self._cooldown_seconds = cooldown_minutes * 60
         self._reduction_factor = size_reduction_factor
+        self._redis = redis_client
 
         self._consecutive_losses: int = 0
         self._cooldown_start: float | None = None
@@ -91,6 +98,7 @@ class SpiralProtection:
                     losses=self._consecutive_losses,
                     cooldown_minutes=self._cooldown_seconds // 60,
                 )
+        self._schedule_persist()
 
     def get_sizing_multiplier(self) -> Decimal:
         """Restituisce il moltiplicatore di sizing corrente.
@@ -134,6 +142,71 @@ class SpiralProtection:
         self._consecutive_losses = 0
         self._cooldown_start = None
         logger.info("Spiral protection resettata manualmente")
+        self._schedule_persist()
+
+    # ------------------------------------------------------------------
+    # Redis persistence
+    # ------------------------------------------------------------------
+
+    def _schedule_persist(self) -> None:
+        """Fire-and-forget async persist if event loop is running."""
+        if self._redis is None:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._persist_to_redis())
+        except RuntimeError:
+            pass  # No event loop — skip (e.g. sync tests)
+
+    async def _persist_to_redis(self) -> None:
+        """Persist current state to Redis."""
+        if self._redis is None:
+            return
+        try:
+            # Store wall-clock time for cooldown (monotonic resets on restart)
+            cooldown_wall: float | None = None
+            if self._cooldown_start is not None:
+                elapsed = time.monotonic() - self._cooldown_start
+                remaining = self._cooldown_seconds - elapsed
+                if remaining > 0:
+                    cooldown_wall = time.time() + remaining
+            data = {
+                "consecutive_losses": self._consecutive_losses,
+                "cooldown_until": cooldown_wall,
+            }
+            await self._redis.set(SPIRAL_REDIS_KEY, json.dumps(data))
+        except Exception as exc:
+            logger.warning("Spiral persist to Redis failed", error=str(exc))
+
+    async def sync_from_redis(self) -> None:
+        """Restore state from Redis on startup."""
+        if self._redis is None:
+            return
+        try:
+            raw = await self._redis.get(SPIRAL_REDIS_KEY)
+            if not raw:
+                return
+            data = json.loads(raw)
+            self._consecutive_losses = int(data.get("consecutive_losses", 0))
+            cooldown_until = data.get("cooldown_until")
+            if cooldown_until is not None:
+                remaining = cooldown_until - time.time()
+                if remaining > 0:
+                    # Convert wall-clock deadline back to monotonic offset
+                    self._cooldown_start = time.monotonic() - (
+                        self._cooldown_seconds - remaining
+                    )
+                else:
+                    # Cooldown already expired
+                    self._cooldown_start = None
+                    self._consecutive_losses = 0
+            logger.info(
+                "Spiral state restored from Redis",
+                consecutive_losses=self._consecutive_losses,
+                in_cooldown=self._cooldown_start is not None,
+            )
+        except Exception as exc:
+            logger.warning("Spiral sync from Redis failed", error=str(exc))
 
 
 class DrawdownEnforcer:

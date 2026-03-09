@@ -14,6 +14,7 @@ package dbwriter
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sync"
 	"time"
 
@@ -22,6 +23,18 @@ import (
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
+
+// redactDSN masks the password in a PostgreSQL connection string for safe logging.
+func redactDSN(dsn string) string {
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return "[unparseable DSN]"
+	}
+	if u.User != nil {
+		u.User = url.UserPassword(u.User.Username(), "***")
+	}
+	return u.String()
+}
 
 // Config contiene i parametri di configurazione per il DBWriter.
 type Config struct {
@@ -125,7 +138,7 @@ func New(ctx context.Context, cfg Config, logger *zap.Logger) (*DBWriter, error)
 	// Configura il pool di connessioni
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
-		return nil, fmt.Errorf("dbwriter: invalid DSN: %w", err)
+		return nil, fmt.Errorf("dbwriter: invalid DSN (%s): %w", redactDSN(cfg.DSN), err)
 	}
 
 	// Ottimizzazioni per bulk insert

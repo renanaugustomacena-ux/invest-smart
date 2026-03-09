@@ -29,7 +29,9 @@ set_role_password() {
 
     if [ -n "$password" ]; then
         psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+            SET log_statement = 'none';
             ALTER ROLE $role_name WITH PASSWORD '$password';
+            RESET log_statement;
 EOSQL
         echo "[OK] Password set for $role_name ($description)"
     else
