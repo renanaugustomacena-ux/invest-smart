@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint algo-engine
+        run: ruff check program/services/algo-engine/src/
+      - name: Lint mt5-bridge
+        run: ruff check program/services/mt5-bridge/src/
+      - name: Lint python-common
+        run: ruff check program/shared/python-common/src/
+
+  test-algo-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -e program/shared/python-common
+          pip install -e program/shared/proto
+          pip install -e program/services/algo-engine
+          pip install pytest pytest-asyncio
+      - name: Run unit tests
+        run: |
+          cd program/services/algo-engine
+          python -m pytest tests/unit/ -v --tb=short
+
+  test-mt5-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -e program/shared/python-common
+          pip install -e program/shared/proto
+          pip install -e program/services/mt5-bridge
+          pip install pytest pytest-asyncio
+      - name: Run unit tests
+        run: |
+          cd program/services/mt5-bridge
+          python -m pytest tests/unit/ -v --tb=short
+
+  lint-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Vet data-ingestion
+        working-directory: program/services/data-ingestion
+        run: go vet ./...
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
