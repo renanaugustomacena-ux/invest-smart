@@ -1197,3 +1197,101 @@ def calculate_ultimate_oscillator(
     uo = hundred * (four * avg1 + two * avg2 + avg3) / seven
 
     return uo
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D5: Historical + Parkinson Volatility
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_historical_volatility(
+    closes: list[Decimal],
+    period: int = 20,
+    annualization: int = 252,
+) -> Decimal:
+    """Volatilità storica close-to-close annualizzata.
+
+    HV = StdDev(ln(C_i / C_{i-1})) * sqrt(annualization)
+
+    Misura la dispersione dei rendimenti logaritmici — più alta = più rischio.
+
+    Args:
+        closes: Lista dei prezzi di chiusura.
+        period: Finestra di osservazione (default 20 barre).
+        annualization: Fattore di annualizzazione (252 = giorni trading).
+
+    Returns:
+        Volatilità annualizzata come Decimal. ZERO se insufficiente.
+    """
+    if len(closes) < period + 1 or period <= 0:
+        return ZERO
+
+    # Rendimenti logaritmici sugli ultimi period+1 close
+    log_returns: list[Decimal] = []
+    start = len(closes) - period - 1
+    for i in range(start + 1, len(closes)):
+        if closes[i - 1] <= ZERO or closes[i] <= ZERO:
+            return ZERO
+        lr = _decimal_ln(closes[i] / closes[i - 1])
+        log_returns.append(lr)
+
+    if not log_returns:
+        return ZERO
+
+    n = Decimal(str(len(log_returns)))
+    mean = sum(log_returns, ZERO) / n
+
+    # Varianza campionaria
+    variance = sum((lr - mean) ** 2 for lr in log_returns) / n
+
+    if variance <= ZERO:
+        return ZERO
+
+    std_dev = _decimal_sqrt(variance)
+    return std_dev * _decimal_sqrt(Decimal(str(annualization)))
+
+
+@validate_decimal_inputs
+def calculate_parkinson_volatility(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    period: int = 20,
+    annualization: int = 252,
+) -> Decimal:
+    """Volatilità di Parkinson — stimatore basato sul range high-low.
+
+    PV = sqrt(1/(4*n*ln2) * sum(ln(H/L)^2)) * sqrt(annualization)
+
+    Più efficiente dello stimatore close-to-close perché usa l'intero
+    range intraday, non solo la chiusura.
+
+    Returns:
+        Volatilità Parkinson annualizzata come Decimal. ZERO se insufficiente.
+    """
+    n = min(len(highs), len(lows))
+    if n < period or period <= 0:
+        return ZERO
+
+    four = Decimal("4")
+    sum_ln_sq = ZERO
+
+    start = n - period
+    for i in range(start, n):
+        if lows[i] <= ZERO or highs[i] <= ZERO:
+            return ZERO
+        ratio = highs[i] / lows[i]
+        ln_ratio = _decimal_ln(ratio)
+        sum_ln_sq += ln_ratio * ln_ratio
+
+    period_d = Decimal(str(period))
+    denominator = four * period_d * _LN2
+
+    if denominator == ZERO:
+        return ZERO
+
+    daily_var = sum_ln_sq / denominator
+    if daily_var <= ZERO:
+        return ZERO
+
+    return _decimal_sqrt(daily_var) * _decimal_sqrt(Decimal(str(annualization)))
