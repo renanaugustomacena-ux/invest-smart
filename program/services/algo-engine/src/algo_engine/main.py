@@ -444,13 +444,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
                 try:
                     closed_trades = await bridge_client.get_closed_trades()
                     for trade in closed_trades:
-                        pnl = Decimal(
-                            str(
-                                trade.get(
-                                    "profit", trade.get("commission", "0")
-                                )
-                            )
-                        )
+                        pnl = Decimal(str(trade.get("profit", "0")))
                         portfolio_manager.record_close(
                             symbol=trade.get("symbol", ""),
                             lots=Decimal(
