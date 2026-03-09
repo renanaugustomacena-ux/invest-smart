@@ -252,11 +252,11 @@ class OrderManager:
         if symbol_info:
             vol_min = symbol_info["volume_min"]
             vol_step = symbol_info["volume_step"]
-            if lots < vol_min:
-                lots = vol_min
-            # Arrotonda allo step del volume
+            # Arrotonda allo step del volume PRIMA di clamp al minimo
             if vol_step > ZERO:
                 lots = (lots // vol_step) * vol_step
+            if lots < vol_min:
+                lots = vol_min
 
         return lots
 

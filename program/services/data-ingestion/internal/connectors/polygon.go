@@ -101,7 +101,7 @@ type PolygonConnector struct {
 	}
 
 	// reconnectAttempts conta i tentativi consecutivi di riconnessione.
-	reconnectAttempts int
+	reconnectAttempts atomic.Int32
 	maxReconnects     int
 
 	// msgChan bufferizza i messaggi in arrivo.
@@ -262,7 +262,7 @@ func (p *PolygonConnector) dialAndAuth() error {
 	}
 
 	p.state.Store(int32(stateConnected))
-	p.reconnectAttempts = 0
+	p.reconnectAttempts.Store(0)
 
 	// Avvia goroutine.
 	go p.readLoop()
@@ -287,9 +287,9 @@ func (p *PolygonConnector) reconnect() {
 		default:
 		}
 
-		p.reconnectAttempts++
+		attempts := p.reconnectAttempts.Add(1)
 
-		if p.reconnectAttempts > p.maxReconnects {
+		if int(attempts) > p.maxReconnects {
 			p.errChan <- fmt.Errorf(
 				"polygon connector: max reconnect attempts (%d) exceeded, giving up",
 				p.maxReconnects,
@@ -336,7 +336,7 @@ func (p *PolygonConnector) backoffDelay() time.Duration {
 	base := p.config.ReconnectDelay.Seconds()
 	maxD := p.config.MaxReconnectDelay.Seconds()
 
-	exp := base * math.Pow(2, float64(p.reconnectAttempts-1))
+	exp := base * math.Pow(2, float64(p.reconnectAttempts.Load()-1))
 	if exp > maxD {
 		exp = maxD
 	}

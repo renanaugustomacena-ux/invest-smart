@@ -41,6 +41,15 @@ groups:
           summary: "Perdita giornaliera al 75% del limite"
           description: "La perdita giornaliera e' al {{ $value }}% (limite: 2%)."
 
+      - alert: DailyLossCritical
+        expr: moneymaker_daily_loss_pct >= 2.0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Daily loss at kill switch limit"
+          description: "Daily loss at {{ $value }}% (limit: 2%). Kill switch imminent."
+
       - alert: SpiralProtectionActive
         expr: moneymaker_spiral_consecutive_losses > 3
         for: 0m
