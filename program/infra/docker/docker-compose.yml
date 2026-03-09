@@ -79,7 +79,7 @@ services:
     env_file: ../../.env
     ports:
       - "5555:5555"     # ZeroMQ PUB
-      - "9090:9090"     # Prometheus metrics
+      - "${DI_METRICS_PORT:-9090}:9090"     # Prometheus metrics
       - "${DATA_INGESTION_HEALTH_PORT:-8081}:9091"     # Health (container: 9091)
     environment:
       - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}

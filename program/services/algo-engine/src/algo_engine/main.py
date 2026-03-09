@@ -209,7 +209,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
 
     # --- 16. MTF analyzer (algo-engine lines 315-316) ---
     primary_tf = settings.algo_primary_timeframe
-    mtf_analyzer = MultiTimeframeAnalyzer(primary_timeframe=primary_tf)
+    mtf_analyzer = MultiTimeframeAnalyzer(primary_tf=primary_tf)
     logger.info("Multi-Timeframe Analyzer initialized", primary=primary_tf)
 
     # --- 17. Data quality, bar buffer, attribution (algo-engine lines 320-329) ---
