@@ -893,3 +893,100 @@ def calculate_keltner_channels(
     lower = middle - mult_d * atr
 
     return upper, middle, lower
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D2: Parabolic SAR
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_parabolic_sar(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    af_start: Decimal = Decimal("0.02"),
+    af_step: Decimal = Decimal("0.02"),
+    af_max: Decimal = Decimal("0.20"),
+) -> tuple[Decimal, str]:
+    """Parabolic Stop and Reverse — "trailing stop" dinamico.
+
+    Segue il prezzo con un punto SAR che accelera nella direzione del
+    trend. Quando il prezzo attraversa il SAR, la direzione si inverte.
+
+    Args:
+        highs: Lista dei prezzi massimi.
+        lows: Lista dei prezzi minimi.
+        af_start: Fattore di accelerazione iniziale (default 0.02).
+        af_step: Incremento AF ad ogni nuovo estremo (default 0.02).
+        af_max: Fattore di accelerazione massimo (default 0.20).
+
+    Returns:
+        Tupla (sar_value, trend) dove trend è "bullish" o "bearish".
+        (ZERO, "unknown") se dati insufficienti.
+    """
+    n = min(len(highs), len(lows))
+    if n < 2:
+        return ZERO, "unknown"
+
+    # Inizializzazione: primo periodo determina la direzione
+    is_bullish = highs[1] > highs[0] or lows[1] > lows[0]
+
+    if is_bullish:
+        sar = lows[0]
+        ep = highs[0]  # Extreme Point: massimo più alto nel trend
+    else:
+        sar = highs[0]
+        ep = lows[0]  # Extreme Point: minimo più basso nel trend
+
+    af = af_start
+
+    for i in range(1, n):
+        high_i = highs[i]
+        low_i = lows[i]
+
+        # Calcola il nuovo SAR
+        new_sar = sar + af * (ep - sar)
+
+        if is_bullish:
+            # SAR non può essere sopra i minimi delle ultime 2 barre
+            if i >= 2:
+                new_sar = min(new_sar, lows[i - 1], lows[i - 2])
+            else:
+                new_sar = min(new_sar, lows[i - 1])
+
+            # Controlla inversione
+            if low_i < new_sar:
+                # Flip a bearish
+                is_bullish = False
+                sar = ep  # SAR = extreme point del trend precedente
+                ep = low_i
+                af = af_start
+            else:
+                sar = new_sar
+                # Aggiorna EP se nuovo massimo
+                if high_i > ep:
+                    ep = high_i
+                    af = min(af + af_step, af_max)
+        else:
+            # SAR non può essere sotto i massimi delle ultime 2 barre
+            if i >= 2:
+                new_sar = max(new_sar, highs[i - 1], highs[i - 2])
+            else:
+                new_sar = max(new_sar, highs[i - 1])
+
+            # Controlla inversione
+            if high_i > new_sar:
+                # Flip a bullish
+                is_bullish = True
+                sar = ep
+                ep = high_i
+                af = af_start
+            else:
+                sar = new_sar
+                # Aggiorna EP se nuovo minimo
+                if low_i < ep:
+                    ep = low_i
+                    af = min(af + af_step, af_max)
+
+    trend = "bullish" if is_bullish else "bearish"
+    return sar, trend
