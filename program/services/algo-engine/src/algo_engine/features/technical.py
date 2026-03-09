@@ -1072,3 +1072,128 @@ def calculate_cmf(
         return ZERO
 
     return total_mfv / total_vol
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D4: Stochastic RSI + Ultimate Oscillator
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_stochastic_rsi(
+    closes: list[Decimal],
+    rsi_period: int = 14,
+    stoch_period: int = 14,
+    smooth_k: int = 3,
+    smooth_d: int = 3,
+) -> tuple[Decimal, Decimal]:
+    """Stochastic RSI — oscillatore stocastico applicato all'RSI.
+
+    StochRSI = (RSI - min(RSI, stoch_period)) / (max(RSI, stoch_period) - min(RSI, stoch_period))
+    %K = SMA(StochRSI, smooth_k) * 100
+    %D = SMA(%K_series, smooth_d)
+
+    Più sensibile dell'RSI standard per identificare ipercomprato/ipervenduto.
+    Range [0, 100].
+
+    Returns:
+        Tupla (%K, %D). (ZERO, ZERO) se dati insufficienti.
+    """
+    rsi_series = _calculate_rsi_series(closes, rsi_period)
+    if len(rsi_series) < stoch_period:
+        return ZERO, ZERO
+
+    hundred = Decimal("100")
+
+    # Calcola StochRSI grezzo per ogni posizione
+    raw_stoch: list[Decimal] = []
+    for i in range(stoch_period - 1, len(rsi_series)):
+        window = rsi_series[i - stoch_period + 1: i + 1]
+        rsi_min = min(window)
+        rsi_max = max(window)
+        rsi_range = rsi_max - rsi_min
+        if rsi_range == ZERO:
+            raw_stoch.append(hundred)  # Tutti RSI uguali → massimo
+        else:
+            raw_stoch.append(((rsi_series[i] - rsi_min) / rsi_range) * hundred)
+
+    if len(raw_stoch) < smooth_k:
+        return ZERO, ZERO
+
+    # %K = SMA di raw_stoch
+    k_series: list[Decimal] = []
+    for i in range(smooth_k - 1, len(raw_stoch)):
+        window = raw_stoch[i - smooth_k + 1: i + 1]
+        k_series.append(sum(window, ZERO) / Decimal(str(smooth_k)))
+
+    if not k_series:
+        return ZERO, ZERO
+
+    k_value = k_series[-1]
+
+    # %D = SMA di %K series
+    if len(k_series) < smooth_d:
+        return k_value, ZERO
+
+    d_window = k_series[-smooth_d:]
+    d_value = sum(d_window, ZERO) / Decimal(str(smooth_d))
+
+    return k_value, d_value
+
+
+@validate_decimal_inputs
+def calculate_ultimate_oscillator(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    closes: list[Decimal],
+    period1: int = 7,
+    period2: int = 14,
+    period3: int = 28,
+) -> Decimal:
+    """Ultimate Oscillator — media ponderata di pressione di acquisto su 3 periodi.
+
+    BP (Buying Pressure) = Close - min(Low, PrevClose)
+    TR (True Range) = max(High, PrevClose) - min(Low, PrevClose)
+    UO = 100 * (4*avg1 + 2*avg2 + avg3) / 7
+    dove avg_N = sum(BP, N) / sum(TR, N)
+
+    Pesi 4:2:1 danno più importanza al breve periodo.
+    Range [0, 100].
+
+    Returns:
+        UO come Decimal. ZERO se dati insufficienti.
+    """
+    n = min(len(highs), len(lows), len(closes))
+    max_period = max(period1, period2, period3)
+    if n < max_period + 1:
+        return ZERO
+
+    hundred = Decimal("100")
+    seven = Decimal("7")
+
+    # Calcola BP e TR per ogni barra (da indice 1 in poi)
+    bp_list: list[Decimal] = []
+    tr_list: list[Decimal] = []
+    for i in range(1, n):
+        prev_close = closes[i - 1]
+        true_low = min(lows[i], prev_close)
+        true_high = max(highs[i], prev_close)
+        bp_list.append(closes[i] - true_low)
+        tr_list.append(true_high - true_low)
+
+    def _avg_ratio(period: int) -> Decimal:
+        bp_sum = sum(bp_list[-period:], ZERO)
+        tr_sum = sum(tr_list[-period:], ZERO)
+        if tr_sum == ZERO:
+            return ZERO
+        return bp_sum / tr_sum
+
+    avg1 = _avg_ratio(period1)
+    avg2 = _avg_ratio(period2)
+    avg3 = _avg_ratio(period3)
+
+    four = Decimal("4")
+    two = Decimal("2")
+    uo = hundred * (four * avg1 + two * avg2 + avg3) / seven
+
+    return uo
