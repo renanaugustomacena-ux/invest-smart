@@ -192,7 +192,8 @@
       "Bash(ls -la /home/re/Documents/simplebot/program/infra/docker/.env 2>/dev/null; git -C /home/re/Documents/simplebot ls-files program/infra/docker/.env 2>/dev/null | head -5)",
       "Bash(wc -l /home/re/Documents/simplebot/program/services/algo-engine/tests/unit/test_math_*.py)",
       "Bash(wc -l /home/re/Documents/simplebot/program/services/algo-engine/tests/unit/*.py)",
-      "Bash(find /home/re/Documents/simplebot/program/services/algo-engine/src/algo_engine/ -type f -name \"*.py\" | wc -l && find /home/re/Documents/simplebot/program/services/algo-engine/src/algo_engine/ -type f -name \"*.py\" -exec wc -l {} + | tail -1)"
+      "Bash(find /home/re/Documents/simplebot/program/services/algo-engine/src/algo_engine/ -type f -name \"*.py\" | wc -l && find /home/re/Documents/simplebot/program/services/algo-engine/src/algo_engine/ -type f -name \"*.py\" -exec wc -l {} + | tail -1)",
+      "Bash(git add docs/audits/SYSTEM_AUDIT_REPORT.md && git commit -m \"$\\(cat <<'EOF'\ndocs\\(audit\\): comprehensive system audit v2.0 — 1,902 lines\n\nComplete rewrite of SYSTEM_AUDIT_REPORT.md with full codebase analysis:\n- Verified 45 prior findings: 23 fixed, 22 open, 17 new identified\n- Quality score updated 7.5→8.2/10 reflecting major refactors\n- New sections: math modules, backtesting, optimization, dependency\n  audit, performance analysis, risk heat map, production readiness\n- Per-service scorecards with A-F grading across 12 dimensions\n- OWASP Top 10 analysis with per-service coverage\n- Updated remediation roadmap \\(5 phases, ~15-20 days estimated\\)\nEOF\n\\)\")"
     ]
   }
 }
