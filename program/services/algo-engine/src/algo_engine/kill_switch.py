@@ -4,7 +4,7 @@ Ferma immediatamente tutto il trading quando attivato. Usa Redis come
 stato condiviso cosicché tutti i servizi vedano la stessa cosa.
 
 Attivazione automatica quando:
-- La perdita giornaliera raggiunge il limite configurato (T3_15: fix 2x→1x)
+- La perdita giornaliera raggiunge il limite configurato (>= 1x)
 - Il drawdown supera il limite configurato
 
 Utilizzo:
@@ -58,13 +58,13 @@ class KillSwitch:
 
     _MAX_AUDIT_ENTRIES = 200  # Max audit entries kept in Redis list
 
-    def __init__(self, redis_url: str = "redis://localhost:6379") -> None:
+    def __init__(self, redis_url: str = "redis://localhost:6379", cache_ttl: float = 1.0) -> None:
         self._redis_url = redis_url
         self._redis = None
         self._cached_active: bool = True  # Fail-CLOSED: blocca trading fino a conferma Redis
         self._cached_reason: str = ""
         self._cache_ts: float = 0.0
-        self._cache_ttl: float = 1.0
+        self._cache_ttl: float = cache_ttl
         self._audit_log: list[KillSwitchAuditEntry] = []
 
     async def connect(self) -> None:

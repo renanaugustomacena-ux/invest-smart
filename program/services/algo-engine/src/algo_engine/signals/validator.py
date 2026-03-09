@@ -61,6 +61,7 @@ class SignalValidator:
         session_classifier: Any = None,
         calendar_filter: Any = None,
         default_leverage: int = 100,
+        margin_buffer_pct: Decimal = Decimal("0.80"),
     ) -> None:
         """Inizializza il validatore con le soglie di rischio.
 
@@ -74,6 +75,7 @@ class SignalValidator:
             session_classifier: SessionClassifier per awareness sessione di trading.
             calendar_filter: EconomicCalendarFilter per blackout eventi.
             default_leverage: Leva predefinita per il calcolo del margine.
+            margin_buffer_pct: Frazione del margine disponibile utilizzabile (0.80 = 80%).
         """
         self.max_open_positions = max_open_positions
         self.max_drawdown_pct = max_drawdown_pct
@@ -84,6 +86,7 @@ class SignalValidator:
         self._session_classifier = session_classifier
         self._calendar_filter = calendar_filter
         self._default_leverage = default_leverage
+        self._margin_buffer_pct = margin_buffer_pct
 
     def validate(
         self,
@@ -253,11 +256,12 @@ class SignalValidator:
                 account_leverage = self._default_leverage
             estimated_margin = (suggested_lots * contract_size * entry_price) / Decimal(str(account_leverage))
             available_margin = equity - used_margin
-            margin_buffer = available_margin * Decimal("0.8")
+            margin_buffer = available_margin * self._margin_buffer_pct
             if estimated_margin > margin_buffer:
+                buffer_pct_display = int(self._margin_buffer_pct * 100)
                 reason = (
                     f"Margine insufficiente: richiesto {estimated_margin:.2f}, "
-                    f"disponibile {available_margin:.2f} (80% buffer: {margin_buffer:.2f})"
+                    f"disponibile {available_margin:.2f} ({buffer_pct_display}% buffer: {margin_buffer:.2f})"
                 )
                 logger.warning(
                     "Segnale rifiutato: margine insufficiente",
