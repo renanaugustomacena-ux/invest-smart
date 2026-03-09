@@ -89,6 +89,7 @@ class AlgoEngine:
         belief_state: Any | None = None,
         composite_confidence: Any | None = None,
         mtf_confirmation: Any | None = None,
+        maturity_gate: Any | None = None,
     ) -> None:
         # Core
         self._feature_pipeline = feature_pipeline
@@ -122,11 +123,12 @@ class AlgoEngine:
         self._belief_state = belief_state
         self._composite_confidence = composite_confidence
         self._mtf_confirmation = mtf_confirmation
+        self._maturity_gate = maturity_gate
 
         if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
                 shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
                 feature_scorer, belief_state, composite_confidence,
-                mtf_confirmation]):
+                mtf_confirmation, maturity_gate]):
             active = [name for name, mod in [
                 ("bayesian_regime", bayesian_regime),
                 ("spectral_detector", spectral_detector),
@@ -140,6 +142,7 @@ class AlgoEngine:
                 ("belief_state", belief_state),
                 ("composite_confidence", composite_confidence),
                 ("mtf_confirmation", mtf_confirmation),
+                ("maturity_gate", maturity_gate),
             ] if mod is not None]
             logger.info("Advanced modules active", modules=active)
 
@@ -359,12 +362,29 @@ class AlgoEngine:
         trading_signal["suggested_lots"] = sized_lots
         trading_signal["source_tier"] = source_tier.value
 
+        # Step 8a: Maturity gate sizing (optional)
+        if self._maturity_gate is not None:
+            maturity_mult = self._maturity_gate.sizing_multiplier
+            if maturity_mult < Decimal("1"):
+                old_lots = Decimal(str(trading_signal.get("suggested_lots", "0")))
+                new_lots = (old_lots * maturity_mult).quantize(Decimal("0.01"))
+                if new_lots < Decimal("0.01"):
+                    new_lots = Decimal("0.01")
+                trading_signal["suggested_lots"] = new_lots
+                logger.info(
+                    "Maturity gate: lots reduced",
+                    state=self._maturity_gate.state.value,
+                    old_lots=str(old_lots),
+                    new_lots=str(new_lots),
+                    multiplier=str(maturity_mult),
+                )
+
         SIGNAL_CONFIDENCE.observe(float(suggestion.confidence))
         SIGNALS_GENERATED.labels(
             symbol=symbol, direction=str(suggestion.direction)
         ).inc()
 
-        # Step 8a: Spiral protection — cooldown check (algo-engine lines 902-920)
+        # Step 8b: Spiral protection — cooldown check (algo-engine lines 902-920)
         if self._spiral_protection.is_in_cooldown():
             logger.info("Signal blocked: spiral cooldown active")
             SIGNALS_REJECTED.labels(reason="spiral_cooldown").inc()
