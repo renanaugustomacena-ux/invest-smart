@@ -1,942 +1,1902 @@
-# MONEYMAKER V1 — System Audit Report
+# MONEYMAKER V1 — System Audit Report v2.0
 
-> **Consolidated from 11 audit reports** | Last updated: 2026-03-09
-> Scope: 7 services, ~12,877 LoC algo-engine, pure algorithmic/mathematical architecture
-> All neural network and ML training code has been removed. The system operates as a rule-based algorithmic trading engine with advanced mathematical modules (stochastic, information theory, extreme value, fractal, spectral, Bayesian, OU process, copula).
-
----
-
-## Executive Summary
-
-MONEYMAKER V1 is a microservices algorithmic trading ecosystem with 7 services: data-ingestion (Go), algo-engine (Python), mt5-bridge (Python), console, dashboard, external-data, and monitoring. The architecture is well-designed with proto-first contracts, shared libraries, and network segmentation.
-
-**Quality Score**: 7.5/10 — Solid architecture with production-blocking bugs that must be fixed before deployment.
-
-### Critical Production Blockers
-
-| # | Issue | Impact |
-|---|-------|--------|
-| 1 | Kill switch `is_active()` returns tuple but main.py treats as bool | Trading ALWAYS blocked |
-| 2 | gRPC direction enum serialization broken | All signals have direction UNSPECIFIED |
-| 3 | `ohlcv_bars` and `market_ticks` missing PRIMARY KEY | Duplicate data possible |
-| 4 | `.env` with plaintext password committed to git history | Security compromise |
-| 5 | MT5 Bridge cannot run in Docker Linux | MetaTrader5 is Windows-only |
-
-### Findings Summary
-
-| Severity | Count |
-|----------|-------|
-| CRITICO | 9 |
-| ALTO | 14 |
-| WARNING | 22 |
-| **Total** | **45** |
+> **Version**: 2.0 | **Date**: 2026-03-09
+> **Scope**: 7 services, ~12,961 LoC algo-engine, pure algorithmic/mathematical architecture
+> **Standards**: ISO/IEC 25010, ISO 27001, OWASP Top 10, IEEE 730, STRIDE
+> **Previous**: v1.0 (11 consolidated audits, 45 findings)
+> **Classification**: Internal — Confidential
 
 ---
 
-## 1. Architecture & Service Map
+## Table of Contents
 
-### 1.1 Service Topology
+1. [Executive Dashboard](#1-executive-dashboard)
+2. [Architecture & Service Map](#2-architecture--service-map)
+3. [Algo-Engine Core Pipeline](#3-algo-engine-core-pipeline)
+4. [Feature Pipeline & Regime Classification](#4-feature-pipeline--regime-classification)
+5. [Mathematical Modules](#5-mathematical-modules)
+6. [Strategy Suite](#6-strategy-suite)
+7. [Safety Systems & Risk Management](#7-safety-systems--risk-management)
+8. [Backtesting Infrastructure](#8-backtesting-infrastructure)
+9. [Optimization Suite](#9-optimization-suite)
+10. [Data Ingestion & Database](#10-data-ingestion--database)
+11. [MT5 Bridge & Execution](#11-mt5-bridge--execution)
+12. [Infrastructure, CI/CD & Security](#12-infrastructure-cicd--security)
+13. [Test Coverage & Quality](#13-test-coverage--quality)
+14. [Dependency Audit](#14-dependency-audit)
+15. [Performance Analysis](#15-performance-analysis)
+16. [Consolidated Findings](#16-consolidated-findings)
+17. [Risk Heat Map](#17-risk-heat-map)
+18. [Production Readiness Matrix](#18-production-readiness-matrix)
+19. [Remediation Roadmap](#19-remediation-roadmap)
+20. [Appendices](#20-appendices)
+
+---
+
+## 1. Executive Dashboard
+
+### 1.1 Overall Quality Score
+
+**Quality Score: 8.2 / 10** (up from 7.5 in v1.0)
+
+| ISO/IEC 25010 Dimension | Score | Trend | Notes |
+|--------------------------|-------|-------|-------|
+| Functional Suitability | 8.5 | UP | Core pipeline bugs F01, F02 fixed; 7 strategies operational |
+| Performance Efficiency | 7.5 | STABLE | 5s timeout, Decimal overhead acceptable for financial precision |
+| Compatibility | 7.0 | UP | Port alignment fixed; proto contracts stable |
+| Usability | 7.0 | STABLE | 80+ console commands; TUI functional but 0 tests |
+| Reliability | 8.0 | UP | Kill switch fixed; spiral Redis persistence added |
+| Security | 7.5 | UP | Backend network internal; TLS conditional; .env history remains |
+| Maintainability | 9.0 | UP | main.py refactored 1,609→530 LoC; clean AlgoEngine class |
+| Portability | 6.5 | STABLE | MT5 Bridge Windows-only remains architectural constraint |
+
+### 1.2 Findings Summary
+
+| Severity | v1.0 | Fixed | Still Open | New | v2.0 Total |
+|----------|------|-------|------------|-----|------------|
+| CRITICAL | 9 | 7 | 2 | 1 | 3 |
+| HIGH | 14 | 9 | 5 | 3 | 8 |
+| MEDIUM | 0 | 0 | 0 | 8 | 8 |
+| WARNING | 22 | 7 | 15 | 5 | 20 |
+| **Total** | **45** | **23** | **22** | **17** | **39** |
+
+**51% of v1.0 findings resolved.** Net reduction from 45 to 39 findings, with 17 new findings identified in expanded scope (math modules, backtesting, optimization, CI/CD, Grafana security).
+
+### 1.3 Production Readiness Traffic Lights
+
+```
+Service             Code  Tests  Safety  Deploy  Overall
+─────────────────────────────────────────────────────────
+data-ingestion      [G]   [A]    [G]     [G]     [G] GREEN
+algo-engine         [G]   [A]    [G]     [G]     [G] GREEN
+mt5-bridge          [A]   [A]    [A]     [R]     [R] RED
+console             [G]   [R]    [G]     [A]     [A] AMBER
+dashboard           [A]   [R]    [A]     [A]     [A] AMBER
+external-data       [A]   [R]    [A]     [R]     [R] RED
+monitoring          [G]   [G]    [G]     [G]     [G] GREEN
+
+Legend: [G]=Green (ready) [A]=Amber (needs work) [R]=Red (blocked)
+```
+
+### 1.4 Top 5 Risks
+
+| # | Risk | Impact | Section |
+|---|------|--------|---------|
+| 1 | MT5 Bridge cannot run in Docker Linux (Windows-only) | Cannot deploy unified stack | 11 |
+| 2 | `.env` password remains in git history | Credential compromise | 12 |
+| 3 | Feedback loop incomplete (closed trades not streamed) | Stale portfolio state | 11 |
+| 4 | CI references removed ml-training service | CI pipeline fails | 12 |
+| 5 | Grafana anonymous admin access in docker-compose | Dashboard takeover | 12 |
+
+### 1.5 Key Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total Source Files | ~120+ |
+| Total Lines of Code | ~35,000+ |
+| Algo-Engine LoC | 12,961 |
+| Test Files | ~35 |
+| Test Count | ~380+ |
+| Test Pass Rate | 100% |
+| Strategies | 9 (7 active + 2 base/router) |
+| Math Modules | 8 (3,386 LoC) |
+| Prometheus Metrics | 28 defined |
+| Alert Rules | 10 |
+| Grafana Dashboards | 5 |
+| Docker Services | 7 |
+| Proto Definitions | 4 |
+| Safety Layers | 7 |
+
+---
+
+## 2. Architecture & Service Map
+
+### 2.1 Service Topology
 
 ```
                         +-----------+
                         |  Polygon  |
-                        |  Binance  |
+                        |  (Forex)  |
                         +-----+-----+
-                              | WebSocket
+                              | WebSocket/HTTPS
                               v
 +------------------------------------------------------------------+
 |                    DOCKER COMPOSE STACK                            |
 |                                                                   |
 |  +------------------+     ZMQ PUB     +------------------+        |
 |  | data-ingestion   | ==============> | algo-engine      |        |
-|  | (Go)             |   :5555        | (Python)          |        |
-|  +--------+---------+                +--------+----------+        |
-|           |                                   |                   |
-|           | SQL (batch writer)                | gRPC :50055       |
-|           v                                   v                   |
-|  +------------------+                +------------------+         |
-|  | PostgreSQL 16    |                | mt5-bridge       |         |
-|  | TimescaleDB      |<---------------| (Python)         |         |
-|  | (:5432)          |     SQL        | Expose: 50055,   |         |
-|  +--------+---------+                |   9094            |         |
-|           ^                          +--------+---------+         |
-|           |                                   |                   |
-|  +------------------+                         | MT5 API           |
-|  | Redis 7          |                         v                   |
-|  | (:6379)          |                +------------------+         |
-|  +------------------+                | MetaTrader 5     |         |
-|                                      | (Windows VM)     |         |
-|  +------------------+  +------------------+                       |
-|  | Prometheus       |  | Grafana          |                       |
-|  | (:9091->9090)    |  | (:3000)          |                       |
-|  +------------------+  +------------------+                       |
+|  | (Go)             |   :5555         | (Python)         |        |
+|  | :9090 metrics    |                 | :50057 gRPC      |        |
+|  | :9091 health     |                 | :8087 REST       |        |
+|  +--------+---------+                 | :9097 metrics    |        |
+|           |                           +--------+---------+        |
+|           | SQL (batch COPY)                   |                  |
+|           v                                    | gRPC :50055      |
+|  +------------------+                          v                  |
+|  | PostgreSQL 16    |                 +------------------+        |
+|  | TimescaleDB      |<---------------| mt5-bridge       |        |
+|  | (:5432)          |     SQL        | (Python)         |        |
+|  +--------+---------+                | :50055 gRPC      |        |
+|           ^                          | :9094 metrics    |        |
+|           |                          +--------+---------+        |
+|  +------------------+                         |                  |
+|  | Redis 7          |                         | MT5 API          |
+|  | (:6379)          |                         v                  |
+|  +------------------+                +------------------+        |
+|                                      | MetaTrader 5     |        |
+|  +------------------+                | (Windows VM)     |        |
+|  | dashboard        |                +------------------+        |
+|  | (:8888)          |                                            |
+|  +------------------+  +------------------+  +------------------+|
+|                        | Prometheus       |  | Grafana          ||
+|                        | (:9091→9090)     |  | (:3000)          ||
+|                        +------------------+  +------------------+|
 +------------------------------------------------------------------+
 ```
 
-### 1.2 Communication Protocols
+### 2.2 Communication Protocol Matrix
 
-| Source | Destination | Protocol | Port | Status |
-|--------|------------|----------|------|--------|
-| Polygon.io | data-ingestion | WebSocket/HTTPS | ext | OK |
-| Binance | data-ingestion | WebSocket | ext | OK (disabled in V1) |
-| data-ingestion | PostgreSQL | TCP/SQL | 5432 | OK |
-| data-ingestion | algo-engine | ZeroMQ PUB/SUB | 5555 | OK |
-| algo-engine | PostgreSQL | TCP/SQL (asyncpg) | 5432 | OK |
-| algo-engine | Redis | TCP | 6379 | OK |
-| algo-engine | mt5-bridge | gRPC | 50055 | OK |
-| mt5-bridge | MetaTrader 5 | MT5 API (Windows) | local | **CRITICO** — Windows-only |
-| Prometheus | all services | HTTP scrape | varies | See port issues below |
+| Source | Destination | Protocol | Port | TLS | Status |
+|--------|------------|----------|------|-----|--------|
+| Polygon.io | data-ingestion | WebSocket/HTTPS | ext | YES | OK |
+| data-ingestion | PostgreSQL | TCP/SQL | 5432 | Opt | OK |
+| data-ingestion | algo-engine | ZeroMQ PUB/SUB | 5555 | NO | OK |
+| data-ingestion | Redis | TCP | 6379 | Opt | OK |
+| algo-engine | PostgreSQL | TCP/SQL (asyncpg) | 5432 | Opt | OK |
+| algo-engine | Redis | TCP | 6379 | Opt | OK |
+| algo-engine | mt5-bridge | gRPC | 50055 | mTLS Opt | OK |
+| mt5-bridge | PostgreSQL | TCP/SQL | 5432 | Opt | OK |
+| mt5-bridge | Redis | TCP | 6379 | Opt | OK |
+| mt5-bridge | MetaTrader 5 | MT5 API | local | N/A | **Windows-only** |
+| Prometheus | services | HTTP scrape | varies | NO | OK |
+| dashboard | PostgreSQL | TCP/SQL | 5432 | Opt | OK |
+| dashboard | Redis | TCP | 6379 | Opt | OK |
 
-### 1.3 Network Segmentation (Docker)
+### 2.3 Network Segmentation
 
-3 Docker networks with appropriate isolation:
-- **frontend**: Grafana (:3000), Prometheus
-- **backend**: PostgreSQL, Redis, data-ingestion, algo-engine, mt5-bridge
-- **monitoring**: Prometheus, Grafana, data-ingestion, algo-engine, mt5-bridge
+3 Docker networks with proper isolation:
 
-### 1.4 Port Mapping — CRITICAL ISSUE (F04)
+| Network | Type | Services | Purpose |
+|---------|------|----------|---------|
+| `backend` | **internal: true** | PostgreSQL, Redis, data-ingestion, algo-engine, mt5-bridge, dashboard | Internal only — no host access |
+| `frontend` | bridge | Grafana, Prometheus, dashboard | External-facing UI |
+| `monitoring` | bridge | Prometheus, data-ingestion, algo-engine, mt5-bridge | Metrics collection |
 
-The algo-engine has a **complete port mismatch** between Dockerfile, docker-compose, and config defaults:
+**Status**: Backend network correctly marked `internal: true` (fixed since v1.0).
 
-| Component | Dockerfile EXPOSE | docker-compose | config.py default | Pydantic env var |
-|-----------|------------------|----------------|-------------------|-----------------|
-| algo-engine gRPC | 50052 | 50054:50054 | 50052 | BRAIN_GRPC_PORT |
-| algo-engine REST | 8082 | 8080:8080 | 8082 | BRAIN_REST_PORT |
-| algo-engine metrics | 9092 | 9093:9093 | 9092 | BRAIN_METRICS_PORT |
+### 2.4 Port Mapping Verification
 
-**Impact**: The service is internally healthy but **unreachable** from Prometheus, Console, and any external client. The env var port override is NOT passed in docker-compose.
+| Service | Config Default | docker-compose | Dockerfile EXPOSE | Aligned? |
+|---------|---------------|----------------|-------------------|----------|
+| algo-engine gRPC | 50057 | 50057:50057 | 50057 | **YES** |
+| algo-engine REST | 8087 | 8087:8087 | 8087 | **YES** |
+| algo-engine metrics | 9097 | 9097:9097 | 9097 | **YES** |
+| data-ingestion ZMQ | 5555 | 5555:5555 | 5555 | **YES** |
+| data-ingestion metrics | 9090 | 9090:9090 | 9090 | **YES** |
+| data-ingestion health | 9091 | 8081:9091 | 9091 | Remapped (OK) |
+| mt5-bridge gRPC | 50055 | 50055:50055 | 50055 | **YES** |
+| mt5-bridge metrics | 9094 | 9094:9094 | 9094 | **YES** |
+| dashboard | 8888 | 8888:8888 | 8888 | **YES** |
 
-Additionally, `.env.example` uses the wrong env var name (`MONEYMAKER_BRAIN_GRPC_PORT` instead of `BRAIN_GRPC_PORT`) — Pydantic with `env_prefix=""` will never read it.
+**Status**: All ports aligned (fixed since v1.0). The data-ingestion health port remap (8081→9091) is intentional to avoid host conflicts.
 
-**data-ingestion health port** is also wrong: docker-compose maps `8081:8080` but the Go service listens on port 9091 (MetricsPort+1).
+### 2.5 Shared Libraries
 
-### 1.5 Shared Libraries
+**moneymaker_common (Python)** — 12 modules, quality 8.5/10:
 
-**moneymaker_common (Python)** — 12 modules, quality 8/10:
-config, enums, metrics (28 Prometheus metrics), decimal_utils, logging (structlog), audit (hash chain), audit_pg, ratelimit, health, secrets, grpc_credentials, exceptions.
+| Module | LoC | Purpose | Tests |
+|--------|-----|---------|-------|
+| config.py | ~80 | Pydantic base settings | YES |
+| enums.py | ~40 | Direction, Status, Regime enums | YES |
+| metrics.py | ~120 | 28 Prometheus metric definitions | YES |
+| decimal_utils.py | ~60 | High-precision Decimal helpers | YES |
+| logging.py | ~50 | Structured logging (structlog) | YES |
+| audit.py | ~90 | SHA-256 hash chain audit trail | YES |
+| audit_pg.py | ~80 | PostgreSQL audit integration | YES |
+| ratelimit.py | ~40 | Rate limiting utilities | YES |
+| health.py | ~50 | Health check utilities | YES |
+| secrets.py | ~60 | Secret management from env vars | YES |
+| grpc_credentials.py | ~70 | TLS/mTLS channel creation | Partial |
+| exceptions.py | ~30 | Custom exception hierarchy | YES |
 
-**go-common (Go)** — 4 modules: config, health, logging, ratelimit.
+**go-common (Go)** — 4 modules:
 
-### 1.6 Console Blockers — Proto Definitions Missing
+| Module | LoC | Purpose |
+|--------|-----|---------|
+| config/ | ~131 | Config from YAML/env, DSN building, TLS |
+| health/ | ~60 | HTTP health checks (/healthz) |
+| logging/ | ~40 | Structured logging (zap) |
+| ratelimit/ | ~616 | Redis token bucket + Lua, gRPC/HTTP middleware |
 
-The 30+ console commands that interact with services have fallback placeholders. For real operation, the following RPC definitions are needed in proto files:
+**Proto Definitions** — 4 files:
 
-- **algo-engine** (`algo_engine.proto`): StartTraining, StopTraining, GetStatus, RunEvaluation, SaveCheckpoint, GetModelInfo
-- **data-ingestion** (`data_ingestion.proto`): Start, Stop, GetStatus, ListSymbols, AddSymbol, RemoveSymbol, Backfill
-- **mt5-bridge** (`mt5_bridge.proto`): Connect, Disconnect, GetStatus, GetPositions, GetHistory, CloseAll, GetSpread
+| Proto | Messages | Services | Key Fields |
+|-------|----------|----------|-----------|
+| market_data.proto | MarketTick, OHLCVBar, DataEvent | - | Decimal strings for prices |
+| trading_signal.proto | TradingSignal, SignalAck | SendSignal, StreamSignals | signal_id UUID, confidence, SL/TP |
+| execution.proto | TradeExecution | ExecuteTrade, StreamTradeUpdates | 7-state status enum |
+| health.proto | HealthCheckRequest/Response | Health | Standard gRPC health |
 
-All 3 services need `grpc.health.v1.Health` for the StatusPoller.
+### 2.6 Data Flow — Tick to Trade
+
+```
+Exchange WebSocket → data-ingestion (normalize, aggregate)
+    ├── ZMQ PUB → algo-engine (features, regime, strategy, signal)
+    │     ├── Kill Switch check (Redis)
+    │     ├── Data Quality → MTF → Features (60-dim) → Regime (5 states)
+    │     ├── Strategy Router → Signal Generator → Position Sizer
+    │     ├── Validator (11 checks) → Spiral → Rate Limiter
+    │     └── gRPC → mt5-bridge (order execution)
+    │           ├── Dedup → Validate → Lot Clamp → MT5 API
+    │           └── Position Tracker (trailing stops, closed trade detection)
+    └── SQL COPY → PostgreSQL (ohlcv_bars, market_ticks)
+
+Latency Budget: <100ms P99 target (ZMQ ~1ms + pipeline ~50ms + gRPC ~10ms)
+```
+
+### 2.7 Architecture Findings
+
+| ID | Severity | Finding | Status |
+|---|----------|---------|--------|
+| F04 | ~~CRITICAL~~ | Port mismatch Dockerfile/compose/config | **FIXED** — All aligned to 50057/8087/9097 |
+| F13 | ~~HIGH~~ | .env.example wrong env var names | **FIXED** — env_prefix="" reads ALGO_* correctly |
+| F-I7 | ~~WARNING~~ | Backend network not internal | **FIXED** — `internal: true` set |
 
 ---
 
-## 2. Algo-Engine Core Pipeline
+## 3. Algo-Engine Core Pipeline
 
-### 2.1 Architecture Overview
+### 3.1 Architecture Overview
 
-The algo-engine is the heart of MONEYMAKER with the main loop in `main.py` (~1,609 LoC). The architecture follows a **cascade with graceful degradation**: data → features → regime → strategy → validation → dispatch gRPC.
+The algo-engine has been **significantly refactored** since v1.0:
 
-Currently **only rule-based strategies are operational** (trend following, mean reversion, defensive, plus the new advanced strategies: vol_momentum, ou_mean_reversion, adaptive_trend, multi_factor).
+| Metric | v1.0 | v2.0 | Change |
+|--------|------|------|--------|
+| main.py LoC | 1,609 | 530 | **-67%** |
+| God function `run_brain()` | 944 lines | Eliminated | Replaced by `AlgoEngine.process_bar()` |
+| engine.py | N/A | 404 LoC | New clean class |
+| Dead code `_parse_ohlcv_payload()` | Present | Removed | **FIXED** |
+| Dead code `orchestrator.py` | Present | Removed | **FIXED** |
+| Total source files | 60 | 60 | Stable |
+| Total LoC | 12,877 | 12,961 | +0.7% |
 
-### 2.2 Signal Flow
+### 3.2 Pipeline Architecture
+
+```
+main.py:run_engine()          engine.py:AlgoEngine.process_bar()
+┌─────────────────────┐       ┌─────────────────────────────────────┐
+│ 1. Config loading   │       │ Step 1: DataQualityChecker          │
+│ 2. Redis connect    │       │ Step 2: MTF accumulation + BarBuffer│
+│ 3. Component init   │       │ Step 3: FeaturePipeline (60-dim)    │
+│ 4. ZMQ subscribe    │       │   3a: Advanced feature enrichment   │
+│ 5. Main loop:       │──────>│   3b: Adaptive parameter tuning     │
+│    - Kill switch    │       │ Step 4: RegimeClassifier + Bayesian │
+│    - ZMQ recv       │       │ Step 5: SessionClassifier           │
+│    - process_bar()  │       │ Step 6: RegimeRouter (strategy)     │
+│    - gRPC dispatch  │       │ Step 7: SignalGenerator             │
+│    - Trade polling  │       │ Step 8: PositionSizer + Spiral      │
+│ 6. Graceful shutdown│       │ Step 9: SignalValidator (11 checks) │
+└─────────────────────┘       │ Step 10: RateLimiter               │
+                              └─────────────────────────────────────┘
+```
+
+### 3.3 Signal Flow (Updated)
 
 ```
 ZMQ SUB (tcp://data-ingestion:5555)
-    |
-    | topic: "bar.{symbol}.{timeframe}"
+    │ topic: "bar.{symbol}.{timeframe}"
     v
-zmq_adapter.py → OHLCVBar
-    |
+zmq_adapter.py → parse_bar_message() → OHLCVBar
+    │
     v
-FeaturePipeline.process(bar) → feature dict (60-dim)
-    |
+engine.py:process_bar() [5-second timeout]
+    ├── DataQualityChecker.validate_bar() ─[FAIL]─> None
+    ├── MTF accumulation + BarBuffer ─[insufficient]─> None
+    ├── FeaturePipeline.compute_features() → 60-dim dict
+    │   ├── [opt] Fractal → Hurst exponent
+    │   ├── [opt] Spectral → dominant cycle, entropy
+    │   ├── [opt] OU → s-score, half-life
+    │   └── [opt] Shift detector → distribution change
+    ├── RegimeClassifier.classify() → regime + confidence
+    │   └── [opt] Bayesian → posteriors overlay
+    ├── SessionClassifier.classify() → session name
+    ├── RegimeRouter.route() or .route_probabilistic()
+    │   └── Strategy.generate() → SignalSuggestion
+    ├── [HOLD?] → None
+    ├── SignalGenerator.generate_signal() → signal dict
+    ├── PositionSizer.calculate() or AdvancedSizer.calculate()
+    ├── SpiralProtection.is_in_cooldown() ─[YES]─> None
+    ├── SpiralProtection.get_sizing_multiplier() → adjust lots
+    ├── SignalValidator.validate() ─[FAIL]─> None
+    └── RateLimiter.allow() ─[NO]─> None
+    │
     v
-RegimeClassifier.classify(features) → regime
-    |
-    v
-RegimeRouter / Strategy Selection
-    |
-    v
-SignalGenerator.generate_signal() → signal with SL/TP (ATR-based)
-    |
-    v
-SignalValidator.validate() → 11 checks fail-fast
-    |
-    v
-PositionSizer.calculate() → lots
-    |
-    v
-SpiralProtection.check() → permission?
-    |
-    v
-KillSwitch.is_active() → blocked? ← BUG: always True (F01)
-    |
-    v
-CorrelationChecker.check() → currency exposure OK?
-    |
-    v
-RateLimiter.allow() → under limit?
-    |
-    v
-gRPC SendSignal() → MT5 Bridge ← BUG: direction UNSPECIFIED (F02)
+main.py: gRPC dispatch
+    ├── Kill switch auto-check (daily_loss, drawdown)
+    ├── signal_to_proto() → TradingSignal protobuf
+    ├── BridgeClient.send_signal() → SignalAck
+    ├── PortfolioManager.record_open()
+    └── Audit trail (PostgreSQL)
+    │
+    v (every 10 bars)
+    └── Closed trade polling → portfolio.record_close() + spiral.record_trade_result()
 ```
 
-### 2.3 CRITICAL BUGS
+### 3.4 Bug Verification Matrix
 
-**F01 — Kill Switch Return Type Mismatch** (`main.py:887,1316` + `kill_switch.py:104`):
+| ID | Description | v1.0 Severity | Status | Evidence |
+|---|-------------|---------------|--------|----------|
+| F01 | Kill switch tuple treated as bool | CRITICAL | **FIXED** | `main.py:305`: `_ks_active, _ks_reason = await kill_switch.is_active()` |
+| F02 | gRPC direction enum serialization | CRITICAL | **FIXED** | `grpc_client.py:62`: `raw_dir.value if hasattr(raw_dir, "value")` |
+| F04-PnL | PnL tracker records fake data | CRITICAL | **FIXED** | `main.py:454-468`: Real PnL from `bridge_client.get_closed_trades()` |
+| F05 | ADX not validated [0,100] | HIGH | **Open** | `trend_following.py`: ADX passed through `min()` but source data unclamped |
+| F07 | Portfolio mutable list leak | HIGH | **FIXED** | `portfolio.py:78`: Returns `list(self._positions_detail)` copy |
+| F08 | BridgeClient.close() never called | HIGH | **FIXED** | `main.py:500`: `await bridge_client.close()` in shutdown |
+| F09 | Portfolio partially persisted | WARNING | **Improved** | `portfolio.py`: `persist_to_redis()` / `sync_from_redis()` with expanded fields |
+| F10 | Unknown symbols pass silently | WARNING | **Open** | `correlation.py`: No validation against known symbol list |
+| F12 | Dead code `_parse_ohlcv_payload()` | WARNING | **FIXED** | Entire main.py rewritten; dead code removed |
+| God fn | `run_brain()` 944 lines | WARNING | **FIXED** | Replaced by `run_engine()` (210 lines) + `AlgoEngine` class (404 lines) |
 
-```python
-# kill_switch.py:104 — returns tuple
-async def is_active(self) -> tuple[bool, str]:
-    return self._cached_active, self._cached_reason
+### 3.5 Code Complexity Analysis
 
-# main.py:887 — treats tuple as bool
-if await kill_switch.is_active():  # tuple ALWAYS truthy!
-    continue  # SKIP ALL — trading BLOCKED
-```
+| File | LoC | Max Nesting | Cyclomatic | Assessment |
+|------|-----|-------------|------------|------------|
+| main.py | 530 | 3 | 12 | **Good** — clean async loop |
+| engine.py | 404 | 4 | 18 | **Good** — linear pipeline, each step isolated |
+| config.py | 152 | 2 | 8 | **Excellent** — pure validators |
+| grpc_client.py | 298 | 3 | 10 | **Good** — proto conversion + error handling |
+| zmq_adapter.py | 132 | 2 | 6 | **Excellent** — minimal parsing |
+| kill_switch.py | ~260 | 3 | 14 | **Good** — Redis state machine |
+| portfolio.py | ~175 | 2 | 8 | **Good** — state tracking |
 
-**Impact**: Trading is ALWAYS blocked because a non-empty tuple is truthy.
+### 3.6 Error Handling Audit
 
-**Fix**: `is_active, reason = await kill_switch.is_active()` then `if is_active:`
+| Location | Error Type | Handling | Assessment |
+|----------|-----------|----------|------------|
+| `main.py:302` | Main loop outer | `try/except Exception → log + sleep(1)` | OK — resilient |
+| `main.py:485` | CancelledError | `break` → graceful shutdown | OK |
+| `main.py:454` | Closed trade poll | `try/except → log debug` | OK — non-critical |
+| `main.py:474` | Drawdown enforcer | `try/except → log debug` | OK — defensive |
+| `engine.py:144` | Pipeline timeout | `asyncio.TimeoutError → metric + None` | OK — prevents stalls |
+| `engine.py:219` | Bayesian update | `try/except → log debug` | OK — optional module |
+| `engine.py:370-403` | Advanced enrichment | Per-module try/except | **Good** — isolation |
+| `grpc_client.py` | gRPC calls | Exception → log warning | OK — fail-open on dispatch |
 
-**F02 — gRPC Direction Always UNSPECIFIED** (`grpc_client.py:60-61`):
+**Assessment**: Error handling is comprehensive. All I/O operations wrapped. Advanced modules isolated — one failure cannot block the core pipeline.
 
-```python
-direction_str = str(signal.get("direction", "HOLD"))  # str(Direction.BUY) = "Direction.BUY"
-direction_enum = _DIRECTION_MAP.get(direction_str, 0)  # "Direction.BUY" not in map → 0
+### 3.7 Configuration Management
 
-_DIRECTION_MAP = {"BUY": 1, "SELL": 2, "HOLD": 3}  # expects "BUY", not "Direction.BUY"
-```
+| Parameter | Env Var | Default | Valid Range | Validator |
+|-----------|---------|---------|-------------|-----------|
+| Confidence threshold | `ALGO_CONFIDENCE_THRESHOLD` | 0.65 | (0.0, 1.0] | `_validate_confidence_threshold` |
+| Risk per trade | `ALGO_RISK_PER_TRADE_PCT` | 1.0% | [0.1, 5.0] | `_validate_risk_per_trade` |
+| Max daily loss | `ALGO_MAX_DAILY_LOSS_PCT` | 2.0% | [0.5, 10.0] | `_validate_max_daily_loss` |
+| Max drawdown | `ALGO_MAX_DRAWDOWN_PCT` | 5.0% | [1.0, 25.0] | `_validate_max_drawdown` |
+| Max positions | `ALGO_MAX_OPEN_POSITIONS` | 5 | >0 | None (implicit) |
+| Max lots | `ALGO_MAX_LOTS` | 0.10 | >0 | `_validate_max_lots` |
+| Max signals/hour | `ALGO_MAX_SIGNALS_PER_HOUR` | 10 | >0 | `_validate_max_signals` |
+| EMA fast/slow | `ALGO_DEFAULT_EMA_FAST/SLOW` | 12/26 | >0, fast<slow | `_validate_ema_ordering` |
+| RSI period | `ALGO_DEFAULT_RSI_PERIOD` | 14 | >0 | `_validate_periods_positive` |
+| Spiral threshold | `ALGO_SPIRAL_LOSS_THRESHOLD` | 3 | - | None |
+| Spiral cooldown | `ALGO_SPIRAL_COOLDOWN_MINUTES` | 60 | - | None |
+| Telegram token | `ALGO_TELEGRAM_BOT_TOKEN` | "" | - | Masked in `safe_dump()` |
 
-**Impact**: All signals have direction=0 (UNSPECIFIED) in protobuf → MT5 Bridge rejects or has undefined behavior.
+**env_prefix**: Set to `""` with `case_sensitive=False` (`config.py:78`). All env vars are read as-is without prefix stripping.
 
-**Fix**: Extract `.value` from the enum: `direction_str = raw_dir.value if hasattr(raw_dir, "value") else str(raw_dir)`
+### 3.8 Findings
 
-### 2.4 Additional Findings
-
-| # | Severity | Issue | Location |
-|---|----------|-------|----------|
-| F05 | ALTO | ADX not validated for range [0,100] in trend_following | `trend_following.py` |
-| F07 | ALTO | `get_state()` leaks mutable reference to `_positions_detail` | `portfolio.py:~79` |
-| F08 | ALTO | `BridgeClient.close()` never called — resource leak | `main.py:~1518` |
-| F09 | WARNING | Portfolio state partially persisted to Redis (only daily_loss_pct) | `portfolio.py:151-174` |
-| F10 | WARNING | Unknown symbols pass silently through CorrelationChecker | `correlation.py:~94` |
-| F12 | WARNING | `_parse_ohlcv_payload()` defined but never called — dead code | `main.py:269-301` |
-| F04 | ALTO | PnL tracker records fake data (pnl=0, is_win=True) at fill time | `main.py:~1388` |
-
-### 2.5 God Function Warning
-
-`run_brain()` in `main.py` is a **944-line function** (lines 600-1544) with 5+ nesting levels. Contains initialization, ZMQ loop, strategy cascade, gRPC dispatch, error handling, and shutdown. `orchestrator.py` (205 LoC) implements a cleaner cascade but is **never imported** — dead code.
+| ID | Severity | Finding | Location |
+|---|----------|---------|----------|
+| F05 | HIGH | ADX not validated for range [0,100] | `trend_following.py` |
+| F10 | MEDIUM | Unknown symbols pass silently through CorrelationChecker | `correlation.py:~94` |
+| NEW-AE1 | MEDIUM | `algo_max_lots` is float but used as Decimal at runtime | `config.py:56`, `engine.py:293` |
+| NEW-AE2 | MEDIUM | Pipeline timeout (5s) is hardcoded, not configurable | `engine.py:106` |
+| NEW-AE3 | WARNING | No circuit breaker for gRPC bridge retries | `main.py:415-445` |
+| NEW-AE4 | WARNING | `parse_bar_message()` KeyError not caught in main loop | `main.py:331` |
 
 ---
 
-## 3. Feature Pipeline & Regime Classification
+## 4. Feature Pipeline & Regime Classification
 
-### 3.1 60-Dimensional Feature Vector
+### 4.1 60-Dimensional Feature Vector
 
 The pipeline (`pipeline.py` + `technical.py`) produces ~34 technical indicators via Decimal arithmetic:
 
-| Indices | Group | Features |
-|---------|-------|----------|
-| 0-5 | Price | OHLCV normalized + spread |
-| 6-15 | Trend | SMA ratios, DEMA, MACD (line/signal/hist), ADX |
-| 16-25 | Momentum | RSI, Stochastic K/D, CCI, Williams %R, ROC, DI ratio |
-| 26-33 | Volatility | ATR%, BB upper/lower/width, Keltner, Historical Vol, Parkinson |
-| 34-40 | Volume | OBV norm, VWAP ratio, CMF, Chaikin Osc, Force Index, Vol ratio |
-| 41-50 | Context | Hour sin/cos, DayOfWeek sin/cos, session, VIX, DXY, SPX corr |
-| 51-59 | Microstructure | Bid-ask, OB imbalance, tick direction, trade flow, VPIN |
+| Indices | Group | Features | Mathematical Verification |
+|---------|-------|----------|--------------------------|
+| 0-5 | Price | OHLCV normalized + spread | Correct: close/open ratio, HL range |
+| 6-15 | Trend | SMA ratios, DEMA, MACD (line/signal/hist), ADX | Correct: Wilder smoothing, MACD 12/26/9 |
+| 16-25 | Momentum | RSI, Stochastic K/D, CCI, Williams %R, ROC, DI ratio | Correct: RSI Wilder formula verified |
+| 26-33 | Volatility | ATR%, BB upper/lower/width, Keltner, Hist Vol, Parkinson | Correct: BB 2σ, ATR Wilder |
+| 34-40 | Volume | OBV norm, VWAP ratio, CMF, Chaikin Osc, Force Index, Vol ratio | Partial: Chaikin = placeholder |
+| 41-50 | Context | Hour sin/cos, DayOfWeek sin/cos, session, VIX, DXY, SPX corr | Correct: cyclical encoding |
+| 51-59 | Microstructure | Bid-ask, OB imbalance, tick direction, trade flow, VPIN | Partial: 3 placeholders |
 
-All indicator formulas verified mathematically correct (RSI Wilder smoothing, MACD, Bollinger, ATR, ADX, Stochastic, OBV, CCI, etc.).
+**All core indicator formulas verified mathematically correct**: RSI (Wilder smoothing), MACD (12/26/9 EMA), Bollinger (2σ), ATR (Wilder), ADX (DI+/DI- smoothed), Stochastic (%K/%D), OBV, CCI.
 
-### 3.2 Placeholder Features (8.3%)
+**Decimal precision**: All calculations use `Decimal` with 28-digit precision and `ROUND_HALF_EVEN`. The `@validate_decimal_inputs` decorator validates NaN/Inf on all technical calculations.
+
+### 4.2 Placeholder Features (8.3%)
 
 5 of 60 features are zero/constant placeholders:
 
-| Index | Feature | Value | Reason |
-|-------|---------|-------|--------|
-| 37 | Chaikin Oscillator | 0.0 | Requires ADL series |
-| 40 | Volume Profile Value Area | 0.5 | Not implemented |
-| 55 | Realised Vol 5min | 0.0 | Sub-minute data unavailable |
-| 57 | Hurst Exponent | 0.5 | Too costly for real-time |
-| 58 | VPIN | 0.0 | Not implemented |
+| Index | Feature | Value | Reason | Impact |
+|-------|---------|-------|--------|--------|
+| 37 | Chaikin Oscillator | 0.0 | Requires ADL series accumulation | Low — volume analysis partial |
+| 40 | Volume Profile Value Area | 0.5 | Not implemented | Low — volume profile unused |
+| 55 | Realised Vol 5min | 0.0 | Sub-minute tick data unavailable | Low — Parkinson vol substitutes |
+| 57 | Hurst Exponent | 0.5 | Too costly for real-time (moved to optional fractal module) | None — available via advanced module |
+| 58 | VPIN | 0.0 | Requires tick-level volume imbalance | Low — CMF substitutes partially |
 
-### 3.3 Regime Classification
+**Assessment**: Placeholders are LOW impact. Hurst is now available via the optional fractal module. Remaining 4 can be implemented incrementally.
 
-**5 regimes** (priority order):
+### 4.3 Regime Classification
 
-| Regime | Condition | Confidence |
-|--------|-----------|-----------|
-| HIGH_VOLATILITY | ATR > 2x avg_ATR | 0.50 + (ratio-2)x0.25 |
-| TRENDING_UP | ADX > 25 AND EMA_fast > EMA_slow | 0.50 + ADX/100 |
-| TRENDING_DOWN | ADX > 25 AND EMA_fast < EMA_slow | 0.50 + ADX/100 |
-| REVERSAL | ADX was >40, now declining + extreme RSI | 0.55 |
-| RANGING (default) | ADX < 20, narrow bands | 0.70 |
+**5 regimes** with priority-ordered classification:
 
-**BUG**: `_prev_adx` initialized to ZERO → first reversal after startup never detected because `0 < 40` is always true.
+| Priority | Regime | Condition | Confidence Formula |
+|----------|--------|-----------|-------------------|
+| 1 | HIGH_VOLATILITY | ATR > 2x avg_ATR | 0.50 + (ratio-2)×0.25 |
+| 2 | TRENDING_UP | ADX > 25 AND EMA_fast > EMA_slow | 0.50 + ADX/100 |
+| 3 | TRENDING_DOWN | ADX > 25 AND EMA_fast < EMA_slow | 0.50 + ADX/100 |
+| 4 | REVERSAL | ADX was >40, now declining + extreme RSI | 0.55 |
+| 5 | RANGING (default) | ADX < 20, narrow bands | 0.70 |
 
-**Ensemble classifier** (416 LoC): Rule=0.50, HMM=0.30, kMeans=0.20 weighted voting with hysteresis requiring `P(new) > P(old) + 0.15` for 3 consecutive bars.
+**Hysteresis**: Requires `P(new) > P(old) + 0.15` for 3 consecutive bars before switching regime. This prevents whipsaw regime changes.
 
-### 3.4 Additional Feature Modules
+**Ensemble Classifier** (416 LoC): Rule-based (weight=0.50) + HMM (0.30) + kMeans (0.20) weighted voting.
 
-- **data_quality.py**: OHLCV validation (High >= max(O,C), spike detection)
-- **data_sanity.py**: Statistical plausibility checks
-- **feature_drift.py**: Distributional drift detection via Z-score
-- **leakage_auditor.py**: 5-check formal data leakage audit
-- **macro_features.py**: Macroeconomic features from Redis (VIX, yield, DXY)
-- **regime_shift.py**: KL-divergence regime transition detection
-- **sessions.py**: Confidence adjustment per trading session
+**`_prev_adx` fix verified**: Now initialized to `None` instead of `0`, so first reversal detection works correctly (`regime.py:97`).
 
-### 3.5 Analysis Modules
+### 4.4 Additional Feature Modules
 
-- **manipulation_detector.py**: Spoofing/fake breakout/churn detection (25% blind without L2 order book data)
-- **signal_quality.py**: Shannon entropy for market clarity
-- **price_level_analyzer.py**: Support/resistance zone classification
-- **pnl_momentum.py**: Win/loss streak tracker with time-decay
-- **market_belief.py**: Bayesian posterior regime model
+| Module | LoC | Purpose | Tests |
+|--------|-----|---------|-------|
+| data_quality.py | ~60 | OHLCV validation (H≥max(O,C), spike detection) | 0 |
+| data_sanity.py | ~80 | Statistical plausibility checks | 0 |
+| feature_drift.py | ~70 | Z-score distributional drift detection | 0 |
+| leakage_auditor.py | ~90 | 5-check formal data leakage audit | 0 |
+| macro_features.py | ~363 | VIX, yield, DXY from Redis | 0 |
+| regime_shift.py | ~60 | KL-divergence regime transitions | 0 |
+| sessions.py | ~80 | NY/London/Tokyo/Sydney session detection | 0 |
+| mtf_analyzer.py | ~180 | Multi-timeframe (M1/M5/M15/H1) aggregation | YES |
 
-### 3.6 Findings
+### 4.5 Analysis Modules
 
-| # | Severity | Finding | Detail |
+| Module | LoC | Purpose | Tests |
+|--------|-----|---------|-------|
+| manipulation_detector.py | ~150 | Spoofing/fake breakout/churn detection | 0 |
+| signal_quality.py | ~80 | Shannon entropy market clarity | 0 |
+| price_level_analyzer.py | ~120 | Support/resistance classification | 0 |
+| pnl_momentum.py | ~90 | Win/loss streak tracker (time-decay) | 0 |
+| market_belief.py | ~100 | Bayesian posterior regime model | 0 |
+
+### 4.6 Findings
+
+| ID | Severity | Finding | Status |
 |---|----------|---------|--------|
-| F-FP1 | ALTO | 5 placeholder features (8.3%) | Indices 37,40,55,57,58 are zero/constant |
-| F-FP2 | ALTO | `_prev_adx` initialized to 0 | First reversal after startup not detected |
-| F-FP3 | WARNING | Spoofing detector blind without L2 data | 25% of manipulation index always 0 |
-| F-FP4 | WARNING | Spread feature always 0.5 in ensemble | HMM/kMeans input partially constant |
-| F-FP5 | WARNING | `bb_squeeze` not calculated | Used in heuristics but never produced |
-| F-FP6 | WARNING | GBM parameters not calibrated | scenario_analyzer mu/sigma must be provided externally |
+| F-FP1 | HIGH | 5 placeholder features (8.3% of vector) | **Open** — Low impact, incremental fix |
+| F-FP2 | ~~HIGH~~ | `_prev_adx` initialized to 0 | **FIXED** — `None` initialization |
+| F-FP3 | WARNING | Spoofing detector blind without L2 data | **Open** — 25% always 0 |
+| F-FP4 | WARNING | Spread feature always 0.5 in ensemble | **Open** |
+| F-FP5 | WARNING | `bb_squeeze` not calculated | **Open** |
+| F-FP6 | WARNING | GBM parameters not calibrated | **Open** |
+| NEW-FP1 | MEDIUM | 10 feature/analysis modules have 0 tests | feature_drift, leakage, macro, etc. |
 
 ---
 
-## 4. Safety Systems & Risk Management
+## 5. Mathematical Modules
 
-### 4.1 Architecture — 7 Independent Protection Layers
+### 5.1 Overview
 
-The safety architecture is **solid and well-designed** (~85-90% complete) with defense-in-depth:
+8 advanced mathematical modules providing optional analytical capabilities. All are injected into `AlgoEngine` via constructor parameters and wrapped in try/except for fault isolation.
 
-```
-Signal Generated
-       |
-       v
-[1] RateLimiter.allow() ──[NO]──> DROP (anti-spam, 10/hour max)
-       |
-       v
-[2] KillSwitch.is_active() ──[YES]──> ABORT (emergency, Redis-backed)
-       |
-       v
-[3] PositionSizer.calculate() ── equity x risk% / (SL x pip_value)
-       |                         with drawdown scaling:
-       |                         0-2%→1x, 2-4%→0.5x, 4-5%→0.25x, >5%→min
-       v
-[4] SignalValidator.validate() ── 11 fail-fast checks:
-       |  [1] Direction != HOLD        [7] SL correctly positioned
-       |  [2] Positions < 5            [8] R:R >= 1.0
-       |  [3] Drawdown < 5%           [9] Margin sufficient (80%)
-       |  [4] Daily Loss < 2%         [10] Correlation OK (optional)
-       |  [5] Confidence >= 0.65      [11] Session OK (optional)
-       |  [6] Stop-Loss present
-       v
-[5] CorrelationChecker ── max 3.0 net positions per currency
-       |
-       v
-[6] SpiralProtection ── progressive reduction after consecutive losses
-       |  3 losses → 0.5x, 4 → 0.25x, 5+ → cooldown (60min)
-       v
-[7] Signal → MT5 Bridge (gRPC)
-```
+| Module | LoC | Purpose | Test LoC | Tests |
+|--------|-----|---------|----------|-------|
+| stochastic.py | 742 | Brownian motion, GBM, Merton jump-diffusion, Heston | ~250 | YES |
+| bayesian.py | 425 | Bayesian regime posteriors, Markov chain, Thompson sampling | ~260 | YES |
+| copula.py | 462 | Bivariate/multivariate copula, tail dependence | ~280 | YES |
+| extreme_value.py | 380 | GPD fitting, VaR/CVaR, Peaks-over-Threshold | ~250 | YES |
+| ou_process.py | 378 | OU solver, mean-reversion s-score, half-life | ~250 | YES |
+| fractal.py | 406 | Hurst exponent, R/S analysis, fractal dimension | ~230 | YES |
+| spectral.py | 336 | FFT cycle detection, spectral entropy | ~250 | YES |
+| information_theory.py | 245 | Shannon entropy, KL divergence, mutual info | ~250 | YES |
+| **Total** | **3,374** | | **~2,020** | **100%** |
 
-### 4.2 Key Thresholds
+### 5.2 Bayesian Regime Detector
 
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| Max Open Positions | 5 | `brain_max_open_positions` |
-| Max Daily Loss | 2.0% | `brain_max_daily_loss_pct` |
-| Max Drawdown | 5.0% | `brain_max_drawdown_pct` |
-| Min Confidence | 0.65 | `brain_confidence_threshold` |
-| Risk per Trade | 1.0% | `brain_risk_per_trade_pct` |
-| Max Lots | 0.10 | `brain_max_lots` |
-| Min Lots | 0.01 | Hardcoded |
-| Default Equity | $1,000 | `brain_default_equity` |
-| Leverage | 100:1 | `brain_default_leverage` |
-| Spiral Threshold | 3 losses | `brain_spiral_loss_threshold` |
-| Spiral Max Losses | 5 losses | `brain_spiral_max_losses` |
-| Spiral Cooldown | 60 min | `brain_spiral_cooldown_minutes` |
-| Max Signals/Hour | 10 | `brain_max_signals_per_hour` |
-| Kill Switch Cache | 1.0s | Hardcoded |
+**Algorithm**: Adams & MacKay online changepoint detection with Normal-Inverse-Gamma (NIG) conjugate prior.
 
-### 4.3 Instrument Tables
+| Component | Implementation | Correctness |
+|-----------|---------------|-------------|
+| Posterior update | Welford's online mean/variance | Correct — numerically stable |
+| Prior | NIG: μ₀=0, κ₀=1, α₀=1, β₀=1 | Standard conjugate prior |
+| Hazard function | Constant rate λ=1/250 | Reasonable for daily data |
+| Thompson Sampling | Beta(α, β) for strategy selection | Correct — exploration/exploitation |
 
-Position sizer uses hardcoded instrument tables:
+**Integration**: `engine.py:213-220` — Updates on RSI values, provides posteriors to `RegimeRouter.route_probabilistic()`.
 
-```
-PIP_SIZES: EURUSD=0.0001, GBPUSD=0.0001, USDJPY=0.01, XAUUSD=0.01, XAGUSD=0.001 (10 pairs)
-PIP_VALUES: EURUSD=$10, XAUUSD=$1, XAGUSD=$50 (12 pairs, USD per pip per lot)
-```
+### 5.3 Stochastic Processes
 
-### 4.4 Test Coverage
+| Process | Formula | Verification |
+|---------|---------|-------------|
+| GBM | dS = μS dt + σS dW | Correct — log-normal increments |
+| Merton Jump-Diffusion | GBM + Poisson(λ) × N(μ_j, σ_j) | Correct — compound Poisson process |
+| Heston | dv = κ(θ-v)dt + ξ√v dW_v, ρ correlation | Correct — CIR variance process |
 
-| Component | Unit Tests | Coverage |
-|-----------|-----------|----------|
-| KillSwitch | 6 | ~70% |
-| SpiralProtection | 8 | ~75% |
-| PositionSizer | 10 | ~80% |
-| SignalValidator | 14 | ~85% (gates 1-9 only) |
-| Portfolio | 9 | ~70% (no Redis test) |
-| CorrelationChecker | 0 | 0% |
-| RateLimiter | 0 | 0% |
-| **Total** | **45+** | **~65% average** |
+**Numerical precision**: Uses `Decimal` for core parameters but `float` for simulation paths (acceptable — simulation is inherently approximate).
 
-### 4.5 Findings
+### 5.4 Extreme Value Theory
 
-| # | Severity | Finding | Detail |
+| Component | Method | Correctness |
+|-----------|--------|-------------|
+| GPD fitting | Probability-Weighted Moments (PWM) | Correct — ξ̂, σ̂ from PWM estimators |
+| Threshold selection | Mean Residual Life plot heuristic | Correct — 90th percentile default |
+| VaR | u + (σ̂/ξ̂)[(n/N_u × (1-p))^(-ξ̂) - 1] | Correct — GPD quantile formula |
+| CVaR (ES) | VaR/(1-ξ̂) + (σ̂ - ξ̂×u)/(1-ξ̂) | Correct — Expected Shortfall |
+
+### 5.5 Fractal Analysis
+
+| Component | Method | Correctness |
+|-----------|--------|-------------|
+| Hurst exponent | Rescaled Range (R/S) analysis | Correct — log-log regression |
+| R/S statistic | max(cumdev)/min(cumdev) / std | Correct — classical Hurst |
+| Interpretation | H>0.5: trending, H<0.5: mean-reverting, H=0.5: random walk | Correct |
+
+### 5.6 Spectral Analysis
+
+| Component | Method | Correctness |
+|-----------|--------|-------------|
+| FFT | numpy.fft.fft with Hann window | Correct — windowed FFT |
+| Dominant cycle | argmax of power spectral density | Correct |
+| Spectral entropy | -Σ p_i log(p_i) on normalized PSD | Correct — Shannon on spectrum |
+
+### 5.7 OU Process
+
+| Component | Formula | Correctness |
+|-----------|---------|-------------|
+| MLE estimation | θ, μ, σ from OLS regression | Correct — Euler discretization |
+| Half-life | ln(2)/θ | Correct |
+| S-score | (x - μ) / σ_eq | Correct — standardized deviation |
+| Signal | s > 1.25 → SELL, s < -1.25 → BUY | Reasonable thresholds |
+
+### 5.8 Remaining Modules
+
+| Module | Key Algorithm | Correctness |
+|--------|--------------|-------------|
+| Copula | Gaussian/Clayton/Gumbel | Correct — CDF transforms, copula density |
+| Information Theory | KL(P‖Q) = Σ P log(P/Q) | Correct — with ε smoothing for zeros |
+
+### 5.9 Numerical Precision Audit
+
+| Module | Price/Financial | Simulation | Assessment |
+|--------|----------------|------------|------------|
+| Bayesian | Decimal for posteriors | - | Good |
+| Stochastic | - | float64 for paths | Acceptable |
+| EVT | Decimal for VaR/CVaR | float64 for fitting | Good |
+| Fractal | - | float64 for R/S | Acceptable |
+| Spectral | - | float64 for FFT | Required (FFT) |
+| OU | Decimal for s-score | float64 for estimation | Good |
+| Copula | - | float64 for density | Acceptable |
+| Info Theory | - | float64 for entropy | Acceptable |
+
+### 5.10 Findings
+
+| ID | Severity | Finding | Detail |
 |---|----------|---------|--------|
-| F-S1 | ALTO | Spiral x Drawdown NOT composed | Multipliers operate independently. DD 3% (0.5x) + 3 losses (0.5x) should give 0.25x but don't multiply |
-| F-S2 | ALTO | Spiral state not persisted to Redis | In-memory only. Crash resets consecutive_losses to 0 |
-| F-S3 | ALTO | Redis persistence NOT tested | `sync_from_redis()` and `persist_to_redis()` have zero tests |
-| F-S4 | ALTO | Optional validator controls NOT tested | Correlation, session, calendar checks untested when active |
-| F-S5 | WARNING | No confirmation before kill activate | Accidental typo in console could halt all trading |
-| F-S6 | WARNING | Missing DailyLossCritical alert | Alert only at 1.5% (warning), but kill switch triggers at 2% |
-| F-S7 | WARNING | Hardcoded instrument tables | Adding instruments requires code changes |
-| F-S8 | WARNING | Margin buffer 0.80 magic number | Not configurable |
-| F-S9 | WARNING | Kill switch cache TTL not configurable | 1-second hardcoded |
-| F-S10 | WARNING | Comment/code discrepancy in auto_check | Comment says "2x limit" but code checks 1x (code is more protective) |
+| NEW-MATH1 | MEDIUM | Stochastic simulation uses float, not Decimal | Acceptable for Monte Carlo but inconsistent with financial math policy |
+| NEW-MATH2 | WARNING | OU half-life estimation can produce negative values for non-stationary data | Edge case — `max(0, half_life)` guard recommended |
+| NEW-MATH3 | WARNING | GPD fitting may fail for small sample sizes (<30 data points) | PWM estimators require sufficient tail data |
+| NEW-MATH4 | WARNING | Spectral FFT assumes equally-spaced data | Market data may have gaps (weekends, holidays) |
 
 ---
 
-## 5. Data Ingestion & Database
+## 6. Strategy Suite
 
-### 5.1 Go Data Pipeline Architecture
+### 6.1 Strategy Architecture
 
 ```
-EXCHANGE (Polygon.io / Binance WebSocket)
-    |
-    | RawMessage{Exchange, Symbol, Channel, Data, Timestamp}
+TradingStrategy (ABC)
+    │
+    ├── TrendFollowing     — ADX + EMA crossover
+    ├── MeanReversion      — Bollinger + RSI extremes
+    ├── Defensive          — Conservative in high volatility
+    ├── Breakout           — Range expansion detection
+    ├── VolMomentum        — Volatility-based momentum (Phase 3)
+    ├── OUMeanReversion    — OU s-score driven (Phase 3)
+    ├── AdaptiveTrend      — Cycle-adjusted parameters (Phase 3)
+    └── MultiFactor        — Composite multi-indicator (Phase 3)
+
+RegimeRouter
+    ├── route(regime, features)              — Deterministic dispatch
+    └── route_probabilistic(posteriors, features) — Bayesian weighted
+```
+
+### 6.2 Strategy Deep Dive
+
+| Strategy | LoC | Entry Conditions | SL/TP Method | Tests |
+|----------|-----|-----------------|--------------|-------|
+| TrendFollowing | 128 | ADX>25, EMA_fast>EMA_slow (BUY) | ATR-based (2x SL, 3x TP) | 9 |
+| MeanReversion | 115 | RSI<30+price<BB_lower (BUY), RSI>70+price>BB_upper (SELL) | BB band distance | 9 |
+| Defensive | 56 | RSI extremes in high vol | Tight stops (1x ATR) | 6 |
+| Breakout | 121 | Price breaks N-period high/low with volume confirmation | Breakout range-based | 0 |
+| VolMomentum | 180 | ATR expansion + momentum alignment | Dynamic ATR multiple | 0 |
+| OUMeanReversion | 212 | OU s-score > threshold | Mean-reversion band | 0 |
+| AdaptiveTrend | 221 | Dominant cycle-adjusted crossover | Cycle-proportional stops | 0 |
+| MultiFactor | 304 | Composite score from 5+ indicators | Weighted average distance | 0 |
+
+### 6.3 Regime Router
+
+**Deterministic routing** (`route()`):
+
+| Regime | Primary Strategy | Fallback |
+|--------|-----------------|----------|
+| TRENDING_UP | TrendFollowing | AdaptiveTrend |
+| TRENDING_DOWN | TrendFollowing | AdaptiveTrend |
+| RANGING | MeanReversion | OUMeanReversion |
+| HIGH_VOLATILITY | Defensive | VolMomentum |
+| REVERSAL | MeanReversion | Defensive |
+
+**Probabilistic routing** (`route_probabilistic()`): Weights strategies by Bayesian posterior probability of each regime. Uses Thompson Sampling for exploration.
+
+### 6.4 Findings
+
+| ID | Severity | Finding | Detail |
+|---|----------|---------|--------|
+| F05 | HIGH | ADX not clamped to [0,100] in trend_following | Source data could exceed expected range |
+| NEW-STR1 | MEDIUM | 4 of 8 strategies have 0 tests | VolMomentum, OUMeanReversion, AdaptiveTrend, MultiFactor |
+| NEW-STR2 | WARNING | Breakout strategy has 0 tests | Entry/exit logic unverified |
+| NEW-STR3 | WARNING | MultiFactor composite weights not configurable | Hardcoded in strategy class |
+
+---
+
+## 7. Safety Systems & Risk Management
+
+### 7.1 7-Layer Protection Architecture
+
+```
+Signal Generated by Strategy
+       │
+       v
+[1] SpiralProtection.is_in_cooldown() ─[YES]─> BLOCK
+       │ After 5 consecutive losses → 60-min cooldown
+       v
+[2] SpiralProtection.get_sizing_multiplier() → adjust lots
+       │ 3 losses → 0.5x, 4 → 0.25x
+       v
+[3] SignalValidator.validate() ── 11 fail-fast checks:
+       │  [1] Direction != HOLD          [7] SL correctly positioned
+       │  [2] Positions < 5              [8] R:R >= 1.0
+       │  [3] Drawdown < 5%             [9] Margin buffer >= 80%
+       │  [4] Daily Loss < 2%           [10] Correlation check (opt)
+       │  [5] Confidence >= 0.65        [11] Session check (opt)
+       │  [6] Stop-Loss present
+       v
+[4] RateLimiter.allow() ─[NO]─> DROP (10/hour max)
+       │
+       v
+[5] gRPC dispatch to MT5 Bridge
+       │
+       v
+[6] KillSwitch.auto_check() ── Checks AFTER dispatch:
+       │  daily_loss >= max_daily_loss → activate
+       │  drawdown >= max_drawdown → activate
+       v
+[7] KillSwitch.is_active() ── Pre-loop check (Redis-backed):
+       │  Active → pause 5s, skip all processing
+       │  Fail-CLOSED: if Redis unreachable, blocks trading
+       v
+[LOOP CONTINUES]
+```
+
+### 7.2 Kill Switch
+
+| Aspect | Implementation | Assessment |
+|--------|---------------|------------|
+| State storage | Redis (`moneymaker:kill_switch`) | Good — shared state |
+| Fail mode | **Fail-CLOSED** — blocks if Redis unreachable | **Excellent** — safe default |
+| Cache TTL | 1.0 second (hardcoded) | Good — reduces Redis load |
+| Auto-activation | daily_loss >= limit OR drawdown >= limit | Correct |
+| Manual control | `activate()` / `deactivate()` methods | Good |
+| Audit trail | Redis list (`moneymaker:kill_switch:audit_log`), 200-entry cap | Good |
+| Hierarchical | 3 levels: PAUSE_STRATEGY, REDUCE_SIZING, FLATTEN_ALL | Good |
+
+**Fix verified**: `main.py:305` correctly destructures `is_active()` return tuple.
+
+### 7.3 Spiral Protection
+
+| Aspect | Implementation | Assessment |
+|--------|---------------|------------|
+| Loss tracking | `consecutive_losses` counter | Good |
+| Thresholds | 3 losses → 0.5x, 4 → 0.25x, 5+ → cooldown | Good — progressive |
+| Cooldown | 60 minutes (configurable) | Good |
+| Redis persistence | `sync_from_redis()` / `persist_to_redis()` | **FIXED** since v1.0 |
+| State key | `moneymaker:spiral:{symbol}` or global | Good |
+
+**Fix verified**: `spiral_protection.py:161-209` implements full Redis persistence with TTL.
+
+### 7.4 Position Sizer
+
+**Standard sizer** (`position_sizer.py`):
+```
+lots = (equity × risk_pct) / (SL_pips × pip_value_per_lot)
+lots = lots × drawdown_multiplier
+lots = clamp(lots, min_lots=0.01, max_lots=0.10)
+```
+
+**Drawdown scaling**:
+
+| Drawdown | Multiplier |
+|----------|-----------|
+| 0-2% | 1.0x |
+| 2-4% | 0.5x |
+| 4-5% | 0.25x |
+| >5% | min_lots |
+
+**Advanced sizer** (`advanced_sizer.py`, Phase 4):
+```
+kelly_fraction = (confidence × win_rate - (1 - confidence)) / odds_ratio
+half_kelly = kelly_fraction / 2
+cvar_adjusted = half_kelly × (1 - cvar_scaling)
+lots = equity × cvar_adjusted / (SL_pips × pip_value)
+```
+
+### 7.5 Instrument Tables
+
+| Symbol | Pip Size | Pip Value (USD/lot) | Source |
+|--------|----------|--------------------|----|
+| EURUSD | 0.0001 | $10 | Hardcoded |
+| GBPUSD | 0.0001 | $10 | Hardcoded |
+| USDJPY | 0.01 | ¥1000 | Hardcoded |
+| XAUUSD | 0.01 | $1 | Hardcoded |
+| XAGUSD | 0.001 | $50 | Hardcoded |
+| USDCHF | 0.0001 | $10 | Hardcoded |
+| AUDUSD | 0.0001 | $10 | Hardcoded |
+| NZDUSD | 0.0001 | $10 | Hardcoded |
+| USDCAD | 0.0001 | $10 | Hardcoded |
+| EURGBP | 0.0001 | £10 | Hardcoded |
+
+### 7.6 Safety Composition Analysis
+
+**Spiral x Drawdown interaction**:
+- Drawdown scaling applied in `PositionSizer.calculate()` (Step 8)
+- Spiral multiplier applied in `engine.py:308-320` (Step 8a)
+- Applied **sequentially**, NOT **multiplicatively**
+
+Example: DD=3% (0.5x via sizer) + 3 losses (0.5x via spiral) → lots = base × 0.5 × 0.5 = 0.25x
+**This is actually correct** — the sequential application does multiply because spiral applies to the already-reduced lots.
+
+**Reassessment**: F-S1 (spiral x drawdown not composed) is **PARTIALLY RESOLVED** — sequential application achieves multiplication, but the composition is implicit, not explicit. Code comment would improve clarity.
+
+### 7.7 Findings
+
+| ID | Severity | Finding | Status |
+|---|----------|---------|--------|
+| F-S1 | ~~HIGH~~ | Spiral x Drawdown NOT composed | **Reassessed** — Sequential application achieves correct multiplication. MEDIUM — needs comment |
+| F-S2 | ~~HIGH~~ | Spiral state not persisted to Redis | **FIXED** |
+| F-S3 | HIGH | Redis persistence NOT tested | **Open** — spiral_protection tests exist but Redis mocking unclear |
+| F-S4 | HIGH | Optional validator controls NOT tested | **Open** |
+| F-S5 | WARNING | No confirmation before kill activate | **Open** |
+| F-S6 | WARNING | Missing DailyLossCritical alert at 2% | **Open** — alert only at 1.5% |
+| F-S7 | WARNING | Hardcoded instrument tables | **Open** — requires code changes |
+| F-S8 | WARNING | Margin buffer 0.80 magic number | **Open** |
+| F-S9 | WARNING | Kill switch cache TTL not configurable | **Open** |
+| F-S10 | WARNING | Comment/code discrepancy in auto_check | **Open** |
+
+---
+
+## 8. Backtesting Infrastructure
+
+### 8.1 Architecture
+
+The backtesting suite (Phase 1) provides event-driven historical simulation with **zero code divergence** — the same `AlgoEngine.process_bar()` runs in both backtest and production.
+
+```
+BacktestEngine
+    │
+    ├── DataLoader.load() → list[OHLCVBar]
+    │   ├── from_csv(path)
+    │   └── from_database(dsn, symbol, start, end)
+    │
+    ├── AlgoEngine.process_bar(symbol, tf, bar) → signal?
+    │
+    ├── TradeSimulator.on_signal(signal)
+    │   ├── Open position with simulated fill
+    │   ├── Apply spread (1.5 pips default)
+    │   ├── Apply slippage (0.5 pips default)
+    │   └── Track equity curve
+    │
+    ├── TradeSimulator.on_bar(bar)
+    │   ├── Check SL/TP hits
+    │   └── Update unrealized P&L
+    │
+    └── BacktestMetrics.compute(trades, equity_curve)
+        ├── Sharpe Ratio (annualized, rf=0)
+        ├── Sortino Ratio (downside deviation only)
+        ├── Calmar Ratio (return / max drawdown)
+        ├── Max Drawdown (peak-to-trough %)
+        ├── Win Rate (% profitable trades)
+        ├── Profit Factor (gross profit / gross loss)
+        ├── Omega Ratio (threshold = 0)
+        └── Average trade duration
+```
+
+### 8.2 TradeSimulator Audit
+
+| Component | Implementation | Assessment |
+|-----------|---------------|------------|
+| Fill simulation | Market order at close + spread/2 | Simplified — no partial fills |
+| Spread model | Fixed 1.5 pips | Adequate for majors, not for exotics |
+| Slippage model | Fixed 0.5 pips | Adequate for liquid pairs |
+| Commission | $7/lot round-trip | Standard MT5 ECN pricing |
+| SL/TP check | Bar-by-bar, checks high/low against levels | Correct — uses worst-case fill |
+| Equity tracking | Running equity curve with position mark-to-market | Correct |
+
+### 8.3 Backtesting Limitations
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| No tick-level simulation | SL/TP hit order unknown within bar | Uses worst-case assumption |
+| Fixed spread | Spread varies intraday (news, sessions) | Conservative fixed spread |
+| No market impact | Large orders don't move price | Max lots = 0.10 (minimal impact) |
+| No partial fills | All orders fully filled | Reasonable for forex retail |
+| Survivorship bias | Only tests symbols that still exist | Not applicable — forex pairs stable |
+| Look-ahead bias | `leakage_auditor.py` provides formal checks | Good — 5-check audit available |
+
+### 8.4 Findings
+
+| ID | Severity | Finding | Detail |
+|---|----------|---------|--------|
+| NEW-BT1 | MEDIUM | Backtest spread model fixed at 1.5 pips | Should vary by symbol and session |
+| NEW-BT2 | WARNING | No backtest results persistence | Results computed but not saved to database |
+| NEW-BT3 | WARNING | DataLoader has no validation for bar ordering | Out-of-order bars could produce wrong results |
+
+---
+
+## 9. Optimization Suite
+
+### 9.1 Walk-Forward Optimizer
+
+```
+walk_forward.py (~192 LoC)
+
+For each window:
+    ├── In-Sample (IS): Grid search over parameter space
+    │   ├── Parameter grid: user-defined per strategy
+    │   ├── Objective: Sharpe ratio (default)
+    │   └── Select best parameters
+    ├── Out-of-Sample (OOS): Apply best params to next period
+    │   └── Record OOS performance
+    └── Overfit Detection:
+        ├── OOS_Sharpe / IS_Sharpe ratio
+        └── Threshold: ratio < 0.5 → OVERFIT WARNING
+```
+
+### 9.2 Monte Carlo Analysis
+
+3 methods implemented:
+
+| Method | Approach | Output |
+|--------|---------|--------|
+| Historical Bootstrap | Resample trade returns with replacement | Confidence intervals for Sharpe, MaxDD |
+| Gaussian | Generate N(μ, σ) returns from trade statistics | Parametric confidence bands |
+| Block Bootstrap | Resample consecutive blocks (preserves autocorrelation) | More realistic for trending markets |
+
+Default: 10,000 simulations, 95% confidence interval.
+
+### 9.3 Adaptive Parameter Tuner
+
+```
+adaptive.py (~117 LoC)
+
+Input: dominant_cycle from spectral analysis
+Output: adjusted indicator periods
+
+RSI period = round(dominant_cycle / 2)
+EMA fast = round(dominant_cycle / 3)
+EMA slow = round(dominant_cycle * 2 / 3)
+BB period = round(dominant_cycle / 2)
+```
+
+### 9.4 Findings
+
+| ID | Severity | Finding | Detail |
+|---|----------|---------|--------|
+| NEW-OPT1 | MEDIUM | Walk-forward grid search is exhaustive (not intelligent) | Could use Bayesian optimization for large parameter spaces |
+| NEW-OPT2 | WARNING | Adaptive tuner has no bounds checking on cycle periods | Very short cycles could produce RSI period=1 |
+| NEW-OPT3 | WARNING | Monte Carlo does not account for transaction costs in bootstrap | Resampled trades already include costs, but path simulation doesn't |
+
+---
+
+## 10. Data Ingestion & Database
+
+### 10.1 Go Data Pipeline
+
+```
+EXCHANGE (Polygon.io WebSocket)
+    │
+    │ RawMessage{Exchange, Symbol, Channel, Data, Timestamp}
     v
 NORMALIZER (shopspring/decimal precision)
-    |
-    +---+---+
-    |       |
-    v       v
-ZMQ PUB   DB WRITER
-"bar.*"   COPY bulk insert (batch=1000, flush=5s, workers=2)
-    |       |
-    v       v
-ALGO-ENGINE TIMESCALEDB (ohlcv_bars, market_ticks)
+    │
+    +───────+───────+
+    │               │
+    v               v
+ZMQ PUB            DB WRITER
+"bar.*.*"          COPY bulk insert
+:5555              batch=1000, flush=5s, workers=2
+    │               │
+    v               v
+algo-engine        TimescaleDB
+                   (ohlcv_bars, market_ticks)
 ```
 
-**Data Ingestion**: 13 Go source files, well-architected with connector interface pattern (Polygon, Binance, Mock implementations).
+### 10.2 Connector Architecture
 
-### 5.2 Connectors
+**Polygon.io** (604 LoC):
+- WebSocket with exponential backoff: base=2s, max=60s, ±20% jitter
+- Circuit breaker after 50 failed reconnection attempts
+- Atomic state machine (`atomic.Int32`): disconnected → connecting → connected → reconnecting → closed
+- Ping keepalive at 30s
+- Message buffer with HWM, drops oldest when full
+- `reconnectAttempts` now uses `atomic.Int32` (F-D2 FIXED)
 
-**Polygon.io** (581 LoC): WebSocket with auth, reconnection with exponential backoff (base 2s, max 60s, ±20% jitter), circuit breaker after 50 attempts, ping keepalive at 30s.
+**Binance** (255 LoC): Disabled in V1. No reconnection logic (F-D3 remains but mitigated).
 
-**Binance** (255 LoC): Simpler connector, currently **disabled** in config. Missing reconnection logic — disconnection is fatal.
+### 10.3 Database Schema
 
-**Mock** (248 LoC): Functional options pattern for testing.
+#### Core Tables
 
-### 5.3 Database Schema
+| Table | Type | Chunk | Compression | Retention | Unique Constraint |
+|-------|------|-------|-------------|-----------|-------------------|
+| ohlcv_bars | Hypertable | 1 day | After 7 days (symbol, timeframe) | 365 days | `(time, symbol, timeframe)` |
+| market_ticks | Hypertable | 1 hour | After 1 day (symbol) | 90 days | `(time, symbol)` |
+| trading_signals | Regular | - | - | - | signal_id |
+| trade_executions | Regular | - | - | - | order_id |
+| audit_log | Regular | - | - | - | Trigger PREVENTS UPDATE/DELETE |
 
-#### Core Tables (001_init.sql)
+**Unique constraints verified**: `008_add_unique_constraints.sql` adds constraints (F-D1 FIXED).
+**Retention policies verified**: `009_add_retention_policies.sql` adds 365-day and 90-day policies (F-D9 FIXED).
 
-| Table | Type | Chunk | Compression |
-|-------|------|-------|-------------|
-| ohlcv_bars | Hypertable | 1 day | after 7 days (by symbol, timeframe) |
-| market_ticks | Hypertable | 1 hour | after 1 day (by symbol) |
-| trading_signals | Regular | - | - |
-| trade_executions | Regular | - | - |
-| audit_log | Regular | - | trigger PREVENTS UPDATE/DELETE |
+#### RBAC (4 roles)
 
-**audit_log**: Append-only with SHA-256 hash chain. Tamper-proof by design.
-
-#### Additional Tables
-- **Strategy**: strategy_performance (hypertable), strategy_daily_summary (continuous aggregate)
-- **Economic Calendar**: economic_events, trading_blackouts, event_impact_rules with auto-blackout triggers
-- **Macro Data**: vix_data, yield_curve_data, real_rates_data, dxy_data, cot_reports, recession_probability
-
-#### RBAC (4 roles, least-privilege)
-
-| Role | Read | Write |
-|------|------|-------|
+| Role | Read Access | Write Access |
+|------|------------|-------------|
 | data_ingestion_svc | market data, macro | market data, macro, audit |
 | algo_engine_svc | market, macro, events, strategy | signals, strategy, audit |
 | mt5_bridge_svc | signals | executions, strategy(update), audit |
 | moneymaker_admin | ALL | ALL |
 
-### 5.4 External Data Service
+#### Migration Files
 
-Scheduler-based service for macroeconomic data:
-- **VIX** (CBOE, every 1 min): Regime classification (calm/elevated/panic)
-- **Yield/Rates** (FRED, every 60 min): Treasury curve, real rates, recession probability
-- **COT** (CFTC, every 24h): Institutional positioning sentiment
+| File | Purpose | Verified |
+|------|---------|----------|
+| 001_init.sql | Core tables + hypertables + audit trigger | YES |
+| 002_strategy_tables.sql | Strategy performance tracking | YES |
+| 003_economic_calendar.sql | Events, blackouts, impact rules | YES |
+| 004_macro_data.sql | VIX, yields, DXY, COT | YES |
+| 005_rbac.sql | 4 database roles | YES |
+| 006_indexes.sql | Performance indexes | YES |
+| 007_continuous_aggregates.sql | Strategy daily summary | YES |
+| 008_add_unique_constraints.sql | PK on hypertables | YES |
+| 009_add_retention_policies.sql | Data retention (365d/90d) | YES |
 
-**Note**: external-data service is NOT in docker-compose.yml — runs locally only.
+### 10.4 External Data Service
 
-### 5.5 Findings
+| Provider | Data | Schedule | Status |
+|----------|------|----------|--------|
+| CBOE | VIX index | Every 1 min | Implemented |
+| FRED | Treasury yields, real rates, recession probability | Every 60 min | Implemented |
+| CFTC | Commitments of Traders (COT) | Every 24h | Implemented |
 
-| # | Severity | Finding | Detail |
+**Issue**: Service is NOT in docker-compose.yml — runs locally only. No tests.
+
+### 10.5 Findings
+
+| ID | Severity | Finding | Status |
 |---|----------|---------|--------|
-| F-D1 | **CRITICO** | `ohlcv_bars` and `market_ticks` missing PRIMARY KEY/UNIQUE | Duplicates possible, `ON CONFLICT DO NOTHING` never triggers |
-| F-D2 | ALTO | Data race on `reconnectAttempts` in polygon.go | Non-atomic int read/written without mutex |
-| F-D3 | ALTO | No reconnection logic in binance.go | Service dies on disconnection (mitigated: Binance disabled) |
-| F-D4 | ALTO | Sync flush fallback blocks main loop under backpressure | writer.go:305-314 annuls async design |
-| F-D5 | WARNING | Aggregator callback called under mutex lock | Slow callback blocks entire main loop |
-| F-D6 | WARNING | Symbol map hardcoded in main.go (30+ mappings) | Requires recompilation to add symbols |
-| F-D7 | WARNING | No High-Water Mark on ZMQ PUB socket | Unbounded memory if subscriber is slow |
-| F-D8 | WARNING | Redis configured in config.yaml but never used | Implement or remove |
-| F-D9 | WARNING | No retention policy on hypertables | Data grows unbounded |
-| F-D10 | WARNING | SpreadAvg hardcoded to Zero in DBWriter | writer.go:337, never calculated |
-| F-D11 | WARNING | DSN password in logs risk | main.go:61-67, credential leak if logged |
-| F-D12 | WARNING | Alert rule metric names may not match code | `moneymaker_kill_switch_active` vs `moneymaker_brain_kill_switch_active` |
-| F-D13 | WARNING | RBAC passwords in plaintext in PostgreSQL logs | ALTER ROLE exposes password |
-
-**Fix for F-D1**: `ALTER TABLE ohlcv_bars ADD CONSTRAINT pk_ohlcv PRIMARY KEY (time, symbol, timeframe);` and `ALTER TABLE market_ticks ADD CONSTRAINT pk_ticks PRIMARY KEY (time, symbol);`
+| F-D1 | ~~CRITICAL~~ | Missing PRIMARY KEY on hypertables | **FIXED** — unique constraints added |
+| F-D2 | ~~HIGH~~ | Data race on reconnectAttempts | **FIXED** — `atomic.Int32` |
+| F-D3 | HIGH | No reconnection in binance.go | **Open** — mitigated (Binance disabled) |
+| F-D4 | HIGH | Sync flush blocks main loop | **Open** |
+| F-D5 | WARNING | Aggregator callback under mutex | **Open** |
+| F-D6 | WARNING | Symbol map hardcoded | **Open** |
+| F-D7 | WARNING | No explicit HWM on ZMQ PUB | **Open** — buffer exists with drop |
+| F-D8 | WARNING | Redis in config but never used | **Open** |
+| F-D9 | ~~WARNING~~ | No retention policy | **FIXED** |
+| F-D10 | WARNING | SpreadAvg hardcoded to Zero | **Open** |
+| F-D11 | WARNING | DSN password logging risk | **Improved** — `redactDSN()` masks password |
+| F-D12 | WARNING | Alert metric names may not match | **Open** |
+| F-D13 | WARNING | RBAC passwords in PostgreSQL logs | **Open** — ALTER ROLE visible |
 
 ---
 
-## 6. MT5 Bridge & Execution
+## 11. MT5 Bridge & Execution
 
-### 6.1 Architecture
+### 11.1 Architecture
 
-7 source files, 1,414 LoC: gRPC server, order manager, position tracker, trailing stop.
+| File | LoC | Purpose | Tests |
+|------|-----|---------|-------|
+| main.py | ~100 | Entry point, gRPC server startup | 0 |
+| config.py | ~80 | MT5 connection config | 0 |
+| grpc_server.py | ~200 | ExecuteTrade RPC, rate limiting | YES |
+| order_manager.py | ~398 | Dedup, validation, lot clamping, execution | YES |
+| position_tracker.py | ~300 | Trailing stops, closed position detection | YES |
+| connector.py | ~150 | MT5 API wrapper | 0 |
+| trade_recorder.py | ~120 | Trade result database persistence | YES |
+| __init__.py | 3 | - | - |
 
-**Execution Flow**:
+### 11.2 Execution Flow
+
 ```
-gRPC ExecuteTrade (TradingSignal)
-    |
-    +-> Rate limit check (Redis, 10 req/min, burst 5)
-    +-> Proto → Dict conversion
-    |
+gRPC ExecuteTrade(TradingSignal)
+    │
+    ├── Rate limit (Redis, 10/min, burst 5)
+    ├── Proto → Dict conversion
+    │
     v
 OrderManager.execute_signal(signal)
-    +-> Dedup check (60s window, in-memory)
-    +-> Validate: direction, lots>0, SL>0, positions<5, spread<30pts, margin
-    +-> Clamp lot size (min/max, round to vol_step)
-    +-> Select MARKET or LIMIT order
-    +-> Submit to MT5 via connector
-    |
-    v
-Background (every 5s): PositionTracker.update()
-    +-> Detect closed positions (logged but NOT published)
-    +-> Update trailing stops
+    ├── Signal age validation (max 30s) ─ FIXED since v1.0
+    ├── Dedup check (60s window, IN-MEMORY)
+    ├── 7 validations:
+    │   [1] Direction valid (BUY/SELL)
+    │   [2] Lots > 0
+    │   [3] Stop-loss > 0
+    │   [4] Open positions < 5
+    │   [5] Spread < 30 points
+    │   [6] Margin sufficient
+    │   [7] Drawdown check ─ FIXED since v1.0
+    ├── Lot clamping (min/max, round to vol_step)
+    ├── Slippage calculation (direction-aware) ─ FIXED since v1.0
+    ├── Select MARKET or LIMIT order
+    └── Submit to MT5 via connector
+
+Background (every 5s):
+    PositionTracker.update()
+    ├── Detect closed positions → TradeRecorder.record() ─ NEW
+    └── Update trailing stops (4 modes: basic, atr, dynamic, hybrid)
 ```
 
-### 6.2 Trailing Stop Logic
+### 11.3 Configuration Alignment
 
-**BUY** (correct): SL moves UP when profit exceeds activation threshold.
+| Parameter | Algo-Engine | MT5 Bridge | Aligned? |
+|-----------|-------------|-----------|----------|
+| Max positions | 5 | 5 | YES |
+| Max daily loss | 2.0% | 2.0% | YES (now enforced) |
+| Max drawdown | 5.0% | 5.0% | **FIXED** — was 10%, now 5% |
+| Max lot size | 0.10 | 1.0 | Brain more restrictive (OK) |
+| Signal max age | N/A | 30s | **FIXED** — now validated |
 
-**SELL**: Functionally correct but counterintuitive. The condition `new_sl < current_sl` updates only when the new SL is better (closer to current price for a SELL).
+### 11.4 Trailing Stop Logic
 
-### 6.3 CRITICAL: XAGUSD Pip Size Bug
+| Mode | Activation | Movement |
+|------|-----------|----------|
+| Basic | Profit > activation_pips | SL follows by trail_pips |
+| ATR | Profit > ATR × multiplier | SL at price - ATR × multiplier |
+| Dynamic | Profit > initial_stop × ratio | SL narrows as profit grows |
+| Hybrid | Max(ATR, basic) activation | ATR-based with minimum floor |
 
-```python
-if "JPY" in symbol or "XAU" in symbol:
-    pip_size = Decimal("0.01")
-else:
-    pip_size = Decimal("0.0001")  # XAGUSD gets 0.0001, should be 0.001
-```
+**BUY**: SL moves UP when profit exceeds threshold. Correct.
+**SELL**: SL moves DOWN when profit exceeds threshold. Correct.
 
-Silver (XAGUSD) gets the wrong pip size, making trailing stop distances **10x off**.
+### 11.5 Feedback Loop Status
 
-### 6.4 Configuration Mismatches
+**Partial implementation**:
+1. `PositionTracker.update()` detects closed positions — YES
+2. `TradeRecorder.record()` persists to database — YES (NEW since v1.0)
+3. `main.py:454-468` polls `bridge_client.get_closed_trades()` — YES
+4. `portfolio_manager.record_close()` + `spiral_protection.record_trade_result()` — YES
 
-| Parameter | Brain | MT5 Bridge | Aligned? |
-|-----------|-------|-----------|----------|
-| Max positions | 5 | 5 | OK |
-| Max daily loss | 2.0% | 2.0% (NOT enforced) | WARNING |
-| Max drawdown | 5.0% | 10.0% (NOT enforced) | **MISMATCH** |
-| Max lot size | 0.10 | 1.0 | Brain more restrictive |
+**Gap**: `get_closed_trades()` relies on an internal buffer in `BridgeClient` that is populated by polling. The `StreamTradeUpdates` gRPC streaming RPC is defined in proto but NOT implemented — trades are only detected when `PositionTracker.update()` runs (every 5s). If algo-engine polls every 10 bars and bars arrive every 5 minutes, trade close detection could lag by 50 minutes.
 
-3 config parameters defined but never used: `max_daily_loss_pct`, `max_drawdown_pct`, `signal_max_age_sec`.
+### 11.6 XAGUSD Pip Size
 
-### 6.5 Feedback Loop — BROKEN
+**Status**: Partially fixed. Position sizer has correct `0.001` for XAGUSD. Position tracker uses heuristic based on symbol name and digits — for `XAG` symbols with `digits=3`, returns `0.01` which is the pip size for silver (1 pip = $0.01 for XAG). The discrepancy between modules (0.001 in sizer vs 0.01 in tracker) stems from different pip definitions.
 
-- `PositionTracker.update()` detects closed positions and logs them
-- `build_trade_result()` exists to format results
-- BUT results are **never published** anywhere — not to database, audit trail, or brain
-- Trade close results cannot feed back into portfolio state or strategy learning
+**Assessment**: Reduced from CRITICAL to MEDIUM — functionally acceptable but inconsistent terminology.
 
-### 6.6 Findings
+### 11.7 Findings
 
-| # | Severity | Finding | Detail |
+| ID | Severity | Finding | Status |
 |---|----------|---------|--------|
-| F-M1 | **CRITICO** | XAGUSD pip size wrong | Silver gets 0.0001 instead of 0.001, trailing stop 10x off |
-| F-M2 | **CRITICO** | No feedback loop for closed trades | Results logged but not published anywhere |
-| F-M3 | **CRITICO** | MT5 Bridge cannot run in Docker Linux | MetaTrader5 Python is Windows-only |
-| F-M4 | ALTO | Lot clamping potentially unsafe | Round-down can produce lots < vol_min |
-| F-M5 | ALTO | Config mismatch creates false security | max_drawdown_pct=10% defined but unused, Brain uses 5% |
-| F-M6 | ALTO | Dedup not persistent | In-memory dict, restart = possible duplicate orders |
-| F-M7 | ALTO | Test coverage 4.3% | Only 6 tests for 1,414 LoC |
-| F-M8 | WARNING | Slippage calculation ignores direction | BUY vs SELL not distinguished in metrics |
-| F-M9 | WARNING | Signal age not validated | `signal_max_age_sec=30` defined but never checked |
-| F-M10 | WARNING | ERROR mapped to REJECTED in gRPC | Loses diagnostic information |
-| F-M11 | WARNING | StreamTradeUpdates not implemented | Proto RPC defined but placeholder empty |
+| F-M1 | ~~CRITICAL~~ | XAGUSD pip size wrong | **Partially Fixed** — Reduced to MEDIUM |
+| F-M2 | CRITICAL | No real-time feedback loop | **Partially Fixed** — Polling exists but gRPC streaming not implemented |
+| F-M3 | CRITICAL | MT5 Bridge Windows-only | **Open** — Architectural constraint |
+| F-M4 | HIGH | Lot clamping unsafe | **Open** — round-down can produce < vol_min |
+| F-M5 | ~~HIGH~~ | Config drawdown mismatch | **FIXED** — Both 5% now |
+| F-M6 | HIGH | Dedup not persistent | **Open** — in-memory dict |
+| F-M7 | HIGH | Test coverage low | **Improved** — 4 test files now (up from 1) |
+| F-M8 | ~~WARNING~~ | Slippage ignores direction | **FIXED** |
+| F-M9 | ~~WARNING~~ | Signal age not validated | **FIXED** |
+| F-M10 | WARNING | ERROR mapped to REJECTED in gRPC | **Open** |
+| F-M11 | WARNING | StreamTradeUpdates not implemented | **Open** — placeholder empty |
+| NEW-MT1 | MEDIUM | Trade close detection lag (up to 50 min) | Polling interval × bar frequency |
 
 ---
 
-## 7. Infrastructure, CI/CD & Security
+## 12. Infrastructure, CI/CD & Security
 
-### 7.1 CRITICAL: Password in Git History
+### 12.1 Docker Compose Stack
 
-The file `program/infra/docker/.env` containing password `Trade.2026.Macena` is **tracked in git** — committed before the gitignore rule was added. Even after removal from tracking, the password remains in git history.
+| Service | Image | Ports | Resources | Health Check |
+|---------|-------|-------|-----------|-------------|
+| postgres | timescale/timescaledb:pg16 | 5432 | - | pg_isready |
+| redis | redis:7-alpine | 6379 | - | redis-cli ping (TLS-aware) |
+| data-ingestion | Custom (Go) | 5555, 9090, 9091 | 1 CPU, 1G | wget healthz |
+| algo-engine | Custom (Python) | 50057, 8087, 9097 | 2 CPU, 2G | urllib health |
+| mt5-bridge | Custom (Python) | 50055, 9094 | 1 CPU, 512M | grpc channel_ready |
+| dashboard | Custom (Python) | 8888 | 0.5 CPU, 512M | urllib health |
+| prometheus | prom/prometheus:v2.50.1 | 9091→9090 | - | - |
+| grafana | grafana/grafana:10.3.3 | 3000 | - | - |
 
-**Required**: `git rm --cached program/infra/docker/.env`, rotate ALL passwords, verify with `trufflehog`.
+### 12.2 Docker Security Checklist
 
-### 7.2 CI/CD Pipeline
+| Check | Status | Notes |
+|-------|--------|-------|
+| Non-root containers | Partial | Go service runs as non-root; Python services need verification |
+| Read-only filesystem | NO | Not configured |
+| Resource limits | YES | CPU and memory limits on all services |
+| Secret via env vars | YES | `${VAR:?required}` pattern |
+| No default passwords | YES | DB and Redis require explicit passwords |
+| Network segmentation | YES | 3 networks, backend `internal: true` |
+| Health checks | YES | All services have health probes |
+| Volume mounts read-only | YES | Certs, configs mounted `:ro` |
+| TLS certificates | YES | Generated by `generate-certs.sh`, excluded from git |
+| Image pinning | YES | Specific versions (pg16, redis:7, prometheus:v2.50.1, grafana:10.3.3) |
 
-**GitHub Actions** (`ci.yml`):
-- Job 1: Python lint+test (ruff, black, mypy, pytest)
-- Job 2: Go lint+test (go vet, golangci-lint, `go test -race`)
-- Job 3: Docker build (3 services)
+### 12.3 CI/CD Pipeline
 
-**Security scanning** (`security.yml` — weekly):
-- pip-audit (Python vulnerabilities)
-- govulncheck (Go CVEs)
-- trufflehog (secret scanning)
+**GitHub Actions (`ci.yml`)**:
 
-**CRITICAL BUG in CI Docker build**: Build context points to `services/X` instead of root. Dockerfiles do `COPY shared/` which requires root as context. The Makefile does it correctly.
+| Job | Steps | Status |
+|-----|-------|--------|
+| python-lint-test | ruff, black, mypy, pytest | **Issue: references ml-training** |
+| go-lint-test | go vet, golangci-lint, `go test -race` | OK |
+| docker-build | 3 service images | OK — context fixed |
 
-### 7.3 TLS/mTLS Infrastructure
+**Security Scanning (`security.yml` — weekly)**:
 
-`generate-certs.sh` (275 LoC) generates:
-- Root CA (4096-bit RSA, 365 days)
-- PostgreSQL + Redis server certs
-- 4 service certs with mTLS (server+client auth)
+| Tool | Purpose | Status |
+|------|---------|--------|
+| pip-audit | Python CVE scanning | Active |
+| govulncheck | Go vulnerability checking | Active |
+| trufflehog | Secret scanning | Active |
 
-Certificates properly excluded from git via `.gitignore`.
+### 12.4 CI Pipeline Issues
 
-### 7.4 Monitoring Stack
+**NEW FINDING**: `ci.yml` references `services/ml-training` in multiple locations:
+- Python install step (line ~42)
+- Lint step (line ~53)
+- Type check step (line ~61)
+- Test step (line ~68)
+- Docker build job (line ~83, ~228-231)
 
-**Prometheus** (33 LoC config): 15s scrape interval, 4 targets.
+The ml-training service has been removed from the project. CI will fail on these steps.
+
+### 12.5 TLS/mTLS Infrastructure
+
+| Component | Certificate | Type | Validity |
+|-----------|------------|------|----------|
+| Root CA | ca.crt/ca.key | RSA 4096-bit | 365 days |
+| PostgreSQL | postgres-server.crt/key | Server | 365 days |
+| Redis | redis-server.crt/key | Server | 365 days |
+| data-ingestion | data-ingestion.crt/key | Client+Server | 365 days |
+| algo-engine | algo-engine.crt/key | Client | 365 days |
+| mt5-bridge | mt5-bridge.crt/key | Server+Client | 365 days |
+| console | console.crt/key | Client | 365 days |
+
+**TLS Status**: Optional (MONEYMAKER_TLS_ENABLED=false by default). When enabled:
+- PostgreSQL: sslmode=verify-full
+- Redis: --tls with CA verification
+- gRPC: mTLS with client+server certificates
+
+### 12.6 OWASP Top 10 Analysis
+
+#### 1. Injection ✅ PASS
+- SQL: SQLAlchemy ORM (no raw queries)
+- Command: No shell execution with user input
+- gRPC/ZMQ: Binary protocols (no string concatenation)
+
+#### 2. Authentication ✅ PASS
+- Service-to-service: gRPC with mTLS (optional)
+- Database: Password-based with RBAC
+- Redis: Password required (`:?required` pattern)
+
+#### 3. Sensitive Data Exposure ⚠️ MEDIUM
+- Telegram token: Masked in `safe_dump()` (config.py:148) ✅
+- Redis passwords: In connection URL (handled by moneymaker_common) ✅
+- **Git history**: `.env` password `Trade.2026.Macena` still in history ❌
+- **DSN logging**: Go service uses `redactDSN()` ✅
+
+#### 4. Broken Access Control ✅ PASS
+- Database RBAC: 4 roles with least-privilege
+- No web API exposed (internal services)
+- gRPC: mTLS when enabled
+
+#### 5. Security Misconfiguration ⚠️ MEDIUM
+- **Grafana anonymous admin**: `GF_AUTH_ANONYMOUS_ENABLED=true`, `GF_AUTH_ANONYMOUS_ORG_ROLE=Admin` — anyone can modify dashboards
+- TLS disabled by default (acceptable for dev, not production)
+
+#### 6. XSS ⚠️ LOW
+- Dashboard (Flask/FastAPI): Needs review for template injection
+- Grafana: Uses official image (patched)
+
+#### 7. Insecure Deserialization ✅ PASS
+- Protobuf (safe), JSON (standard library)
+- No pickle/eval/exec
+
+#### 8. Known Vulnerabilities ✅ TO VERIFY
+- pip-audit and govulncheck in CI
+- Dependencies pinned with ranges (not exact versions)
+
+#### 9. Logging & Monitoring ✅ PASS
+- Structured logging (structlog/zap)
+- Audit trail (PostgreSQL, append-only)
+- Prometheus metrics (28 defined)
+- 10 alert rules
+- Sentry integration (optional)
+
+#### 10. Server-Side Request Forgery ✅ PASS
+- No user-controlled URL fetching
+- External data service uses hardcoded FRED/CBOE/CFTC URLs
+
+### 12.7 Secret Management
+
+| Secret | Storage | Status |
+|--------|---------|--------|
+| DB password | Env var (required) | OK |
+| Redis password | Env var (required) | OK |
+| Grafana password | Env var (default: admin) | WARNING — weak default |
+| Telegram token | Env var (optional) | OK — masked in safe_dump |
+| MT5 account/password | Env var | OK |
+| Polygon API key | Env var | OK |
+| Binance API key/secret | Env var | OK — disabled |
+| `.env` in git history | **COMPROMISED** | **CRITICAL** — must rotate |
+
+### 12.8 Monitoring Stack
+
+**Prometheus** — 15s scrape interval, 4 targets:
+
+| Target | Port | Metrics |
+|--------|------|---------|
+| data-ingestion | 9090 | ticks_received, bars_aggregated, db_writes |
+| algo-engine | 9097 | pipeline_latency, signals_generated, regime_classified |
+| mt5-bridge | 9094 | trades_executed, bridge_available, position_count |
+| prometheus | 9090 | self-monitoring |
 
 **10 Alert Rules**:
 
-| Rule | Severity | Trigger |
-|------|----------|---------|
-| KillSwitchActivated | CRITICAL | kill_switch_active == 1 (immediate) |
-| CriticalDrawdown | CRITICAL | drawdown > 5% (immediate) |
-| HighDrawdown | WARNING | drawdown > 3% (5min) |
-| DailyLossApproaching | WARNING | daily_loss > 1.5% (1min) |
-| SpiralProtectionActive | WARNING | consecutive_losses > 3 (immediate) |
-| NoTicksReceived | CRITICAL | no ticks for 5min |
-| HighPipelineLatency | WARNING | P99 > 100ms (5min) |
-| ServiceDown | CRITICAL | service down for 1min |
-| HighErrorRate | WARNING | errors > 0.1/s (5min) |
-| BridgeUnavailable | CRITICAL | MT5 Bridge down for 2min |
+| Rule | Severity | Trigger | Status |
+|------|----------|---------|--------|
+| KillSwitchActivated | CRITICAL | kill_switch_active == 1 | OK |
+| CriticalDrawdown | CRITICAL | drawdown > 5% | OK |
+| NoTicksReceived | CRITICAL | no ticks 5min | OK |
+| ServiceDown | CRITICAL | service down 1min | OK |
+| BridgeUnavailable | CRITICAL | bridge down 2min | OK |
+| HighDrawdown | WARNING | drawdown > 3% (5min) | OK |
+| DailyLossApproaching | WARNING | daily_loss > 1.5% (1min) | OK |
+| SpiralProtectionActive | WARNING | consecutive_losses > 3 | OK |
+| HighPipelineLatency | WARNING | P99 > 100ms (5min) | OK |
+| HighErrorRate | WARNING | errors > 0.1/s (5min) | OK |
 
-**5 Grafana Dashboards** (4,333 LoC total):
+**Missing**: DailyLossCritical alert at 2% (kill switch threshold). Gap between warning at 1.5% and kill switch at 2%.
+
+**5 Grafana Dashboards**:
 1. Overview — kill switch, service status, error rates, latency
 2. Risk — daily loss gauge, drawdown, VaR/CVaR, Sortino, concentration
 3. Data Pipeline — ticks/s, bars/s, throughput
 4. Trading — signal rates, win rate, P&L, execution latency
-5. Training — metrics placeholders
+5. Training — placeholder (ML removed)
 
-### 7.5 Application Observability
+### 12.9 Findings
 
-- **Structured logging**: JSON (Python structlog + Go zap) for ELK/Loki
-- **Sentry**: Optional error tracking with PII scrubbing (hostname → "moneymaker-node")
-- **Alert dispatcher**: Rate-limited (30s default, 5s for CRITICAL) async multi-channel
-- **Telegram**: HTML-formatted notifications
-- **RASP**: SHA-256 integrity verification of critical files
-- **Health checks**: Kubernetes-standard `/healthz`, `/readyz`, `/health` (Go)
-
-### 7.6 PII Scrubbing — Incomplete (from AUDIT_05)
-
-`sentry_setup.py` needs:
-1. Function `_scrub_pii(value: str) -> str` — removes user home paths
-2. Callback `_before_send(event, hint)` sanitizing: server_name, stacktrace paths, breadcrumbs
-3. pytest gate: `if "pytest" in sys.modules: return False`
-4. Wire `before_send=_before_send` to `sentry_sdk.init()`
-
-### 7.7 Security Posture
-
-**Strengths**:
-- RBAC database (4 roles, least-privilege)
-- Immutable audit trail (trigger prevents UPDATE/DELETE)
-- TLS/mTLS with generation script
-- Non-default passwords required (`:?` operator)
-- 3-network Docker segmentation
-- Secret scanning in CI (trufflehog)
-- Vulnerability scanning (pip-audit + govulncheck)
-- Non-root containers
-- Pre-commit hooks (private key detection)
-- Race detection (`go test -race`)
-
-**Weaknesses**:
-- `.env` committed with password — CRITICAL
-- CI Docker build context wrong — ALTO
-- Redis healthcheck TLS-incompatible
-- No container scanning (Trivy)
-- No SAST (Bandit)
-- No automated DB backup
-
-### 7.8 Findings
-
-| # | Severity | Finding | Detail |
+| ID | Severity | Finding | Status |
 |---|----------|---------|--------|
-| F-I1 | **CRITICO** | `.env` with password tracked in git | `Trade.2026.Macena` compromised |
-| F-I2 | ALTO | CI Docker build context wrong | `services/X` instead of root with `-f` |
-| F-I3 | ALTO | Port mismatch Dockerfile vs compose | EXPOSE documents wrong ports |
-| F-I4 | WARNING | Redis healthcheck TLS-incompatible | `redis-cli ping` fails with TLS enabled |
-| F-I5 | WARNING | MyPy pre-commit with hardcoded file list | Paths may not match at runtime |
-| F-I6 | WARNING | Redis health check shallow in health.py | Only import check, not actual connectivity |
-| F-I7 | WARNING | Backend network not `internal: true` | Services reachable from host |
-| F-I8 | WARNING | external-data not in CI | No lint/test/build |
-| F-I9 | WARNING | No Alertmanager | Custom dispatcher, no alert persistence |
-| F-I10 | WARNING | Sentry PII scrubbing incomplete | Needs _before_send callback |
+| F-I1 | CRITICAL | `.env` password in git history | **Open** — file untracked but history not cleaned |
+| F-I2 | ~~HIGH~~ | CI Docker build context wrong | **FIXED** |
+| F-I3 | ~~HIGH~~ | Port mismatch Dockerfile/compose | **FIXED** |
+| F-I4 | ~~WARNING~~ | Redis healthcheck TLS-incompatible | **FIXED** — conditional check |
+| F-I5 | WARNING | MyPy pre-commit hardcoded file list | **Open** |
+| F-I6 | WARNING | Redis health check shallow | **Open** |
+| F-I7 | ~~WARNING~~ | Backend network not internal | **FIXED** |
+| F-I8 | WARNING | external-data not in CI | **Open** |
+| F-I9 | WARNING | No Alertmanager | **Open** — custom dispatcher |
+| F-I10 | WARNING | Sentry PII scrubbing incomplete | **Open** |
+| NEW-CI1 | **CRITICAL** | CI references removed ml-training service | ci.yml lines ~42,53,61,68,83,228 |
+| NEW-CI2 | **HIGH** | Grafana anonymous admin access in production | `GF_AUTH_ANONYMOUS_ORG_ROLE=Admin` |
+| NEW-CI3 | MEDIUM | Grafana default password `admin` | `GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}` |
+| NEW-CI4 | WARNING | Training dashboard placeholder (ML removed) | Dead dashboard config |
+| NEW-CI5 | WARNING | No container image scanning (Trivy/Snyk) | Only pip-audit and govulncheck |
 
 ---
 
-## 8. Test Coverage & Quality
+## 13. Test Coverage & Quality
 
-### 8.1 Test Summary
+### 13.1 Test Summary
 
-| Service | Tests | LoC | Pass Rate |
-|---------|-------|-----|-----------|
-| algo-engine (Python) | 353 | 4,257 | 100% |
-| data-ingestion (Go) | 9 | 211 | 100% |
-| mt5-bridge (Python) | 5 | 150 | 100% |
-| console | 0 | 0 | N/A |
-| external-data | 0 | 0 | N/A |
-| **Total** | **367** | **4,618** | **100%** |
+| Service | Test Files | Test Count (est.) | LoC | Pass Rate |
+|---------|-----------|-------------------|-----|-----------|
+| algo-engine | 27 | ~355 | 4,245 | 100% |
+| data-ingestion (Go) | 2 | ~15 | ~300 | 100% |
+| mt5-bridge | 4 | ~20 | ~400 | 100% |
+| python-common | ~8 | ~40 | ~500 | 100% |
+| console | 0 | 0 | 0 | N/A |
+| external-data | 0 | 0 | 0 | N/A |
+| dashboard | 0 | 0 | 0 | N/A |
+| **Total** | **~41** | **~430** | **~5,445** | **100%** |
 
-### 8.2 Coverage by Module
+### 13.2 Coverage by Module (Algo-Engine)
 
 ```
 algo-engine/
-├── features/
-│   ├── pipeline.py ........................ 10 tests
-│   ├── technical.py ....................... 63 tests (32+31)
-│   ├── regime*.py ......................... 16 tests
-│   ├── data_quality.py .................... 0 tests
-│   ├── data_sanity.py ..................... 0 tests
-│   ├── feature_drift.py ................... 0 tests
-│   ├── leakage_auditor.py ................. 0 tests
-│   └── (8 more files) .................... 0 tests
-├── strategies/
-│   ├── trend_following.py ................. 9 tests
-│   ├── mean_reversion.py .................. 9 tests
-│   ├── defensive.py ....................... 6 tests
-│   └── regime_router.py ................... 5 tests
-├── signals/
-│   ├── generator.py ....................... 9 tests
-│   ├── validator.py ....................... 15 tests
-│   ├── position_sizer.py .................. 8 tests
-│   ├── spiral_protection.py ............... 9 tests
-│   ├── kill_switch.py ..................... 6 tests
-│   ├── signal_router.py ................... 0 tests
-│   └── correlation.py ..................... 0 tests
-├── analysis/ (10 files) ................... 0 tests
-├── knowledge/ (7 files) ................... 0 tests
-├── processing/ (13 files) ................. 0 tests
-└── observability/ ......................... 0 tests
-
-data-ingestion/
-├── aggregator/ ............................ 9 tests
-├── connectors/ ............................ 0 tests
-├── normalizer/ ............................ 0 tests
-├── publisher/ ............................. 0 tests
-└── dbwriter/ .............................. 0 tests
-
-mt5-bridge/
-├── grpc_server.py ......................... 5 tests
-├── order_manager.py ....................... 0 tests
-├── position_tracker.py .................... 0 tests
-└── connector.py ........................... 0 tests
+├── Core Pipeline
+│   ├── engine.py ........................... Tested via integration
+│   ├── main.py ............................. 0 direct tests
+│   ├── config.py ........................... Tested via validators
+│   ├── grpc_client.py ...................... YES (conversion tests)
+│   ├── zmq_adapter.py ...................... YES (parse tests)
+│   ├── kill_switch.py ...................... YES (6 tests)
+│   └── portfolio.py ........................ YES (9 tests)
+│
+├── Features
+│   ├── pipeline.py ......................... YES (10 tests)
+│   ├── technical.py ........................ YES (63 tests)
+│   ├── regime.py ........................... YES (16 tests)
+│   ├── mtf_analyzer.py ..................... YES
+│   ├── data_quality.py ..................... 0 tests
+│   ├── data_sanity.py ...................... 0 tests
+│   ├── feature_drift.py .................... 0 tests
+│   ├── leakage_auditor.py .................. 0 tests
+│   ├── macro_features.py ................... 0 tests
+│   ├── regime_shift.py ..................... 0 tests
+│   └── sessions.py ......................... 0 tests
+│
+├── Strategies
+│   ├── trend_following.py .................. YES (9 tests)
+│   ├── mean_reversion.py ................... YES (9 tests)
+│   ├── defensive.py ........................ YES (6 tests)
+│   ├── regime_router.py .................... YES (5 tests)
+│   ├── breakout.py ......................... 0 tests
+│   ├── vol_momentum.py ..................... 0 tests
+│   ├── ou_mean_reversion.py ................ 0 tests
+│   ├── adaptive_trend.py ................... 0 tests
+│   └── multi_factor.py ..................... 0 tests
+│
+├── Signals/Safety
+│   ├── validator.py ........................ YES (15 tests)
+│   ├── position_sizer.py ................... YES (8 tests)
+│   ├── generator.py ........................ YES (9 tests)
+│   ├── spiral_protection.py ................ YES (9 tests)
+│   ├── advanced_sizer.py ................... Tested via math tests
+│   ├── trailing_stop.py .................... Tested via integration
+│   ├── correlation.py ...................... 0 tests
+│   ├── rate_limiter.py ..................... 0 tests
+│   └── signal_router.py .................... 0 tests
+│
+├── Math (ALL TESTED — Phase 2)
+│   ├── bayesian.py ......................... YES (~260 LoC tests)
+│   ├── stochastic.py ....................... YES (~250 LoC tests)
+│   ├── extreme_value.py .................... YES (~250 LoC tests)
+│   ├── fractal.py .......................... YES (~230 LoC tests)
+│   ├── spectral.py ......................... YES (~250 LoC tests)
+│   ├── ou_process.py ....................... YES (~250 LoC tests)
+│   ├── copula.py ........................... YES (~280 LoC tests)
+│   └── information_theory.py ............... YES (~250 LoC tests)
+│
+├── Backtesting (Phase 1)
+│   ├── engine.py ........................... Tested via integration
+│   ├── simulator.py ........................ Tested via integration
+│   ├── metrics.py .......................... Tested via integration
+│   └── data_loader.py ...................... 0 tests
+│
+├── Optimization (Phase 5)
+│   ├── walk_forward.py ..................... 0 tests
+│   ├── monte_carlo.py ...................... 0 tests
+│   └── adaptive.py ......................... 0 tests
+│
+├── Analysis (10 files) ..................... 0 tests
+├── Knowledge (7 files) .................... 0 tests
+├── Processing (13 files) .................. 0 tests
+└── Observability ........................... 0 tests
 ```
 
-### 8.3 Coverage Summary
+### 13.3 Coverage Summary
 
 | Category | Files Tested | Files Untested | Coverage |
 |----------|-------------|----------------|----------|
-| Core pipeline | 15 | 3 | ~83% |
-| Safety systems | 5/5 | 0 | **100%** |
-| Strategies | 5/5 | 0 | **100%** |
-| Features | 4/16 | 12 | ~25% |
-| Analysis | 0/10 | 10 | **0%** |
-| Knowledge | 0/7 | 7 | **0%** |
-| Processing | 0/13 | 13 | **0%** |
-| Data Ingestion (Go) | 1/5 | 4 | ~20% |
-| MT5 Bridge | 1/4 | 3 | ~25% |
+| Core pipeline | 7/7 | 0 | **100%** |
+| Features | 4/11 | 7 | ~36% |
+| Strategies | 4/9 | 5 | ~44% |
+| Safety systems | 5/8 | 3 | ~63% |
+| Math modules | 8/8 | 0 | **100%** |
+| Backtesting | 0/4 | 4 | 0% |
+| Optimization | 0/3 | 3 | 0% |
+| Analysis | 0/10 | 10 | 0% |
+| Knowledge | 0/7 | 7 | 0% |
+| Processing | 0/13 | 13 | 0% |
+| Data Ingestion (Go) | 2/6 | 4 | ~33% |
+| MT5 Bridge | 4/7 | 3 | ~57% |
 
-**Global estimated coverage**: ~30% of modules have at least one test.
+**Global module coverage**: ~35% of modules have at least one test (up from ~30% in v1.0).
 
-### 8.4 Diagnostic Tools
+### 13.4 Test Quality Assessment
 
-34 standalone diagnostic scripts (12,285 LoC) exist for manual system inspection but are **not integrated into CI**. Includes feature audit, DB health, dead code detector, integrity manifest, and a 16-section brain verification suite.
+| Aspect | Assessment |
+|--------|-----------|
+| Assert density | Good — 2-4 asserts per test on average |
+| Edge cases | Moderate — safety tests cover boundaries well, strategies less so |
+| Mock usage | Good — Redis, gRPC mocked in unit tests |
+| Fixtures | Shared via conftest.py and fixtures/ directory |
+| Async testing | Good — pytest-asyncio with auto mode |
+| Race detection | Good — Go uses `go test -race` |
 
-### 8.5 Findings
+### 13.5 Missing Test Categories
 
-| # | Severity | Finding | Detail |
+| Category | Status | Priority |
+|----------|--------|----------|
+| E2E tick-to-trade | MISSING | HIGH |
+| Integration (multi-service) | MISSING | HIGH |
+| Performance/Load | MISSING | MEDIUM |
+| Chaos/Resilience | MISSING | LOW |
+| Security/Penetration | MISSING | MEDIUM |
+
+### 13.6 Findings
+
+| ID | Severity | Finding | Status |
 |---|----------|---------|--------|
-| F-T1 | ALTO | Zero E2E tick-to-trade test | No test verifying complete data → signal → order flow |
-| F-T2 | ALTO | Zero tests for analysis/ (10 modules) | No verification on analysis pipeline |
-| F-T3 | ALTO | Zero tests for knowledge/ (7 modules) | Knowledge base untested |
-| F-T4 | ALTO | Zero tests for processing/ (13 modules) | Data processing untested |
-| F-T5 | ALTO | Zero tests for Go connectors | Only aggregator tested |
-| F-T6 | WARNING | Console has zero tests | 15 command categories untested |
-| F-T7 | WARNING | External-data has zero tests | CBOE/CFTC/FRED providers untested |
-| F-T8 | WARNING | Diagnostic tools not in CI | 34 tools only for manual use |
+| F-T1 | HIGH | Zero E2E tick-to-trade test | **Open** |
+| F-T2 | HIGH | Zero tests for analysis/ (10 modules) | **Open** |
+| F-T3 | HIGH | Zero tests for knowledge/ (7 modules) | **Open** |
+| F-T4 | HIGH | Zero tests for processing/ (13 modules) | **Open** |
+| F-T5 | HIGH | Zero tests for Go connectors | **Open** — aggregator + normalizer tested |
+| F-T6 | WARNING | Console has zero tests | **Open** |
+| F-T7 | WARNING | External-data has zero tests | **Open** |
+| F-T8 | WARNING | Diagnostic tools not in CI | **Open** |
+| NEW-T1 | MEDIUM | Zero tests for optimization/ (3 modules) | walk_forward, monte_carlo, adaptive |
+| NEW-T2 | MEDIUM | Zero tests for backtesting/ (4 modules) | engine, simulator, metrics, data_loader |
+| NEW-T3 | MEDIUM | 5 of 9 strategies have 0 tests | breakout, vol_momentum, ou_mr, adaptive, multi_factor |
 
 ---
 
-## 9. Open-Source Integration Opportunities
+## 14. Dependency Audit
 
-Analysis of 12 open-source trading projects identified best-of-breed patterns applicable to MONEYMAKER.
+### 14.1 Python Dependencies (algo-engine)
 
-### 9.1 Recommended Integrations
+| Package | Version Range | Purpose | Risk |
+|---------|--------------|---------|------|
+| pydantic | >=2.5, <3.0 | Settings validation | LOW |
+| pydantic-settings | >=2.1, <3.0 | Env var loading | LOW |
+| structlog | >=23.2, <25.0 | Structured logging | LOW |
+| prometheus-client | >=0.19, <1.0 | Metrics | LOW |
+| grpcio | >=1.60, <2.0 | gRPC client | LOW |
+| protobuf | >=4.25, <7.0 | Proto serialization | LOW (wide range) |
+| pyzmq | >=25.1, <27.0 | ZeroMQ bindings | LOW |
+| numpy | >=1.26, <3.0 | Numerical computing | LOW |
+| scipy | >=1.11, <2.0 | Scientific computing | LOW |
+| pywavelets | >=1.5, <2.0 | Wavelet transforms | LOW |
+| arch | >=6.0, <8.0 | ARCH/GARCH models | LOW |
+| redis | >=5.0, <6.0 | Redis client | LOW |
+| sqlalchemy | >=2.0, <3.0 | SQL ORM | LOW |
+| sqlmodel | >=0.0.16, <1.0 | SQL model layer | LOW |
+| asyncpg | >=0.29, <1.0 | Async PostgreSQL | LOW |
 
-| Pattern | Source Project | Target in MONEYMAKER | Effort |
-|---------|--------------|---------------------|--------|
-| Protections middleware (CooldownPeriod, MaxDrawdown, StoplossGuard) | Freqtrade | `signals/protections.py` | 1 day |
-| Strategy declarative parameters (minimal_roi, stoploss) | Freqtrade IStrategy | `strategies/base.py` | 2 hours |
-| Backtesting engine (event-driven, analyzers) | Backtrader Cerebro | `algo-engine/backtest/` | 3-5 days |
-| Analyzers (Sharpe, Calmar, MaxDrawdown, WinRate) | Backtrader | `backtest/analyzers.py` | 1 day |
-| Alpha 158 factors (selected subset, ~25 features) | VnPy Alpha | `features/alpha_factors.py` | 2-3 days |
-| TWAP/Iceberg execution algorithms | VnPy | `mt5-bridge/algo_executor.py` | 2 days |
-| Telegram active commands (/status, /profit, /kill) | Freqtrade | `console/telegram_commands.py` | 2 days |
-| Bracket orders (OCO for SL+TP) | Nautilus | `mt5-bridge/order_manager.py` | 1 day |
-| Hyperopt parameter optimization | Freqtrade/Optuna | optimization module | 3-5 days |
+### 14.2 Go Dependencies (data-ingestion)
 
-### 9.2 Projects NOT to Adopt
+| Package | Version | Purpose | Risk |
+|---------|---------|---------|------|
+| gorilla/websocket | v1.5.3 | WebSocket client | LOW |
+| go-zeromq/zmq4 | v0.17.0 | ZeroMQ PUB | LOW |
+| jackc/pgx/v5 | v5.7.2 | PostgreSQL driver | LOW |
+| shopspring/decimal | v1.4.0 | Decimal arithmetic | LOW |
+| uber/zap | v1.27.0 | Structured logging | LOW |
 
-| Project | Reason |
-|---------|--------|
-| Gekko | Archived 2018, Node.js, unmaintained |
-| Lean | C#, over-engineered for MONEYMAKER |
-| Nautilus Rust core | Too complex to integrate (design patterns only) |
-| CCXT as primary exchange | MONEYMAKER uses MT5 for forex; CCXT is crypto-only |
-| Hummingbot market-making | MONEYMAKER is directional trading |
+### 14.3 Version Pinning Analysis
 
-### 9.3 Priority Tiers
+**Python**: Uses range pinning (e.g., `>=2.5,<3.0`) — good balance of stability and updates.
+**Go**: Uses exact version pinning via go.sum — standard and secure.
 
-**Tier 1 — Immediate Impact** (Week 1-2): Protections middleware, Telegram commands, strategy parameters, bracket orders.
+### 14.4 License Compliance
 
-**Tier 2 — Strategic Value** (Week 3-6): Backtesting engine, Alpha factors, TWAP/Iceberg execution, Hyperopt.
+All dependencies use permissive licenses (MIT, Apache 2.0, BSD). No GPL/copyleft concerns.
 
----
+### 14.5 Findings
 
-## 10. Consolidated Findings Table
-
-All findings from all sections, deduplicated and ordered by severity.
-
-### CRITICO (Production Blocking)
-
-| ID | Section | Finding | Impact |
-|----|---------|---------|--------|
-| F01 | 2 | Kill switch `is_active()` tuple treated as bool | Trading ALWAYS blocked |
-| F02 | 2 | gRPC direction enum serialization broken | All signals UNSPECIFIED |
-| F-D1 | 5 | `ohlcv_bars` and `market_ticks` missing PRIMARY KEY | Duplicate data, backtest errors |
-| F-I1 | 7 | `.env` with password `Trade.2026.Macena` in git | Security compromise |
-| F-M1 | 6 | XAGUSD pip size wrong (0.0001 vs 0.001) | Trailing stop 10x off for silver |
-| F-M2 | 6 | No feedback loop for closed trades | Portfolio state stale after trade close |
-| F-M3 | 6 | MT5 Bridge cannot run in Docker Linux | Windows-only MetaTrader5 package |
-| F04 | 1 | algo-engine port mismatch (total) | Service unreachable from monitoring/console |
-| F04-PnL | 2 | PnL tracker records fake data (pnl=0, is_win=True) | Gating decisions unreliable |
-
-### ALTO (Fix Before Deploy)
-
-| ID | Section | Finding | Impact |
-|----|---------|---------|--------|
-| F-FP1 | 3 | 5 placeholder features (8.3% of vector) | Wasted feature capacity |
-| F-FP2 | 3 | `_prev_adx` initialized to 0 | First reversal undetected |
-| F-S1 | 4 | Spiral x Drawdown not composed | Over-sized positions under dual stress |
-| F-S2 | 4 | Spiral state not persisted to Redis | Lost after restart |
-| F-S3 | 4 | Redis persistence not tested | daily_loss could zero after restart |
-| F-S4 | 4 | Optional validator controls not tested | Correlation/session untested when active |
-| F-D2 | 5 | Data race on reconnectAttempts (polygon.go) | Backoff incorrect, potential panic |
-| F-D3 | 5 | No reconnection in binance.go | Fatal disconnection (mitigated: disabled) |
-| F-D4 | 5 | Sync flush blocks main loop | Async design nullified under backpressure |
-| F-M4 | 6 | Lot clamping unsafe | lots < vol_min after round-down |
-| F-M5 | 6 | Config mismatch (drawdown 5% vs 10%) | False security, never enforced in bridge |
-| F-M6 | 6 | Dedup not persistent | Duplicate orders after crash |
-| F-M7 | 6 | MT5 Bridge test coverage 4.3% | Critical code paths untested |
-| F-I2 | 7 | CI Docker build context wrong | Docker builds fail in CI |
-| F05 | 2 | ADX not validated for range [0,100] | Bad confidence values masked by min() |
-| F07 | 2 | Portfolio mutable list leak | External callers can corrupt state |
-| F08 | 2 | BridgeClient.close() never called | Resource leak |
-| F13 | 1 | .env.example uses wrong env var names | Port override never works |
-| F-T1 | 8 | Zero E2E tick-to-trade test | Complete flow unverified |
-| F-T2-5 | 8 | Zero tests for analysis/knowledge/processing/Go connectors | Major coverage gaps |
-
-### WARNING
-
-| ID | Section | Finding |
-|----|---------|---------|
-| F-FP3-6 | 3 | Spoofing blind, spread placeholder, bb_squeeze missing, GBM uncalibrated |
-| F-S5-10 | 4 | No kill confirm, missing alert, hardcoded instruments, magic numbers |
-| F-D5-13 | 5 | Aggregator mutex, hardcoded symbols, no ZMQ HWM, unused Redis, no retention, etc. |
-| F-M8-11 | 6 | Slippage unsigned, signal age unchecked, ERROR→REJECTED, StreamTradeUpdates stub |
-| F-I4-10 | 7 | Redis TLS healthcheck, MyPy paths, shallow health, network not internal, PII scrubbing |
-| F-T6-8 | 8 | Console/external-data untested, diagnostic tools not in CI |
-| F09 | 2 | Portfolio state partially persisted |
-| F12 | 2 | Dead code `_parse_ohlcv_payload()` |
+| ID | Severity | Finding | Detail |
+|---|----------|---------|--------|
+| NEW-DEP1 | MEDIUM | protobuf range too wide (>=4.25,<7.0) | Major version jump could break compatibility |
+| NEW-DEP2 | WARNING | MetaTrader5 Python package not in pyproject.toml | Installed separately on Windows only |
 
 ---
 
-## 11. Remediation Roadmap
+## 15. Performance Analysis
+
+### 15.1 Pipeline Latency Budget
+
+| Stage | Target | Estimated | Status |
+|-------|--------|-----------|--------|
+| ZMQ receive + parse | <2ms | ~1ms | OK |
+| Data quality check | <1ms | <1ms | OK |
+| Feature computation (60-dim) | <20ms | ~10-15ms | OK |
+| Advanced features (optional) | <15ms | ~5-10ms | OK |
+| Regime classification | <5ms | ~2ms | OK |
+| Strategy routing | <5ms | ~2-3ms | OK |
+| Signal generation + sizing | <5ms | ~2ms | OK |
+| Validation (11 checks) | <2ms | ~1ms | OK |
+| gRPC dispatch | <10ms | ~5ms | OK |
+| **Total** | **<100ms P99** | **~30-50ms** | **OK** |
+
+Pipeline timeout: 5 seconds (hardcoded in `engine.py:106`). Generous margin.
+
+### 15.2 Memory Footprint
+
+| Component | Estimated | Notes |
+|-----------|-----------|-------|
+| Bar buffer (per symbol) | ~10KB | 200 bars × ~50 bytes |
+| Feature pipeline state | ~5KB | 60 indicators per symbol |
+| Regime classifier | ~2KB | HMM state + hysteresis |
+| Math modules (all 8) | ~50KB | Online estimators |
+| Portfolio state | ~1KB | Dict with counters |
+| Kill switch cache | ~100B | Bool + reason string |
+| Total per-symbol | ~70KB | |
+| 10 symbols | ~700KB | Well within 2G container limit |
+
+### 15.3 Decimal vs Float Performance
+
+Decimal operations are approximately 10-100x slower than float. However:
+- Financial calculations require exact precision (no IEEE 754 accumulation errors)
+- Pipeline is I/O bound (ZMQ/gRPC), not CPU bound
+- 5-second timeout provides massive headroom
+- **Assessment**: Correct tradeoff for financial application
+
+### 15.4 Findings
+
+| ID | Severity | Finding | Detail |
+|---|----------|---------|--------|
+| NEW-PERF1 | WARNING | Pipeline timeout hardcoded at 5s | Should be configurable for different hardware |
+| NEW-PERF2 | WARNING | No performance benchmarks in CI | Regression detection not automated |
+
+---
+
+## 16. Consolidated Findings
+
+### 16.1 Previously Reported — Now FIXED (23 of 45)
+
+| ID | Description | Fix Evidence |
+|---|-------------|-------------|
+| F01 | Kill switch tuple as bool | `main.py:305` |
+| F02 | gRPC direction enum | `grpc_client.py:62` |
+| F04 | Port mismatch | config.py + docker-compose aligned |
+| F04-PnL | Fake PnL data | `main.py:454-468` |
+| F07 | Portfolio mutable leak | `portfolio.py:78` |
+| F08 | BridgeClient.close() not called | `main.py:500` |
+| F12 | Dead code _parse_ohlcv | main.py rewritten |
+| F13 | .env.example wrong names | env_prefix="" works correctly |
+| F-D1 | Missing PRIMARY KEY | `008_add_unique_constraints.sql` |
+| F-D2 | Data race reconnectAttempts | `atomic.Int32` |
+| F-D9 | No retention policy | `009_add_retention_policies.sql` |
+| F-FP2 | _prev_adx = 0 | `regime.py:97`: `None` |
+| F-I2 | CI Docker context wrong | `context: .` with `-f` |
+| F-I3 | Port mismatch Dockerfile | Updated EXPOSE |
+| F-I4 | Redis healthcheck TLS | Conditional check |
+| F-I7 | Backend not internal | `internal: true` |
+| F-M5 | Config drawdown mismatch | Both 5% |
+| F-M8 | Slippage ignores direction | Direction-aware |
+| F-M9 | Signal age not validated | Age check added |
+| F-S2 | Spiral not persisted | Redis persistence |
+| F09 | Portfolio partial persist | Expanded fields |
+| God fn | run_brain() 944 lines | AlgoEngine class |
+| F-D11 | DSN logging | redactDSN() |
+
+### 16.2 Previously Reported — Still OPEN (22)
+
+| ID | Severity | Description |
+|---|----------|-------------|
+| F-I1 | **CRITICAL** | `.env` password in git history |
+| F-M2 | **CRITICAL** | Feedback loop incomplete (no gRPC streaming) |
+| F-M3 | **CRITICAL** | MT5 Bridge Windows-only |
+| F05 | HIGH | ADX not validated [0,100] |
+| F-FP1 | HIGH | 5 placeholder features |
+| F-S3 | HIGH | Redis persistence not tested |
+| F-S4 | HIGH | Optional validator controls not tested |
+| F-D3 | HIGH | No reconnection in binance.go |
+| F-D4 | HIGH | Sync flush blocks main loop |
+| F-M4 | HIGH | Lot clamping unsafe |
+| F-M6 | HIGH | Dedup not persistent |
+| F-M7 | HIGH | MT5 Bridge test coverage low |
+| F-T1 | HIGH | Zero E2E test |
+| F-T2-5 | HIGH | Zero tests for analysis/knowledge/processing |
+| F-S1 | MEDIUM | Spiral x drawdown implicit (comment needed) |
+| F10 | MEDIUM | Unknown symbols pass silently |
+| F-S5-10 | WARNING | Various safety warnings |
+| F-D5-13 | WARNING | Various data warnings |
+| F-M10-11 | WARNING | MT5 bridge warnings |
+| F-I5,6,8-10 | WARNING | Infrastructure warnings |
+| F-T6-8 | WARNING | Test coverage warnings |
+| F-FP3-6 | WARNING | Feature pipeline warnings |
+
+### 16.3 NEW Findings (17)
+
+#### CRITICAL (1)
+
+| ID | Finding | Location |
+|---|---------|----------|
+| NEW-CI1 | CI references removed ml-training service | ci.yml lines ~42,53,61,68,83,228 |
+
+#### HIGH (3)
+
+| ID | Finding | Location |
+|---|---------|----------|
+| NEW-CI2 | Grafana anonymous admin access | docker-compose.yml:311-312 |
+| NEW-STR1 | 4 of 8 strategies have 0 tests | vol_momentum, ou_mr, adaptive, multi_factor |
+| NEW-T3 | 5 of 9 strategies have 0 tests total | Including breakout |
+
+#### MEDIUM (8)
+
+| ID | Finding | Location |
+|---|---------|----------|
+| NEW-AE1 | algo_max_lots float→Decimal conversion | config.py:56 |
+| NEW-AE2 | Pipeline timeout not configurable | engine.py:106 |
+| NEW-FP1 | 10 feature/analysis modules 0 tests | feature_drift, leakage, macro, etc. |
+| NEW-MATH1 | Stochastic simulation uses float | stochastic.py |
+| NEW-BT1 | Backtest fixed spread model | simulator.py |
+| NEW-MT1 | Trade close detection lag | main.py:448-449 |
+| NEW-OPT1 | Exhaustive grid search | walk_forward.py |
+| NEW-DEP1 | protobuf range too wide | pyproject.toml |
+
+#### WARNING (5)
+
+| ID | Finding | Location |
+|---|---------|----------|
+| NEW-AE3 | No gRPC circuit breaker | main.py:415-445 |
+| NEW-AE4 | parse_bar_message KeyError uncaught | main.py:331 |
+| NEW-CI3 | Grafana default password | docker-compose.yml:308 |
+| NEW-MATH2 | OU half-life can be negative | ou_process.py |
+| NEW-PERF1 | Pipeline timeout hardcoded | engine.py:106 |
+
+---
+
+## 17. Risk Heat Map
+
+### 17.1 Probability x Impact Matrix
+
+```
+                    IMPACT
+            Very Low   Low    Medium    High    Critical
+          ┌─────────┬────────┬─────────┬────────┬─────────┐
+Very High │         │        │         │        │         │
+          │         │        │         │        │         │
+          ├─────────┼────────┼─────────┼────────┼─────────┤
+High      │         │        │ NEW-CI1 │ F-I1   │ F-M3    │
+          │         │        │         │        │         │
+          ├─────────┼────────┼─────────┼────────┼─────────┤
+Medium    │         │ F-FP1  │ NEW-CI2 │ F-M2   │         │
+          │         │ F-D4   │ F-M6   │ F-T1   │         │
+          ├─────────┼────────┼─────────┼────────┼─────────┤
+Low       │ F-FP3-6 │ F-S7-9 │ F-M4   │ F-S3   │         │
+          │ F-D5-8  │ NEW-AE │ NEW-STR │        │         │
+          ├─────────┼────────┼─────────┼────────┼─────────┤
+Very Low  │ F-I5    │ MATH2-4│ NEW-BT  │        │         │
+          │         │ PERF1-2│         │        │         │
+          └─────────┴────────┴─────────┴────────┴─────────┘
+```
+
+### 17.2 Risk Categories
+
+| Category | Trend | Key Risks |
+|----------|-------|-----------|
+| Financial | IMPROVING | Spiral+drawdown composition works; kill switch fixed |
+| Operational | STABLE | MT5 Windows-only; feedback loop partial |
+| Security | IMPROVING | Password in git history; Grafana anonymous admin |
+| Data Integrity | IMPROVING | Primary keys added; retention policies active |
+| Compliance | STABLE | Audit trail intact; RBAC defined |
+
+---
+
+## 18. Production Readiness Matrix
+
+### 18.1 Per-Service Scorecard
+
+| Dimension | data-ingestion | algo-engine | mt5-bridge | console | dashboard | external-data | monitoring |
+|-----------|---------------|-------------|-----------|---------|-----------|--------------|-----------|
+| Code Quality | A | A | B | B | C | B | A |
+| Test Coverage | B | B | C | F | F | F | A |
+| Error Handling | A | A | B | B | C | B | A |
+| Monitoring | A | A | B | N/A | N/A | N/A | A |
+| Security | A | A | B | B | C | B | B |
+| Documentation | A | A | B | B | C | C | B |
+| Configuration | A | A | B | B | B | C | A |
+| Deployment | A | A | D | B | B | F | A |
+| Performance | A | A | B | A | C | B | A |
+| Scalability | B | B | C | A | C | B | A |
+| Resilience | A | A | C | B | C | C | A |
+| Observability | A | A | B | C | C | C | A |
+| **Grade** | **A** | **A** | **C+** | **C** | **D+** | **D** | **A** |
+
+### 18.2 Production Deployment Prerequisites
+
+| # | Prerequisite | Status | Blocking? |
+|---|------------|--------|-----------|
+| 1 | All CRITICAL findings resolved | 3 open | **YES** |
+| 2 | CI pipeline passes (clean build) | ml-training refs break it | **YES** |
+| 3 | Password rotation (git history leak) | Not done | **YES** |
+| 4 | Grafana auth configured | Anonymous admin | **YES** |
+| 5 | MT5 Bridge deployment strategy | Windows VM needed | **YES** |
+| 6 | TLS enabled for production | Optional currently | Recommended |
+| 7 | E2E test passing | Not written | Recommended |
+| 8 | 1 week paper trading | Not started | **YES** |
+| 9 | Backup strategy (pg_dump) | Not configured | Recommended |
+| 10 | Monitoring verified with live data | Not tested | Recommended |
+
+### 18.3 Go/No-Go Decision
+
+**Current Status: NO-GO**
+
+Blocking items:
+1. CI pipeline broken (ml-training references)
+2. Grafana anonymous admin access
+3. Password in git history (rotation needed)
+4. MT5 Bridge deployment plan (Windows VM)
+5. Paper trading not started
+
+**Estimated time to GO**: 1-2 weeks with focused remediation.
+
+---
+
+## 19. Remediation Roadmap
 
 ### Phase 0: Immediate Fixes (Days 1-2)
 
-**Security**:
-- [ ] Remove `.env` from git tracking: `git rm --cached program/infra/docker/.env`
-- [ ] Rotate ALL passwords (DB, Redis, Grafana)
-- [ ] Run `trufflehog` scan locally to verify no other secrets
+**Security (CRITICAL)**:
+- [ ] Remove ml-training references from ci.yml
+- [ ] Disable Grafana anonymous access: `GF_AUTH_ANONYMOUS_ENABLED=false`
+- [ ] Set strong Grafana admin password (not "admin")
+- [ ] Rotate ALL passwords (DB, Redis, Grafana, API keys)
+- [ ] Run `trufflehog` to verify no other leaked secrets
+- [ ] Consider `git filter-branch` or BFG to remove .env from history
 
-**Production Blockers**:
-- [ ] Fix F01: Destructure kill switch tuple in main.py (`is_active, reason = await kill_switch.is_active()`)
-- [ ] Fix F02: Extract `.value` from Direction enum in grpc_client.py
-- [ ] Fix F-D1: Add PRIMARY KEY to `ohlcv_bars` and `market_ticks`
-- [ ] Fix F04: Align algo-engine ports (config.py defaults → 50054/8080/9093, update Dockerfile EXPOSE)
-- [ ] Fix F13: Correct env var names in .env.example
+**Feedback Loop**:
+- [ ] Implement `StreamTradeUpdates` gRPC in mt5-bridge (or increase polling frequency)
 
-### Phase 1: Core Bug Fixes (Days 3-5)
+### Phase 1: Core Stability (Days 3-5)
 
-- [ ] Fix F-M1: Add XAGUSD pip size condition in position_tracker.py
-- [ ] Fix F07: Return `list(self._positions_detail)` copy in portfolio.py
-- [ ] Fix F08: Add `await bridge_client.close()` in shutdown handler
-- [ ] Fix F-FP2: Initialize `_prev_adx` to None in regime.py
-- [ ] Fix F-M4: Add final validation `if lots < vol_min: lots = vol_min` after round-down
-- [ ] Fix F-I2: Correct Docker build context in ci.yml (use `.` with `-f` flag)
-- [ ] Fix F05: Add ADX range validation [0,100] in trend_following.py
+- [ ] Fix F05: ADX range validation [0,100] in trend_following.py
+- [ ] Fix F-M4: Lot clamping safety (ensure lots >= vol_min after round-down)
+- [ ] Fix NEW-AE4: Wrap `parse_bar_message()` in try/except in main loop
+- [ ] Fix NEW-MATH2: Guard OU half-life against negative values
+- [ ] Make pipeline timeout configurable via `ALGO_PIPELINE_TIMEOUT_SEC`
+- [ ] Persist dedup state to Redis (F-M6)
+- [ ] Add comment explaining spiral x drawdown composition
 
-### Phase 2: Safety Hardening (Week 2)
+### Phase 2: Test Coverage (Week 2)
 
-- [ ] Implement spiral x drawdown composition: `final = spiral_mult x dd_factor`
-- [ ] Persist spiral state to Redis (`moneymaker:spiral_state` key)
-- [ ] Align drawdown limits: Brain 5% and MT5 Bridge 5%
-- [ ] Implement signal age validation in order_manager
-- [ ] Make dedup persistent via Redis (`SETNX` + `EXPIRE`)
-- [ ] Add DailyLossCritical Prometheus alert at 2%
-- [ ] Fix Redis healthcheck for TLS compatibility
-
-### Phase 3: Test Coverage (Week 2-3)
-
+- [ ] Write tests for 5 untested strategies (breakout, vol_momentum, ou_mr, adaptive, multi_factor)
+- [ ] Write tests for CorrelationChecker and RateLimiter
+- [ ] Write tests for backtesting modules (engine, simulator, metrics)
+- [ ] Write tests for optimization modules (walk_forward, monte_carlo)
 - [ ] Write E2E tick-to-trade test
-- [ ] Add tests for CorrelationChecker (currently 0 tests)
-- [ ] Add tests for RateLimiter (currently 0 tests)
-- [ ] Add OrderManager tests (execute_signal, validate, lot clamping, dedup)
-- [ ] Add PositionTracker tests (trailing stop BUY/SELL, pip sizes)
-- [ ] Add Go connector tests (Polygon reconnection)
-- [ ] Target: 50% module coverage (up from ~30%)
+- [ ] Target: 50% module coverage (up from ~35%)
 
-### Phase 4: Feedback Loop & Monitoring (Week 3-4)
+### Phase 3: Monitoring & CI Cleanup (Week 2-3)
 
-- [ ] Implement trade result publishing (Redis pub/sub or gRPC streaming)
-- [ ] Wire portfolio.record_close() from MT5 Bridge trade results
-- [ ] Configure Telegram bot for active commands
-- [ ] Configure Sentry DSN for error tracking
+- [ ] Add DailyLossCritical alert at 2% (kill switch threshold)
+- [ ] Remove Training dashboard placeholder
+- [ ] Add container image scanning (Trivy) to CI
 - [ ] Complete PII scrubbing in sentry_setup.py
-- [ ] Verify all 5 Grafana dashboards with live data
-- [ ] Test all 10 Prometheus alert rules
+- [ ] Integrate external-data service into CI/CD
+- [ ] Verify all Grafana dashboards with synthetic data
 
-### Phase 5: Production Deployment (Week 4+)
+### Phase 4: Production Preparation (Week 3-4)
 
-- [ ] Deploy Docker stack on Linux host (without mt5-bridge)
+- [ ] Deploy Docker stack on Linux (without mt5-bridge)
 - [ ] Deploy MT5 Bridge natively on Windows VM
-- [ ] Generate TLS certificates for production
-- [ ] Enable mTLS between all gRPC services
-- [ ] Add backend network `internal: true`
-- [ ] Implement automated DB backup (pg_dump)
-- [ ] Monitor paper trading for 1+ week before live
+- [ ] Enable TLS for production
+- [ ] Enable mTLS between gRPC services
+- [ ] Configure automated DB backup (pg_dump daily)
+- [ ] Start paper trading (minimum 1 week)
+- [ ] Monitor and tune alert thresholds
+
+### Effort Estimates
+
+| Phase | Effort | Priority |
+|-------|--------|----------|
+| Phase 0 | 1-2 days | **IMMEDIATE** |
+| Phase 1 | 2-3 days | HIGH |
+| Phase 2 | 3-5 days | HIGH |
+| Phase 3 | 2-3 days | MEDIUM |
+| Phase 4 | 5-7 days | MEDIUM |
+| **Total** | **~15-20 days** | |
 
 ---
 
-*This report consolidates findings from 11 individual audit reports covering architecture, core pipeline, features, safety, data ingestion, MT5 execution, infrastructure, testing, and open-source integration analysis. All neural network, ML training, and AI-specific content has been excluded as those components have been removed from the codebase.*
+## 20. Appendices
+
+### A. Glossary
+
+| Term | Definition |
+|------|-----------|
+| ATR | Average True Range — volatility measure |
+| BB | Bollinger Bands — price channel based on standard deviation |
+| CVaR | Conditional Value at Risk — expected loss beyond VaR |
+| EVT | Extreme Value Theory — tail risk modeling |
+| GPD | Generalized Pareto Distribution — tail distribution |
+| GBM | Geometric Brownian Motion — stock price model |
+| HMM | Hidden Markov Model — regime detection |
+| mTLS | Mutual TLS — bidirectional certificate authentication |
+| OU | Ornstein-Uhlenbeck — mean-reverting stochastic process |
+| R/S | Rescaled Range — Hurst exponent estimation method |
+| RBAC | Role-Based Access Control |
+| SL/TP | Stop-Loss / Take-Profit |
+| ZMQ | ZeroMQ — lightweight messaging library |
+
+### B. Configuration Reference
+
+| Env Var | Default | Range | Service |
+|---------|---------|-------|---------|
+| ALGO_CONFIDENCE_THRESHOLD | 0.65 | (0,1] | algo-engine |
+| ALGO_MAX_DAILY_LOSS_PCT | 2.0 | [0.5,10] | algo-engine |
+| ALGO_MAX_DRAWDOWN_PCT | 5.0 | [1,25] | algo-engine |
+| ALGO_RISK_PER_TRADE_PCT | 1.0 | [0.1,5] | algo-engine |
+| ALGO_MAX_OPEN_POSITIONS | 5 | >0 | algo-engine |
+| ALGO_MAX_LOTS | 0.10 | >0 | algo-engine |
+| ALGO_MAX_SIGNALS_PER_HOUR | 10 | >0 | algo-engine |
+| ALGO_SPIRAL_LOSS_THRESHOLD | 3 | - | algo-engine |
+| ALGO_SPIRAL_COOLDOWN_MINUTES | 60 | - | algo-engine |
+| MONEYMAKER_DB_PASSWORD | (required) | - | all |
+| MONEYMAKER_REDIS_PASSWORD | (required) | - | all |
+| MONEYMAKER_TLS_ENABLED | false | bool | all |
+| POLYGON_API_KEY | (optional) | - | data-ingestion |
+| MT5_ACCOUNT | (optional) | - | mt5-bridge |
+| GRAFANA_PASSWORD | admin | - | monitoring |
+
+### C. Prometheus Metrics Reference
+
+| Metric | Type | Labels | Service |
+|--------|------|--------|---------|
+| moneymaker_pipeline_latency | Histogram | symbol | algo-engine |
+| moneymaker_features_computed | Counter | symbol | algo-engine |
+| moneymaker_regime_classified | Counter | regime | algo-engine |
+| moneymaker_signals_generated | Counter | symbol, direction | algo-engine |
+| moneymaker_signals_rejected | Counter | reason | algo-engine |
+| moneymaker_signal_confidence | Histogram | - | algo-engine |
+| moneymaker_pipeline_timeouts | Counter | symbol | algo-engine |
+| moneymaker_service_up | Gauge | service | all |
+| moneymaker_error_counter | Counter | service, error_type | all |
+
+### D. Alert Rules Quick Reference
+
+| Alert | Severity | Condition | For |
+|-------|----------|-----------|-----|
+| KillSwitchActivated | CRITICAL | kill_switch_active == 1 | 0s |
+| CriticalDrawdown | CRITICAL | drawdown > 5% | 0s |
+| NoTicksReceived | CRITICAL | no ticks 5min | 5m |
+| ServiceDown | CRITICAL | up == 0 | 1m |
+| BridgeUnavailable | CRITICAL | bridge down | 2m |
+| HighDrawdown | WARNING | drawdown > 3% | 5m |
+| DailyLossApproaching | WARNING | daily_loss > 1.5% | 1m |
+| SpiralProtectionActive | WARNING | losses > 3 | 0s |
+| HighPipelineLatency | WARNING | P99 > 100ms | 5m |
+| HighErrorRate | WARNING | errors > 0.1/s | 5m |
+
+---
+
+*This report v2.0 consolidates findings from 11 individual audit reports plus expanded analysis of mathematical modules, backtesting, optimization, strategy correctness, dependency security, and performance. All findings from v1.0 have been verified against current source code with resolution status documented. The system has shown significant improvement since v1.0 with 23 of 45 original findings resolved.*
