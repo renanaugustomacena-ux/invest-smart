@@ -990,3 +990,85 @@ def calculate_parabolic_sar(
 
     trend = "bullish" if is_bullish else "bearish"
     return sar, trend
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D3: VWAP + CMF
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_vwap(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    closes: list[Decimal],
+    volumes: list[Decimal],
+) -> Decimal:
+    """Volume Weighted Average Price — prezzo medio ponderato per volume.
+
+    VWAP = sum(TP * Volume) / sum(Volume)
+    dove TP = (High + Low + Close) / 3
+
+    Usato come benchmark istituzionale: prezzo sopra VWAP = forza,
+    prezzo sotto = debolezza.
+
+    Returns:
+        VWAP come Decimal. ZERO se nessun dato o volume totale zero.
+    """
+    n = min(len(highs), len(lows), len(closes), len(volumes))
+    if n == 0:
+        return ZERO
+
+    three = Decimal("3")
+    total_tp_vol = ZERO
+    total_vol = ZERO
+
+    for i in range(n):
+        tp = (highs[i] + lows[i] + closes[i]) / three
+        total_tp_vol += tp * volumes[i]
+        total_vol += volumes[i]
+
+    if total_vol == ZERO:
+        return ZERO
+
+    return total_tp_vol / total_vol
+
+
+@validate_decimal_inputs
+def calculate_cmf(
+    highs: list[Decimal],
+    lows: list[Decimal],
+    closes: list[Decimal],
+    volumes: list[Decimal],
+    period: int = 20,
+) -> Decimal:
+    """Chaikin Money Flow — flusso di denaro nel periodo.
+
+    CMF = sum(MFV, period) / sum(Volume, period)
+    MFV = ((Close - Low) - (High - Close)) / (High - Low) * Volume
+
+    Positivo = pressione di acquisto, negativo = pressione di vendita.
+    Approssimativamente in [-1, +1].
+
+    Returns:
+        CMF come Decimal. ZERO se dati insufficienti o volume zero.
+    """
+    n = min(len(highs), len(lows), len(closes), len(volumes))
+    if n < period or period <= 0:
+        return ZERO
+
+    total_mfv = ZERO
+    total_vol = ZERO
+
+    for i in range(n - period, n):
+        hl_range = highs[i] - lows[i]
+        if hl_range == ZERO:
+            continue  # Evita divisione per zero su barre piatte
+        mf_multiplier = ((closes[i] - lows[i]) - (highs[i] - closes[i])) / hl_range
+        total_mfv += mf_multiplier * volumes[i]
+        total_vol += volumes[i]
+
+    if total_vol == ZERO:
+        return ZERO
+
+    return total_mfv / total_vol
