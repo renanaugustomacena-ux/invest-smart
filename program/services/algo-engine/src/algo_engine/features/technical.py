@@ -700,3 +700,109 @@ def _decimal_sqrt(value: Decimal, precision: int = 28) -> Decimal:
         x = (x + value / x) / two
 
     return x
+
+
+# ---------------------------------------------------------------------------
+# Logaritmo naturale puro Decimal — Phase D helper
+# ---------------------------------------------------------------------------
+
+def _decimal_ln(value: Decimal, iterations: int = 50) -> Decimal:
+    """Logaritmo naturale di un Decimal positivo via serie di Taylor arctanh.
+
+    ln(x) = 2 * sum_{k=0}^{N} (1/(2k+1)) * ((x-1)/(x+1))^(2k+1)
+
+    Usa riduzione di range: ln(x) = n*ln(2) + ln(x / 2^n) dove n
+    è scelto per portare l'argomento vicino a 1.0 (convergenza rapida).
+
+    Returns:
+        ZERO se value <= 0.
+    """
+    if value <= ZERO:
+        return ZERO
+
+    # Riduzione di range: fattorizziamo potenze di 2
+    n = 0
+    reduced = value
+    _TWO = Decimal("2")
+    while reduced > _TWO:
+        reduced /= _TWO
+        n += 1
+    _HALF = Decimal("0.5")
+    while reduced < _HALF:
+        reduced *= _TWO
+        n -= 1
+
+    # Serie arctanh: ln(reduced) = 2 * arctanh((reduced - 1) / (reduced + 1))
+    y = (reduced - ONE) / (reduced + ONE)
+    y_sq = y * y
+    term = y
+    result = term
+
+    for k in range(1, iterations):
+        term *= y_sq
+        result += term / Decimal(str(2 * k + 1))
+
+    ln_reduced = _TWO * result
+
+    # Ricostruire: ln(value) = n * ln(2) + ln(reduced)
+    return Decimal(str(n)) * _LN2 + ln_reduced
+
+
+# Pre-calcolato ln(2) con precisione Decimal a 28 cifre
+_LN2 = Decimal("0.6931471805599453094172321215")
+
+
+def _calculate_rsi_series(closes: list[Decimal], period: int = 14) -> list[Decimal]:
+    """Serie completa di valori RSI — necessaria per Stochastic RSI.
+
+    Stesso algoritmo Wilder di calculate_rsi(), ma restituisce il valore
+    RSI ad ogni barra dalla posizione `period` in poi.
+
+    Returns:
+        Lista di valori RSI Decimal, vuota se dati insufficienti.
+    """
+    if len(closes) < period + 1 or period <= 0:
+        return []
+
+    hundred = Decimal("100")
+    period_d = Decimal(str(period))
+    rsi_values: list[Decimal] = []
+
+    # Variazioni di prezzo
+    changes: list[Decimal] = []
+    for i in range(1, len(closes)):
+        changes.append(closes[i] - closes[i - 1])
+
+    # Media iniziale (SMA) sui primi `period` cambiamenti
+    gains = [c if c > ZERO else ZERO for c in changes[:period]]
+    losses = [abs(c) if c < ZERO else ZERO for c in changes[:period]]
+
+    avg_gain = sum(gains, ZERO) / period_d
+    avg_loss = sum(losses, ZERO) / period_d
+
+    # Primo RSI
+    if avg_loss == ZERO:
+        rsi_values.append(hundred)
+    else:
+        rs = avg_gain / avg_loss
+        rsi_values.append(hundred - (hundred / (ONE + rs)))
+
+    # RSI lisciato (Wilder) per ogni barra successiva
+    for change in changes[period:]:
+        if change > ZERO:
+            current_gain = change
+            current_loss = ZERO
+        else:
+            current_gain = ZERO
+            current_loss = abs(change)
+
+        avg_gain = (avg_gain * (period_d - ONE) + current_gain) / period_d
+        avg_loss = (avg_loss * (period_d - ONE) + current_loss) / period_d
+
+        if avg_loss == ZERO:
+            rsi_values.append(hundred)
+        else:
+            rs = avg_gain / avg_loss
+            rsi_values.append(hundred - (hundred / (ONE + rs)))
+
+    return rsi_values
