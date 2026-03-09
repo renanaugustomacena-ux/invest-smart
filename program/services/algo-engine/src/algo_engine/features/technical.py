@@ -1295,3 +1295,41 @@ def calculate_parkinson_volatility(
         return ZERO
 
     return _decimal_sqrt(daily_var) * _decimal_sqrt(Decimal(str(annualization)))
+
+
+# ---------------------------------------------------------------------------
+# Phase D — Batch D6: Force Index
+# ---------------------------------------------------------------------------
+
+
+@validate_decimal_inputs
+def calculate_force_index(
+    closes: list[Decimal],
+    volumes: list[Decimal],
+    period: int = 13,
+) -> Decimal:
+    """Force Index — forza del movimento di prezzo pesata per volume.
+
+    Raw Force = (Close - PrevClose) * Volume
+    Force Index = EMA(Raw Force, period)
+
+    Positivo = pressione rialzista, negativo = ribassista.
+    Il valore non è limitato — dipende dalla scala dei prezzi e volumi.
+
+    Returns:
+        Force Index come Decimal. ZERO se dati insufficienti.
+    """
+    n = min(len(closes), len(volumes))
+    if n < period + 1 or period <= 0:
+        return ZERO
+
+    # Calcola la serie raw force
+    raw_force: list[Decimal] = []
+    for i in range(1, n):
+        raw_force.append((closes[i] - closes[i - 1]) * volumes[i])
+
+    if len(raw_force) < period:
+        return ZERO
+
+    # EMA-smooth la serie raw force
+    return calculate_ema(raw_force, period)
