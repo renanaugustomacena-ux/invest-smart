@@ -86,6 +86,7 @@ class AlgoEngine:
         trailing_manager: Any | None = None,
         adaptive_tuner: Any | None = None,
         feature_scorer: Any | None = None,
+        belief_state: Any | None = None,
     ) -> None:
         # Core
         self._feature_pipeline = feature_pipeline
@@ -116,10 +117,11 @@ class AlgoEngine:
         self._trailing_manager = trailing_manager
         self._adaptive_tuner = adaptive_tuner
         self._feature_scorer = feature_scorer
+        self._belief_state = belief_state
 
         if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
                 shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
-                feature_scorer]):
+                feature_scorer, belief_state]):
             active = [name for name, mod in [
                 ("bayesian_regime", bayesian_regime),
                 ("spectral_detector", spectral_detector),
@@ -130,6 +132,7 @@ class AlgoEngine:
                 ("trailing_manager", trailing_manager),
                 ("adaptive_tuner", adaptive_tuner),
                 ("feature_scorer", feature_scorer),
+                ("belief_state", belief_state),
             ] if mod is not None]
             logger.info("Advanced modules active", modules=active)
 
@@ -236,6 +239,21 @@ class AlgoEngine:
                 logger.debug("Bayesian regime update failed", error=str(e))
 
         REGIME_CLASSIFIED.labels(regime=regime.value).inc()
+
+        # --- Step 4a: Belief state update (optional) ---
+        if self._belief_state is not None:
+            try:
+                beliefs = self._belief_state.update(
+                    trend_score=features.get("feature_trend_score", Decimal("0")),
+                    momentum_score=features.get("feature_momentum_score", Decimal("0")),
+                    regime_confidence=classification.confidence,
+                )
+                features["belief_trend"] = beliefs.trend
+                features["belief_momentum"] = beliefs.momentum
+                features["belief_regime"] = beliefs.regime
+                features["belief_edge"] = beliefs.edge
+            except Exception as e:
+                logger.debug("Belief state update failed", error=str(e))
 
         logger.debug(
             "Regime classified",
