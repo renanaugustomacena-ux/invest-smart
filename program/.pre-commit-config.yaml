@@ -17,24 +17,12 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
     hooks:
-      - id: mypy
-        additional_dependencies: [pydantic, structlog, prometheus-client]
-        args:
-          - --ignore-missing-imports
-          - --no-strict-optional
-          - --allow-untyped-defs
-          - --allow-untyped-calls
-          - --allow-any-generics
-        pass_filenames: false
-        entry: mypy
-          program/services/algo-engine/src/algo_engine/nn/optimizer_factory.py
-          program/services/algo-engine/src/algo_engine/nn/dataset.py
-          program/services/algo-engine/src/algo_engine/nn/losses.py
-          program/services/algo-engine/src/algo_engine/nn/tensorboard_callback.py
-          program/services/algo-engine/src/algo_engine/nn/model_persistence.py
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '(\.lock|\.sum|_pb2\.py|_pb2_grpc\.py)$'
 
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1
