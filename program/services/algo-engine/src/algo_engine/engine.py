@@ -85,6 +85,7 @@ class AlgoEngine:
         advanced_sizer: Any | None = None,
         trailing_manager: Any | None = None,
         adaptive_tuner: Any | None = None,
+        feature_scorer: Any | None = None,
     ) -> None:
         # Core
         self._feature_pipeline = feature_pipeline
@@ -114,9 +115,11 @@ class AlgoEngine:
         self._advanced_sizer = advanced_sizer
         self._trailing_manager = trailing_manager
         self._adaptive_tuner = adaptive_tuner
+        self._feature_scorer = feature_scorer
 
         if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
-                shift_detector, advanced_sizer, trailing_manager, adaptive_tuner]):
+                shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
+                feature_scorer]):
             active = [name for name, mod in [
                 ("bayesian_regime", bayesian_regime),
                 ("spectral_detector", spectral_detector),
@@ -126,6 +129,7 @@ class AlgoEngine:
                 ("advanced_sizer", advanced_sizer),
                 ("trailing_manager", trailing_manager),
                 ("adaptive_tuner", adaptive_tuner),
+                ("feature_scorer", feature_scorer),
             ] if mod is not None]
             logger.info("Advanced modules active", modules=active)
 
@@ -196,6 +200,18 @@ class AlgoEngine:
 
         # --- Step 3a: Advanced feature enrichment (optional) ---
         self._enrich_advanced_features(symbol, features, bars)
+
+        # --- Step 3a-ii: Feature scoring (optional) ---
+        if self._feature_scorer is not None:
+            try:
+                assessment = self._feature_scorer.score(features)
+                features["feature_trend_score"] = assessment.trend
+                features["feature_momentum_score"] = assessment.momentum
+                features["feature_volatility_score"] = assessment.volatility
+                features["feature_volume_score"] = assessment.volume
+                features["feature_composite_score"] = assessment.composite
+            except Exception as e:
+                logger.debug("Feature scoring failed", error=str(e))
 
         # --- Step 3b: Adaptive parameter tuning (optional) ---
         if self._adaptive_tuner is not None:
