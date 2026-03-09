@@ -298,6 +298,27 @@ services:
       - monitoring
       - frontend
 
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: macena-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ../../services/monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
   grafana:
     image: grafana/grafana:10.3.3
     container_name: macena-grafana

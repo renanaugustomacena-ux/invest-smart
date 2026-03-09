@@ -256,12 +256,22 @@ class GRPCExecutionServicer:
         pass
 
     async def CheckHealth(self, request: Any, context: Any) -> Any:
-        """Restituisce una risposta di controllo salute."""
+        """Restituisce una risposta di controllo salute basata su stato reale del connettore."""
         from moneymaker_proto import health_pb2
 
+        try:
+            connected = self._order_manager._connector.is_connected
+        except Exception:
+            connected = False
+
+        if connected:
+            return health_pb2.HealthCheckResponse(
+                status=health_pb2.HealthCheckResponse.HEALTHY,
+                message="MT5 Bridge operativo — connesso al terminale",
+            )
         return health_pb2.HealthCheckResponse(
-            status=health_pb2.HealthCheckResponse.HEALTHY,
-            message="MT5 Bridge operativo",
+            status=health_pb2.HealthCheckResponse.UNHEALTHY,
+            message="MT5 Bridge disconnesso dal terminale",
         )
 
 
