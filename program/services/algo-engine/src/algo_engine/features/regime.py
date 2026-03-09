@@ -94,7 +94,7 @@ class RegimeClassifier:
                         il rilevamento della volatilità.
         """
         self._atr_history: deque[Decimal] = deque(maxlen=atr_window)
-        self._prev_adx: Decimal = ZERO
+        self._prev_adx: Decimal | None = None
         # Hysteresis state
         self._current_regime: MarketRegime = MarketRegime.RANGING
         self._candidate_regime: MarketRegime | None = None
@@ -251,7 +251,8 @@ class RegimeClassifier:
 
         # 4. REVERSAL — ADX declining from strong + extreme RSI
         if (
-            self._prev_adx > _ADX_STRONG_TREND_THRESHOLD
+            self._prev_adx is not None
+            and self._prev_adx > _ADX_STRONG_TREND_THRESHOLD
             and adx < self._prev_adx
             and (rsi > _RSI_OVERBOUGHT or rsi < _RSI_OVERSOLD)
         ):

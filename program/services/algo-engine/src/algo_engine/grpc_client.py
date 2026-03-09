@@ -58,7 +58,8 @@ def signal_to_proto(signal: dict[str, Any]) -> Any:
     """
     from moneymaker_proto import trading_signal_pb2
 
-    direction_str = str(signal.get("direction", "HOLD"))
+    raw_dir = signal.get("direction", "HOLD")
+    direction_str = raw_dir.value if hasattr(raw_dir, "value") else str(raw_dir)
     direction_enum = _DIRECTION_MAP.get(direction_str, 0)
 
     # Converte il timestamp da millisecondi a nanosecondi

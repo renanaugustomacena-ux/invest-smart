@@ -75,7 +75,7 @@ class PortfolioStateManager:
             "symbols_exposed": sorted(self._symbols_exposed),
             "win_rate": self.win_rate,
             "last_trade_result": self._last_trade_result,
-            "positions_detail": self._positions_detail,
+            "positions_detail": list(self._positions_detail),
             "equity": self._equity,
             "used_margin": self._used_margin,
         }

@@ -55,6 +55,7 @@ class TrendFollowingStrategy(TradingStrategy):
         latest_close = features.get("latest_close", ZERO)
         macd_histogram = features.get("macd_histogram", ZERO)
         adx = features.get("adx", ZERO)
+        adx = max(ZERO, min(adx, Decimal("100")))
 
         # Conta le conferme per ciascuna direzione
         buy_confirmations: list[str] = []
