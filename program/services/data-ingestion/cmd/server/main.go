@@ -212,9 +212,12 @@ func main() {
 		zap.Int("timeframes", len(timeframes)),
 	)
 
-	// ─── Reparto Cacciatori: Polygon.io Forex (o Mock per sviluppo) ─────
-	// MONEYMAKER V1 Primary: Forex/CFD via Polygon.io
-	// Symbols: C:XAUUSD (Gold), C:EURUSD, C:GBPUSD, etc.
+	// ─── Reparto Cacciatori: Connector Selection ────────────────────────
+	// MONEYMAKER_DATA_CONNECTOR env var selects the market data source:
+	//   "binance"  → Binance Spot WebSocket (free, real-time crypto)
+	//   "polygon"  → Polygon.io Forex WebSocket (requires paid plan)
+	//   "mock"     → Mock connector for local development
+	// If unset, defaults to: polygon for production/staging, mock otherwise.
 	symbols := []string{
 		"C:XAUUSD", // Gold/USD - Primary asset for MONEYMAKER V1
 		"C:EURUSD", // Euro/USD - Most liquid Forex pair
@@ -223,9 +226,41 @@ func main() {
 	}
 	channels := []string{"trade"} // Tick-level trade data
 
+	connectorType := os.Getenv("MONEYMAKER_DATA_CONNECTOR")
+	if connectorType == "" {
+		if baseCfg.Env == "production" || baseCfg.Env == "staging" {
+			connectorType = "polygon"
+		} else {
+			connectorType = "mock"
+		}
+	}
+
 	var conn connectors.Connector
-	if baseCfg.Env == "production" || baseCfg.Env == "staging" {
-		// Polygon.io API key from environment variable
+	switch connectorType {
+	case "binance":
+		// Binance Spot — free real-time crypto data (no API key needed)
+		symbols = []string{
+			"btcusdt",  // Bitcoin/USDT
+			"ethusdt",  // Ethereum/USDT
+			"solusdt",  // Solana/USDT
+			"bnbusdt",  // BNB/USDT
+			"xrpusdt",  // XRP/USDT
+			"adausdt",  // Cardano/USDT
+			"dogeusdt", // Dogecoin/USDT
+			"avaxusdt", // Avalanche/USDT
+		}
+		channels = []string{"trade", "kline_1m", "bookTicker"}
+		conn = connectors.NewBinanceConnector(
+			"wss://stream.binance.com:9443/ws",
+			symbols,
+		)
+		logger.Info("using Binance crypto connector (real-time)",
+			zap.Int("symbols", len(symbols)),
+			zap.Strings("channels", channels),
+		)
+
+	case "polygon":
+		// Polygon.io Forex — requires paid WebSocket plan
 		polygonAPIKey := os.Getenv("POLYGON_API_KEY")
 		if polygonAPIKey == "" {
 			logger.Fatal("POLYGON_API_KEY environment variable not set")
@@ -235,15 +270,6 @@ func main() {
 				zap.Int("length", len(polygonAPIKey)),
 			)
 		}
-
-		// Binance API key (opzionale per ora, validata se presente)
-		binanceAPIKey := os.Getenv("BINANCE_API_KEY")
-		if binanceAPIKey != "" && len(binanceAPIKey) < 10 {
-			logger.Warn("BINANCE_API_KEY looks suspiciously short",
-				zap.Int("length", len(binanceAPIKey)),
-			)
-		}
-
 		conn = connectors.NewPolygonConnector(
 			polygonAPIKey,
 			"wss://socket.polygon.io/forex",
@@ -252,8 +278,9 @@ func main() {
 		logger.Info("using Polygon.io Forex connector",
 			zap.Int("symbols", len(symbols)),
 		)
-	} else {
-		// Development mode: use Mock connector
+
+	default:
+		// Development mode: Mock connector
 		conn = connectors.NewMockConnector("mock-dev")
 		logger.Info("using Mock connector (dev mode)")
 	}

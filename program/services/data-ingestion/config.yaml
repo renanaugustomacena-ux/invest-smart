@@ -55,7 +55,7 @@ exchanges:
 
   # Binance - Secondary (Crypto data for diversification)
   binance:
-    enabled: false  # Disabled for MONEYMAKER V1 (Forex focus)
+    enabled: true
     ws_url: "wss://stream.binance.com:9443/ws"
     # For testnet: "wss://testnet.binance.vision/ws"
 
