@@ -249,9 +249,9 @@ func main() {
 			"dogeusdt", // Dogecoin/USDT
 			"avaxusdt", // Avalanche/USDT
 		}
-		channels = []string{"trade", "kline_1m", "bookTicker"}
+		channels = []string{"trade"}
 		conn = connectors.NewBinanceConnector(
-			"wss://stream.binance.com:9443/ws",
+			"wss://stream.binance.com:9443/stream",
 			symbols,
 		)
 		logger.Info("using Binance crypto connector (real-time)",

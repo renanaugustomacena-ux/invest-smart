@@ -56,7 +56,7 @@ exchanges:
   # Binance - Secondary (Crypto data for diversification)
   binance:
     enabled: true
-    ws_url: "wss://stream.binance.com:9443/ws"
+    ws_url: "wss://stream.binance.com:9443/stream"
     # For testnet: "wss://testnet.binance.vision/ws"
 
     symbols:

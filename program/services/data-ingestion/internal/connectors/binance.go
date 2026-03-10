@@ -78,7 +78,7 @@ func NewBinanceConnector(wsURL string, symbols []string) *BinanceConnector {
 		symbols:       symbols,
 		config:        cfg,
 		maxReconnects: 50,
-		msgChan:       make(chan RawMessage, 256),
+		msgChan:       make(chan RawMessage, 4096),
 		errChan:       make(chan error, 10),
 		stopChan:      make(chan struct{}),
 	}
@@ -452,22 +452,31 @@ func (b *BinanceConnector) toStreamName(symbol, channel string) string {
 }
 
 // parseStreamEnvelope estrae simbolo e canale dall'involucro JSON di Binance.
+// Supporta sia il formato combined-stream (con "stream"+"data") sia il formato
+// raw (con "e"+"s" direttamente nel messaggio).
 func (b *BinanceConnector) parseStreamEnvelope(data []byte) (symbol, channel string) {
-	// Via rapida: estrae il campo "stream" senza unmarshal completo.
+	// Tentativo 1: formato combined-stream con involucro {"stream":"...","data":{...}}
 	var envelope struct {
 		Stream string          `json:"stream"`
 		Data   json.RawMessage `json:"data"`
 	}
 
-	if err := json.Unmarshal(data, &envelope); err != nil || envelope.Stream == "" {
-		return "unknown", "unknown"
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Stream != "" {
+		parts := strings.SplitN(envelope.Stream, "@", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1]
+		}
+		return envelope.Stream, "unknown"
 	}
 
-	// Formato nome flusso: "btcusdt@trade" or "btcusdt@kline_1m"
-	parts := strings.SplitN(envelope.Stream, "@", 2)
-	if len(parts) == 2 {
-		return parts[0], parts[1]
+	// Tentativo 2: formato raw senza involucro {"e":"trade","s":"BTCUSDT",...}
+	var raw struct {
+		EventType string `json:"e"`
+		Symbol    string `json:"s"`
+	}
+	if err := json.Unmarshal(data, &raw); err == nil && raw.Symbol != "" {
+		return strings.ToLower(raw.Symbol), raw.EventType
 	}
 
-	return envelope.Stream, "unknown"
+	return "unknown", "unknown"
 }
