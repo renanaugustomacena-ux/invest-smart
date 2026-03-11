@@ -290,9 +290,7 @@ services:
     ports:
       - "9091:9090"
     volumes:
-      - ../../services/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ../../services/monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
-      - ../../services/monitoring/prometheus/deployment_rules.yml:/etc/prometheus/deployment_rules.yml:ro
+      - ../../services/monitoring/prometheus:/etc/prometheus:ro
       - prometheus-data:/prometheus
     networks:
       - monitoring
@@ -305,9 +303,9 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ../../services/monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../services/monitoring/prometheus:/etc/alertmanager-config:ro
     command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--config.file=/etc/alertmanager-config/alertmanager.yml"
       - "--storage.path=/alertmanager"
     depends_on:
       - prometheus
