@@ -9,7 +9,6 @@ import OverviewPage   from './pages/OverviewPage';
 import TradingPage    from './pages/TradingPage';
 import RiskPage       from './pages/RiskPage';
 import MarketDataPage from './pages/MarketDataPage';
-import MLModelsPage   from './pages/MLModelsPage';
 import MacroPage      from './pages/MacroPage';
 import StrategyPage   from './pages/StrategyPage';
 import EconomicPage   from './pages/EconomicPage';
@@ -36,7 +35,6 @@ export default function App() {
           <Route path="/trading"   element={<TradingPage />} />
           <Route path="/risk"      element={<RiskPage />} />
           <Route path="/market"    element={<MarketDataPage />} />
-          <Route path="/ml"        element={<MLModelsPage />} />
           <Route path="/macro"     element={<MacroPage />} />
           <Route path="/strategy"  element={<StrategyPage />} />
           <Route path="/economic"  element={<EconomicPage />} />

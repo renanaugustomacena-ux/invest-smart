@@ -28,7 +28,6 @@ export default function CommandPalette() {
     { id: 'trading',   label: 'Trading',             description: 'Signals & executions',    icon: TrendingUp,       action: () => nav('/trading') },
     { id: 'risk',      label: 'Risk',                description: 'Drawdown & kill switch',  icon: ShieldAlert,      action: () => nav('/risk') },
     { id: 'market',    label: 'Market Data',         description: 'OHLCV candlestick chart', icon: BarChart3,        action: () => nav('/market') },
-    { id: 'ml',        label: 'ML Models',           description: 'Model registry & TB',     icon: Brain,            action: () => nav('/ml') },
     { id: 'macro',     label: 'Macro',               description: 'VIX, yield curve, DXY',   icon: Globe,            action: () => nav('/macro') },
     { id: 'strategy',  label: 'Strategy',            description: 'Performance attribution', icon: Target,           action: () => nav('/strategy') },
     { id: 'economic',  label: 'Economic Calendar',   description: 'Events & blackouts',      icon: CalendarDays,     action: () => nav('/economic') },

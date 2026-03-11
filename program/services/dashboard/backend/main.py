@@ -54,7 +54,6 @@ from backend.api.routes import (  # noqa: E402
     economic,
     macro,
     market_data,
-    ml_models,
     overview,
     risk,
     strategy,
@@ -67,7 +66,6 @@ app.include_router(overview.router)
 app.include_router(trading.router)
 app.include_router(risk.router)
 app.include_router(market_data.router)
-app.include_router(ml_models.router)
 app.include_router(macro.router)
 app.include_router(strategy.router)
 app.include_router(economic.router)

@@ -195,21 +195,6 @@ export default function OverviewPage() {
           </div>
           <ExternalLink size={14} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-blue)] transition-colors" />
         </a>
-        <a
-          href="http://localhost:6006"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="glass-card px-5 py-4 flex items-center justify-between hover:border-[var(--color-accent-blue)]/50 transition-colors group"
-        >
-          <div className="flex items-center gap-3">
-            <ShieldAlert size={18} className="text-[var(--color-accent-purple)]" />
-            <div>
-              <p className="text-sm font-medium">TensorBoard</p>
-              <p className="text-xs text-[var(--color-text-muted)]">ML training visualizer</p>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-blue)] transition-colors" />
-        </a>
       </div>
 
       {/* Service Health */}

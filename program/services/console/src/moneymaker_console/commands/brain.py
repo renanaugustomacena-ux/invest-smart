@@ -1,4 +1,4 @@
-"""Algo Engine control commands — lifecycle, status, regime, maturity, coaching."""
+"""Algo Engine control commands — lifecycle, status, regime, maturity."""
 
 from __future__ import annotations
 
@@ -74,26 +74,16 @@ def _brain_status(*args: str) -> str:
 
     lines = ["Algo Engine Status (from DB — REST unreachable)", "=" * 40]
 
-    # Latest model from registry
-    row = db.query_one(
-        "SELECT model_name, model_version, is_active, created_at "
-        "FROM model_registry ORDER BY created_at DESC LIMIT 1"
-    )
-    if row:
-        lines.append(f"  Model:       {row[0]} v{row[1]}")
-        lines.append(f"  Active:      {row[2]}")
-        lines.append(f"  Created:     {row[3]}")
-    else:
-        lines.append("  Model:       No models registered")
-
     # Latest signal
     row = db.query_one(
         "SELECT symbol, direction, confidence, created_at "
         "FROM trading_signals ORDER BY created_at DESC LIMIT 1"
     )
     if row:
-        lines.append(f"\n  Last Signal: {row[0]} {row[1]} (conf={row[2]:.2f})")
+        lines.append(f"  Last Signal: {row[0]} {row[1]} (conf={row[2]:.2f})")
         lines.append(f"  Signal Time: {row[3]}")
+    else:
+        lines.append("  No signals generated yet.")
 
     return "\n".join(lines)
 
@@ -236,67 +226,6 @@ def _brain_features(*args: str) -> str:
     return "\n".join(lines)
 
 
-def _brain_coaching(*args: str) -> str:
-    """Display coaching system status."""
-    db = ClientFactory.get_postgres()
-    rows = db.query(
-        "SELECT component, status, last_run, insight "
-        "FROM coaching_status ORDER BY last_run DESC LIMIT 5"
-    )
-    if not rows:
-        return "[info] No coaching data available."
-
-    lines = ["Coaching System", "=" * 40]
-    for component, status, last_run, insight in rows:
-        lines.append(f"  {component:<20} {status:<10} {last_run}")
-        if insight:
-            lines.append(f"    -> {insight[:80]}")
-    return "\n".join(lines)
-
-
-def _brain_coaching_history(*args: str) -> str:
-    """Display historical coaching corrections."""
-    days = 7
-    for i, a in enumerate(args):
-        if a == "--days" and i + 1 < len(args):
-            try:
-                days = int(args[i + 1])
-            except ValueError:
-                pass
-
-    db = ClientFactory.get_postgres()
-    rows = db.query(
-        "SELECT correction_type, message, created_at "
-        "FROM coaching_corrections "
-        "WHERE created_at > NOW() - INTERVAL '%s days' "
-        "ORDER BY created_at DESC LIMIT 20",
-        (days,),
-    )
-    if not rows:
-        return f"[info] No coaching corrections in last {days} days."
-
-    lines = [f"Coaching History (last {days} days)", "=" * 40]
-    for ctype, msg, ts in rows:
-        lines.append(f"  {ts}  [{ctype}] {msg[:70]}")
-    return "\n".join(lines)
-
-
-def _brain_skill_progress(*args: str) -> str:
-    """Display RAP Coach skill progression."""
-    db = ClientFactory.get_postgres()
-    rows = db.query(
-        "SELECT skill_name, level, score, updated_at "
-        "FROM skill_progress ORDER BY updated_at DESC LIMIT 10"
-    )
-    if not rows:
-        return "[info] No skill progression data."
-
-    lines = ["Trader Skill Progress (RAP Coach)", "=" * 40]
-    for skill, level, score, ts in rows:
-        lines.append(f"  {skill:<25} Level {level}  Score: {score:.2f}")
-    return "\n".join(lines)
-
-
 def _brain_sentry(*args: str) -> str:
     """Display Sentry error tracking status."""
     import os
@@ -313,45 +242,12 @@ def _brain_sentry(*args: str) -> str:
     return "\n".join(lines)
 
 
-def _brain_model_info(*args: str) -> str:
-    """Display current model architecture details."""
-    db = ClientFactory.get_postgres()
-    row = db.query_one(
-        "SELECT model_name, model_version, model_type, is_active, "
-        "training_samples, validation_accuracy, checkpoint_path, created_at "
-        "FROM model_registry WHERE is_active = true "
-        "ORDER BY created_at DESC LIMIT 1"
-    )
-    if not row:
-        return "[info] No active model in registry."
-
-    return (
-        f"Active Model\n"
-        f"{'=' * 40}\n"
-        f"  Name:       {row[0]}\n"
-        f"  Version:    {row[1]}\n"
-        f"  Type:       {row[2]}\n"
-        f"  Samples:    {row[4]}\n"
-        f"  Val Acc:    {row[5]}\n"
-        f"  Checkpoint: {row[6]}\n"
-        f"  Created:    {row[7]}"
-    )
-
-
 def _brain_checkpoint(*args: str) -> str:
     """Force an immediate state checkpoint save."""
     redis = ClientFactory.get_redis()
     if redis.publish("moneymaker:brain:commands", "checkpoint"):
         return "[success] Checkpoint command sent to Algo Engine."
     return "[warning] Could not send checkpoint command — Redis not available."
-
-
-def _brain_eval(*args: str) -> str:
-    """Trigger evaluation on test dataset."""
-    redis = ClientFactory.get_redis()
-    if redis.publish("moneymaker:brain:commands", "eval"):
-        return "[success] Evaluation command sent to Algo Engine."
-    return "[warning] Could not send eval command — Redis not available."
 
 
 def register(registry: CommandRegistry) -> None:
@@ -365,12 +261,8 @@ def register(registry: CommandRegistry) -> None:
                        "Resume signal generation")
     registry.register("brain", "status", _brain_status,
                        "Comprehensive status")
-    registry.register("brain", "eval", _brain_eval,
-                       "Trigger evaluation cycle")
     registry.register("brain", "checkpoint", _brain_checkpoint,
                        "Force checkpoint save")
-    registry.register("brain", "model-info", _brain_model_info,
-                       "Model architecture details")
     registry.register("brain", "regime", _brain_regime,
                        "Market regime classification")
     registry.register("brain", "drift", _brain_drift,
@@ -383,11 +275,5 @@ def register(registry: CommandRegistry) -> None:
                        "Confidence distribution [SYMBOL]")
     registry.register("brain", "features", _brain_features,
                        "Feature vector for SYMBOL")
-    registry.register("brain", "coaching", _brain_coaching,
-                       "Coaching system status")
-    registry.register("brain", "coaching-history", _brain_coaching_history,
-                       "Coaching correction history [--days N]")
-    registry.register("brain", "skill-progress", _brain_skill_progress,
-                       "RAP Coach skill progression")
     registry.register("brain", "sentry", _brain_sentry,
                        "Sentry error tracking status")

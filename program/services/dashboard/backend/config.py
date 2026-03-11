@@ -25,10 +25,6 @@ class DashboardSettings(MoneyMakerBaseSettings):
     refresh_charts: int = Field(default=30, alias="DASHBOARD_REFRESH_CHARTS")
     refresh_macro: int = Field(default=300, alias="DASHBOARD_REFRESH_MACRO")
 
-    # TensorBoard (internal = container-to-container, public = browser iframe)
-    tensorboard_url: str = Field(default="http://localhost:6006", alias="DASHBOARD_TENSORBOARD_URL")
-    tensorboard_public_url: str = Field(default="http://localhost:6006", alias="DASHBOARD_TENSORBOARD_PUBLIC_URL")
-
     # Prometheus endpoints (direct scrape)
     prometheus_data_ingestion: str = Field(default="http://localhost:9090/metrics", alias="DASHBOARD_PROMETHEUS_DI")
     prometheus_algo_engine: str = Field(default="http://localhost:9093/metrics", alias="DASHBOARD_PROMETHEUS_BRAIN")

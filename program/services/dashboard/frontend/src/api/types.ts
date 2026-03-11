@@ -82,19 +82,9 @@ export interface MacroSnapshot {
   recession_prob?: string;
 }
 
-export interface ModelInfo {
-  id: number;
-  model_type: string;
-  model_version?: string;
-  is_active: boolean;
-  validation_accuracy?: string;
-  created_at: string;
-}
-
 export interface SystemStatus {
   database: ServiceHealth;
   redis: ServiceHealth;
-  tensorboard: ServiceHealth;
   services: ServiceHealth[];
   uptime_seconds?: number;
 }

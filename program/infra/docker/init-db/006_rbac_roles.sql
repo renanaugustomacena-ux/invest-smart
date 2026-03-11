@@ -99,14 +99,6 @@ GRANT INSERT ON audit_log TO data_ingestion_svc;
 GRANT SELECT ON ohlcv_bars TO algo_engine_svc;
 GRANT SELECT ON market_ticks TO algo_engine_svc;
 
--- Read ML tables
-GRANT SELECT ON model_registry TO algo_engine_svc;
-GRANT SELECT ON model_metrics TO algo_engine_svc;
-GRANT SELECT ON ml_predictions TO algo_engine_svc;
-
--- Read and write ML predictions (for feedback loop)
-GRANT INSERT, SELECT ON ml_predictions TO algo_engine_svc;
-
 -- Read macro data
 GRANT SELECT ON vix_data TO algo_engine_svc;
 GRANT SELECT ON yield_curve_data TO algo_engine_svc;

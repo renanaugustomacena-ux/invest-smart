@@ -88,35 +88,6 @@ PIPELINE_LATENCY = Histogram(
 
 
 # ============================================================
-# Metriche ML Inference — i "contatori" del walkie-talkie verso il Lab ML
-# ============================================================
-
-ML_PREDICTIONS_TOTAL = Counter(
-    "moneymaker_brain_ml_predictions_total",
-    "Predizioni ML ricevute dal servizio inferenza",
-    ["symbol", "direction", "model_type"],
-)
-
-ML_PREDICTION_LATENCY = Histogram(
-    "moneymaker_brain_ml_prediction_latency_seconds",
-    "Latenza round-trip gRPC per inferenza ML",
-    buckets=(0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0),
-)
-
-ML_FALLBACK_TOTAL = Counter(
-    "moneymaker_brain_ml_fallback_total",
-    "Volte in cui ML non era disponibile e si è usato il rule-based",
-    ["reason"],
-)
-
-ML_CONFIDENCE = Histogram(
-    "moneymaker_brain_ml_confidence",
-    "Distribuzione dei punteggi di confidenza delle predizioni ML",
-    buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
-)
-
-
-# ============================================================
 # Metriche Data Ingestion — i "contatori" dell'approvvigionamento dati
 # ============================================================
 

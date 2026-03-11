@@ -67,7 +67,6 @@ def _reset_redis_store():
 def _build_patches(mock_pool: MockPool) -> list[Any]:
     """Return a list of patch objects for DB + Redis mocking."""
     pool_mock = AsyncMock(return_value=mock_pool)
-    tb_mock = AsyncMock(return_value=True)
 
     targets = [
         # Core modules
@@ -85,14 +84,11 @@ def _build_patches(mock_pool: MockPool) -> list[Any]:
         ("backend.api.routes.risk.get_json_key", _mock_get_json_key),
         ("backend.api.routes.risk.set_json_key", _mock_set_json_key),
         ("backend.api.routes.market_data.get_pool", pool_mock),
-        ("backend.api.routes.ml_models.get_pool", pool_mock),
-        ("backend.api.routes.ml_models._check_tensorboard", tb_mock),
         ("backend.api.routes.macro.get_pool", pool_mock),
         ("backend.api.routes.strategy.get_pool", pool_mock),
         ("backend.api.routes.economic.get_pool", pool_mock),
         ("backend.api.routes.system.get_pool", pool_mock),
         ("backend.api.routes.system.redis_health", _mock_redis_health),
-        ("backend.api.routes.system._check_tensorboard", tb_mock),
         ("backend.ws.streams.get_pool", pool_mock),
         ("backend.ws.streams.get_json_key", _mock_get_json_key),
         ("backend.ws.streams.redis_health", _mock_redis_health),

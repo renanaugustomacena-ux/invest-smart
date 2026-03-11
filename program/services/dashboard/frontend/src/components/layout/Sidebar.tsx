@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, ShieldAlert, BarChart3,
-  Brain, Globe, Target, CalendarDays, FileText, Settings,
+  Globe, Target, CalendarDays, FileText, Settings,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
@@ -12,7 +12,6 @@ const navItems = [
   { path: '/trading',   label: 'Trading',           icon: TrendingUp },
   { path: '/risk',      label: 'Risk',              icon: ShieldAlert },
   { path: '/market',    label: 'Market Data',       icon: BarChart3 },
-  { path: '/ml',        label: 'ML Models',         icon: Brain },
   { path: '/macro',     label: 'Macro',             icon: Globe },
   { path: '/strategy',  label: 'Strategy',          icon: Target },
   { path: '/economic',  label: 'Economic',          icon: CalendarDays },

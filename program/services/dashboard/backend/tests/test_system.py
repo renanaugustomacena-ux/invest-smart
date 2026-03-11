@@ -9,7 +9,7 @@ from backend.tests.conftest import MockPool
 
 @pytest.mark.asyncio
 async def test_system_health(client, mock_pool: MockPool):
-    """System health returns DB, Redis, TensorBoard status."""
+    """System health returns DB and Redis status."""
     # _check_database calls pool.fetchval("SELECT 1")
     mock_pool.fetchval.return_value = 1
 
@@ -20,7 +20,5 @@ async def test_system_health(client, mock_pool: MockPool):
     assert data["database"]["name"] == "PostgreSQL"
     assert data["redis"]["name"] == "Redis"
     assert data["redis"]["status"] == "connected"
-    assert data["tensorboard"]["name"] == "TensorBoard"
-    assert data["tensorboard"]["status"] == "connected"
     assert "uptime_seconds" in data
-    assert len(data["services"]) == 3
+    assert len(data["services"]) == 2

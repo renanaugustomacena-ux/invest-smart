@@ -108,25 +108,6 @@ class MarketDataResponse(BaseModel):
     total_bars: int
 
 
-# --- ML Models ---
-
-class ModelInfo(BaseModel):
-    id: int
-    model_type: str
-    model_version: str | None = None
-    is_active: bool = False
-    validation_accuracy: str | None = None
-    created_at: datetime
-    checkpoint_path: str | None = None
-
-
-class MLResponse(BaseModel):
-    models: list[ModelInfo]
-    tensorboard_online: bool = False
-    recent_predictions: list[dict[str, Any]] = []
-    training_metrics: list[dict[str, Any]] = []
-
-
 # --- Macro ---
 
 class MacroSnapshot(BaseModel):
@@ -173,6 +154,5 @@ class EconomicEvent(BaseModel):
 class SystemStatus(BaseModel):
     database: ServiceHealth
     redis: ServiceHealth
-    tensorboard: ServiceHealth
     services: list[ServiceHealth]
     uptime_seconds: float | None = None

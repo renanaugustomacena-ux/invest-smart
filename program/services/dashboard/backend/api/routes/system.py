@@ -9,7 +9,6 @@ from fastapi import APIRouter
 from backend.db.connection import get_pool
 from backend.models.schemas import ServiceHealth, SystemStatus
 from backend.redis_client.client import redis_health
-from backend.api.routes.ml_models import _check_tensorboard
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -19,16 +18,13 @@ _start_time = time.monotonic()
 @router.get("/health", response_model=SystemStatus)
 async def system_health() -> SystemStatus:
     """Return health status of all connected services."""
-    # Database check
     db_status = await _check_database()
     redis_status = await _check_redis()
-    tb_status = await _check_tb()
 
     return SystemStatus(
         database=db_status,
         redis=redis_status,
-        tensorboard=tb_status,
-        services=[db_status, redis_status, tb_status],
+        services=[db_status, redis_status],
         uptime_seconds=time.monotonic() - _start_time,
     )
 
@@ -50,12 +46,4 @@ async def _check_redis() -> ServiceHealth:
         name="Redis",
         status=status["status"],
         error=status.get("error"),
-    )
-
-
-async def _check_tb() -> ServiceHealth:
-    online = await _check_tensorboard()
-    return ServiceHealth(
-        name="TensorBoard",
-        status="connected" if online else "disconnected",
     )
