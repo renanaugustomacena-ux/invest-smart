@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, LayoutDashboard, TrendingUp, ShieldAlert, BarChart3,
-  Brain, Globe, Target, CalendarDays, FileText, Settings, Sun, Moon,
+  Globe, Target, CalendarDays, FileText, Settings, Sun, Moon,
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Signal, TrendingUp, ShieldAlert, BarChart3, Activity,
+  Signal, TrendingUp, BarChart3, Activity,
   ExternalLink, AlertTriangle, Layers,
 } from 'lucide-react';
 import KPICard from '../components/common/KPICard';
