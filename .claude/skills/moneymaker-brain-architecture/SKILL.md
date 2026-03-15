@@ -17,8 +17,8 @@ Activate this skill whenever:
 1. **Feature Engineering**: Compute 40+ indicators incrementally.
 2. **Regime Classification**: Identify Trending/Ranging/Volatile/Reversal.
 3. **Strategy Router**: Configure logic based on regime.
-4. **ML Inference**: Run Transformer model (CPU).
-5. **Confidence Gating**: Filter ML predictions (Maturity -> Drift -> Silence).
+4. **Signal Generation**: Run strategy-specific rule-based logic.
+5. **Confidence Gating**: Filter signals (threshold, validation, silence rules).
 6. **Decision Engine**: 4-Tier Fallback logic.
 7. **Risk Check**: Final validation (Size, Drawdown).
 8. **Signal Emission**: gRPC to MT5 Bridge.
@@ -30,5 +30,5 @@ Activate this skill whenever:
 
 ## Checklist
 - [ ] Is the pipeline executed synchronously?
-- [ ] Are all computations using `Decimal` (except ML inference)?
+- [ ] Are all computations using `Decimal` for financial math?
 - [ ] Is the warm-up period handled before live trading?
