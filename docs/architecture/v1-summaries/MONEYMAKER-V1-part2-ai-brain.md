@@ -1,6 +1,6 @@
 # MONEYMAKER V1 — Sistema di Trading Algoritmico
 
-> **Argomenti:** Architettura del servizio Algo Engine, pipeline di calcolo indicatori tecnici (25+ indicatori), classificazione del regime di mercato (5 regimi), routing delle strategie di trading (trend-following, mean-reversion, difensiva), generazione segnali con stop-loss/take-profit ATR-based, architettura neurale JEPA per embedding di mercato, sistemi di knowledge e coaching.
+> **Argomenti:** Architettura del servizio Algo Engine, pipeline di calcolo indicatori tecnici (25+ indicatori), classificazione del regime di mercato (5 regimi), routing delle strategie di trading (trend-following, mean-reversion, difensiva), generazione segnali con stop-loss/take-profit ATR-based, sistemi di knowledge.
 >
 > **Autore:** Renan Augusto Macena
 
@@ -13,14 +13,13 @@
 3. [L'Ufficiale Meteorologo: Regime Classification](#3-lufficiale-meteorologo-regime-classification)
 4. [Il Timoniere: Strategy Router](#4-il-timoniere-strategy-router)
 5. [L'Artigiano: Signal Generator](#5-lartigiano-signal-generator)
-6. [Le Reti Neurali: JEPA](#6-le-reti-neurali-jepa)
-7. [L'Archivio di Bordo: Knowledge Systems](#7-larchivio-di-bordo-knowledge-systems)
+6. [L'Archivio di Bordo: Knowledge Systems](#6-larchivio-di-bordo-knowledge-systems)
 
 ---
 
 ## 1. Architettura Algo Engine
 
-L'**Algo Engine** è la Plancia di Comando della nave MONEYMAKER — il centro decisionale dove convergono tutte le informazioni sensoriali (dati di mercato), vengono analizzate attraverso modelli matematici e di machine learning, e si generano gli ordini di trading.
+L'**Algo Engine** è la Plancia di Comando della nave MONEYMAKER — il centro decisionale dove convergono tutte le informazioni sensoriali (dati di mercato), vengono analizzate attraverso modelli matematici e statistici, e si generano gli ordini di trading.
 
 Scritto in Python 3.11+ con oltre 165 file sorgente, il Brain implementa:
 
@@ -29,17 +28,14 @@ Scritto in Python 3.11+ con oltre 165 file sorgente, il Brain implementa:
 - **Strategy Router**: instradamento verso la strategia appropriata per ogni regime
 - **Signal Generator**: costruzione di segnali completi con SL/TP e metadati
 - **Signal Validator**: validazione contro 11 controlli di rischio
-- **ML Integration**: integrazione opzionale con modelli neurali (JEPA, GNN)
-
 | Componente | Cartella | File principali | Responsabilità |
 | --- | --- | --- | --- |
 | **Features** | `features/` | `pipeline.py`, `technical.py`, `regime.py` | Calcolo indicatori, classificazione regime |
 | **Strategies** | `strategies/` | `regime_router.py`, `trend_following.py`, `mean_reversion.py` | Logica decisionale per direzione trade |
 | **Signals** | `signals/` | `generator.py`, `validator.py`, `position_sizer.py` | Costruzione e validazione segnali |
-| **Neural Networks** | `nn/` | `jepa_market.py`, `model_factory.py` | Embedding e predizione ML |
 | **Knowledge** | `knowledge/` | `market_graph.py`, `strategy_knowledge.py` | Memoria e apprendimento |
 
-> **Analogia:** La Plancia di Comando di una nave moderna. Il **Cartografo** (Feature Pipeline) trasforma le letture grezze del sonar in mappe navigabili. L'**Ufficiale Meteorologo** (Regime Classifier) analizza vento, onde e pressione per classificare le condizioni meteo. Il **Timoniere** (Strategy Router) riceve gli ordini e manovra la nave nella direzione giusta. L'**Artigiano** (Signal Generator) costruisce gli ordini di manovra con tutti i dettagli. Il **Controllore Qualità** (Validator) verifica che ogni ordine sia sicuro prima dell'esecuzione. E il **Sistema di Intelligenza** (JEPA) impara dai pattern storici per anticipare le condizioni future.
+> **Analogia:** La Plancia di Comando di una nave moderna. Il **Cartografo** (Feature Pipeline) trasforma le letture grezze del sonar in mappe navigabili. L'**Ufficiale Meteorologo** (Regime Classifier) analizza vento, onde e pressione per classificare le condizioni meteo. Il **Timoniere** (Strategy Router) riceve gli ordini e manovra la nave nella direzione giusta. L'**Artigiano** (Signal Generator) costruisce gli ordini di manovra con tutti i dettagli. Il **Controllore Qualità** (Validator) verifica che ogni ordine sia sicuro prima dell'esecuzione.
 
 ```mermaid
 flowchart TB
@@ -519,86 +515,7 @@ Per BUY:
 
 ---
 
-## 6. Le Reti Neurali: JEPA
-
-**JEPA** (Joint Embedding Predictive Architecture) è il sistema di intelligenza artificiale della nave che impara dai pattern storici per anticipare le condizioni future. A differenza dei modelli generativi che ricostruiscono i dati, JEPA predice lo **stato futuro nello spazio latente** — come un operaio esperto che prevede il prossimo stato della macchina dal suo funzionamento corrente, senza dover smontare ogni pezzo.
-
-| Componente | Input | Output | Architettura |
-| --- | --- | --- | --- |
-| **JEPAEncoder** | (B, seq, 60) | (B, 128) | Linear → Transformer(2L, 4H) → Pool → Linear |
-| **JEPAPredictor** | (B, 128) | (B, 128) | Linear(128→64) → ReLU → Linear(64→128) |
-| **JEPAMarketModel** | Sequenza stati | Predizione stato futuro | Encoder + Target Encoder (EMA) + Predictor |
-
-> **Analogia:** JEPA è come un **navigatore esperto** che ha visto migliaia di traversate. Non ha bisogno di analizzare ogni onda singolarmente (ricostruzione). Invece, guarda la "sensazione" generale del mare (embedding latente) e prevede come sarà tra un'ora. Ha un "gemello mentale" (target encoder) che si aggiorna lentamente per non saltare a conclusioni affrettate (EMA momentum). La loss VICReg assicura che le sue previsioni siano **variate** (non tutte uguali), **invarianti** (consistenti), e **decorrelate** (ogni dimensione cattura informazioni diverse).
-
-```mermaid
-flowchart TB
-    subgraph INPUT["Input Sequenza"]
-        SEQ["Market States<br/>(B, seq_len, 60)"]
-    end
-
-    subgraph ENCODER["JEPAEncoder"]
-        PROJ1["Linear<br/>60 → 128"]
-        TRANS["TransformerEncoder<br/>2 layers, 4 heads"]
-        POOL["Mean Pooling<br/>temporale"]
-        PROJ2["LayerNorm + Linear<br/>128 → 128"]
-    end
-
-    subgraph PREDICTOR["JEPAPredictor"]
-        P1["Linear 128→64"]
-        RELU["ReLU"]
-        P2["Linear 64→64"]
-        RELU2["ReLU"]
-        P3["Linear 64→128"]
-    end
-
-    subgraph TARGET["Target Encoder (EMA)"]
-        TENC["Encoder clone<br/>momentum update"]
-    end
-
-    subgraph LOSS["VICReg Loss"]
-        VAR["Variance"]
-        INV["Invariance"]
-        COV["Covariance"]
-    end
-
-    SEQ --> PROJ1
-    PROJ1 --> TRANS
-    TRANS --> POOL
-    POOL --> PROJ2
-    PROJ2 --> P1
-    P1 --> RELU
-    RELU --> P2
-    P2 --> RELU2
-    RELU2 --> P3
-
-    SEQ --> TENC
-    TENC -->|"target embedding"| LOSS
-    P3 -->|"predicted embedding"| LOSS
-
-    style SEQ fill:#4a9eff,color:#fff
-    style TRANS fill:#9775fa,color:#fff
-    style P3 fill:#51cf66,color:#fff
-    style TENC fill:#ffd43b,color:#000
-    style LOSS fill:#ff922b,color:#fff
-```
-
-> **Spiegazione Diagramma:** La sequenza di stati di mercato (blu) passa attraverso l'Encoder con Transformer (viola). Il Predictor (verde) genera l'embedding predetto. Il Target Encoder (giallo) genera l'embedding target con update EMA. La loss VICReg (arancione) confronta le due predizioni.
-
-### 6.1 Dimensioni Architettura
-
-| Parametro | Valore | Descrizione |
-| --- | --- | --- |
-| `MARKET_DIM` | 60 | Dimensione input (features di mercato) |
-| `LATENT_DIM` | 128 | Dimensione spazio latente |
-| `PREDICTOR_DIM` | 64 | Dimensione nascosta predictor |
-| `N_HEADS` | 4 | Attention heads nel Transformer |
-| `N_LAYERS` | 2 | Layer del TransformerEncoder |
-| `DROPOUT` | 0.1 | Dropout per regolarizzazione |
-
----
-
-## 7. L'Archivio di Bordo: Knowledge Systems
+## 6. L'Archivio di Bordo: Knowledge Systems
 
 L'**Archivio di Bordo** conserva le lezioni apprese dalle battaglie passate. MONEYMAKER mantiene diversi sistemi di knowledge:
 
@@ -628,7 +545,6 @@ graph TB
         ROUTER["Regime Router"]
         VALIDATOR["Signal Validator"]
         SIZER["Position Sizer"]
-        COACH["Coaching System"]
     end
 
     MG -->|"asset relationships"| VALIDATOR
@@ -636,7 +552,6 @@ graph TB
     SK -->|"optimal params"| ROUTER
     BM -->|"historical context"| ROUTER
     CE -->|"avoid patterns"| VALIDATOR
-    CE -->|"learning"| COACH
 
     style MG fill:#9775fa,color:#fff
     style SK fill:#4a9eff,color:#fff
@@ -644,9 +559,9 @@ graph TB
     style CE fill:#ff922b,color:#fff
 ```
 
-> **Spiegazione Diagramma:** I quattro sistemi di knowledge (viola, blu, giallo, arancione) alimentano diversi consumatori. Il MarketGraph informa Validator e Sizer sulle correlazioni. StrategyKnowledge guida il Router sui parametri ottimali. BacktestMiner fornisce contesto storico. CorrectionEngine chiude il loop di apprendimento.
+> **Spiegazione Diagramma:** I quattro sistemi di knowledge (viola, blu, giallo, arancione) alimentano diversi consumatori. Il MarketGraph informa Validator e Sizer sulle correlazioni. StrategyKnowledge guida il Router sui parametri ottimali. BacktestMiner fornisce contesto storico. CorrectionEngine chiude il loop di feedback.
 
-### 7.1 MarketGraph — Relazioni tra Asset
+### 6.1 MarketGraph — Relazioni tra Asset
 
 Il MarketGraph mantiene un grafo di relazioni tra asset:
 
@@ -662,13 +577,13 @@ Esempio:
 
 **Uso:** Prima di aprire una posizione su EUR/USD, il validator controlla se ci sono già posizioni aperte su asset altamente correlati (GBP/USD, AUD/USD) per evitare sovraesposizione.
 
-### 7.2 Cascade Fallback
+### 6.2 Cascade Fallback
 
 Quando il sistema deve prendere una decisione, segue una cascata di fallback:
 
 ```
-1. ML Model (JEPA/GNN)     → Se disponibile e confidence > 0.7
-2. Technical Strategy      → Regime-based strategies
+1. COPER (Statistical)     → Analisi statistica avanzata con confidence > 0.7
+2. Hybrid (Multi-factor)   → Combinazione di più fattori tecnici e statistici
 3. Knowledge Base          → Pattern storici
 4. Conservative Default    → HOLD
 ```

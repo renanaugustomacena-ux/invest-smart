@@ -8,7 +8,7 @@
 
 ## Verdetto Rapido
 
-**MONEYMAKER e' al 70% per il trading rule-based. E' allo 0% per il training ML.**
+**MONEYMAKER e' al 70% per il trading rule-based.**
 
 Il sistema puo' GIA' oggi:
 - Ricevere dati di mercato in tempo reale
@@ -17,8 +17,6 @@ Il sistema puo' GIA' oggi:
 - Registrare tutto in un database
 
 Il sistema NON puo' ancora:
-- Addestrare modelli neurali
-- Fare predizioni basate su ML
 - Fare backtesting automatizzato
 
 ---
@@ -74,29 +72,7 @@ Il sistema NON puo' ancora:
 
 ## Cosa NON Funziona (la verita')
 
-### 1. Training ML — NON ESISTE
-
-```
-training_orchestrator.py → raise NotImplementedError()
-```
-
-Questo e' INTENZIONALE nel design (il training va su una macchina separata), ma significa che:
-- Non c'e' nessun codice che addestra il modello
-- Non c'e' nessun optimizer (SGD, Adam, etc.)
-- Non c'e' nessuna loss function collegata
-- Non c'e' nessun DataLoader per i dati storici
-- Non c'e' nessun ciclo di backpropagation
-
-**L'architettura neurale ESISTE** (MarketRAPCoach con 4 layer), ma sa solo fare inference (cioe' usare un modello gia' addestrato). Non sa addestrarne uno.
-
-### 2. ML Lab Service — NON ESISTE
-
-Il servizio gRPC `MLInferenceService` che dovrebbe girare sulla VM 102 con GPU:
-- Il **contratto proto e' definito** (ml_inference.proto)
-- Il **client nel Brain e' scritto** (MLProxy)
-- Ma il **server non esiste** — nessun codice per la VM 102
-
-### 3. Backtesting — NON ESISTE
+### 1. Backtesting — NON ESISTE
 
 Non c'e' nessun framework per:
 - Caricare dati storici e simulare trading
@@ -106,14 +82,14 @@ Non c'e' nessun framework per:
 
 (Il DOC 8 descrive come farlo, ma il codice non e' scritto)
 
-### 4. Monitoring — PARZIALE
+### 2. Monitoring — PARZIALE
 
 - Prometheus: configurazione base c'e', metriche definite nel codice
 - Grafana: **nessuna dashboard pre-costruita** (solo il container vuoto)
 - Alert rules: **non configurate** (solo documentate)
 - Devono essere create manualmente dopo il deploy
 
-### 5. Safety Systems — PARZIALI
+### 3. Safety Systems — PARZIALI
 
 - Il drawdown viene **tracciato** ma il kill switch **non e' implementato nel codice**
 - Il daily loss limit viene **calcolato** ma non c'e' un hard stop automatico
@@ -131,22 +107,22 @@ Ecco esattamente cosa succede OGGI quando il Brain riceve un tick:
 3. Regime detection: trend/ranging/volatile?        ← FUNZIONA
 4. TradingAdvisor.recommend() tenta 4 modalita':
 
-   Mode 1: COPER (ML + esperienza + knowledge)
-     → Richiede ML attivo + maturity alta
-     → ATTUALMENTE: ML non disponibile → SKIP
+   Mode 1: COPER (analisi statistica avanzata + knowledge)
+     → Richiede maturity alta + confidence > 0.7
+     → RegimeRouter + analisi multi-fattore
 
-   Mode 2: Hybrid (ML 50% + Knowledge 30% + Exp 20%)
-     → Richiede ML attivo
-     → ATTUALMENTE: ML non disponibile → SKIP
+   Mode 2: Hybrid (multi-factor combinato)
+     → Combinazione indicatori tecnici + regime + knowledge
+     → Soglia confidence intermedia
 
-   Mode 3: Knowledge-Only (RAG retrieval)
+   Mode 3: Knowledge-Only (pattern storici)
      → Disponibile se la knowledge base e' popolata
-     → ATTUALMENTE: probabilmente SKIP (no knowledge caricata)
+     → Strategie basate su pattern conosciuti
 
-   Mode 4: Conservative (rule-based)             ← QUESTO E' QUELLO CHE GIRA
+   Mode 4: Conservative (rule-based base)
      → RegimeRouter sceglie la strategia:
        - TRENDING → TrendFollowingStrategy (EMA cross + ADX)
-       → RANGING → MeanReversionStrategy (BB + RSI + Stochastic)
+       - RANGING → MeanReversionStrategy (BB + RSI + Stochastic)
        - VOLATILE → DefensiveStrategy (HOLD)
 
 5. Se il segnale passa la validazione (7 checks)   ← FUNZIONA
@@ -154,8 +130,7 @@ Ecco esattamente cosa succede OGGI quando il Brain riceve un tick:
 7. MT5 Bridge esegue l'ordine su MetaTrader 5       ← FUNZIONA
 ```
 
-**Tradotto**: il sistema oggi opera come un bot rule-based sofisticato.
-Le modalita' ML (Mode 1, 2, 3) sono predisposte ma non attive.
+**Tradotto**: il sistema opera come un bot rule-based sofisticato con cascade a 4 livelli.
 
 ---
 
@@ -201,22 +176,7 @@ Le modalita' ML (Mode 1, 2, 3) sono predisposte ma non attive.
 | Test dei safety systems | Da fare | 4 ore |
 | **Totale** | | **14 ore** |
 
-### Milestone 4: ML Training Lab (VM 102)
-
-**Stato: 5% — mancano 2-4 settimane**
-
-| Task | Stato | Sforzo |
-|------|-------|--------|
-| Setup VM con GPU passthrough (ROCm) | Da fare | 1-2 giorni |
-| Implementare DataLoader per dati storici | Da fare | 2-3 giorni |
-| Implementare training loop completo | Da fare | 3-5 giorni |
-| Implementare validation loop con Sharpe metric | Da fare | 1-2 giorni |
-| Implementare gRPC MLInferenceService | Da fare | 1-2 giorni |
-| Training iniziale (100+ epoch) | Da fare | 1-3 giorni (tempo GPU) |
-| Validazione out-of-sample | Da fare | 1-2 giorni |
-| **Totale** | | **10-18 giorni** |
-
-### Milestone 5: Backtesting Framework
+### Milestone 4: Backtesting Framework
 
 **Stato: 0% — mancano 1-2 settimane**
 
@@ -229,7 +189,7 @@ Le modalita' ML (Mode 1, 2, 3) sono predisposte ma non attive.
 | Validazione con CPCV | Da fare | 2 giorni |
 | **Totale** | | **8-10 giorni** |
 
-### Milestone 6: Deploy su Proxmox
+### Milestone 5: Deploy su Proxmox
 
 **Stato: 0% — manca 1 settimana**
 
@@ -266,15 +226,9 @@ FASE 3 (settimana 3-4):
   → Paper trading su Proxmox per validare
 
 FASE 4 (settimana 5-8):
-  → VM 102 con GPU per ML training
-  → Implementare training loop
-  → Primo training su dati storici
   → Backtesting framework
-
-FASE 5 (mese 3+):
-  → Training serio (100+ epoch, walk-forward)
-  → Attivare Mode 1/2 nel Brain (ML-augmented)
-  → Paper trading con ML per 1 mese
+  → Walk-forward validation
+  → Ottimizzazione parametri strategie
   → Se profittevole: passare a live con size minimo
 ```
 
@@ -293,9 +247,7 @@ FASE 5 (mese 3+):
 | Test suite che passa | SI | 100% (321/321) |
 | Dashboard di monitoraggio | PARZIALE | 30% |
 | Kill switch / safety | PARZIALE | 20% |
-| Training modelli neurali | NO | 0% |
-| ML Lab con GPU | NO | 0% |
 | Backtesting | NO | 0% |
 | Deploy Proxmox | NO | 0% (ma il codice e' ready) |
 
-**Bottom line**: Puoi iniziare a fare paper trading con regole OGGI. Per il ML servono ancora settimane di lavoro.
+**Bottom line**: Puoi iniziare a fare paper trading con regole OGGI. Per il backtesting serve ancora lavoro.
