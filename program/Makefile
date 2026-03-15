@@ -41,6 +41,8 @@ test-python:
 	cd shared/python-common && $(PYTEST) tests/ -v
 	cd services/algo-engine && $(PYTEST) tests/ -v
 	cd services/mt5-bridge && $(PYTEST) tests/ -v
+	cd services/console && $(PYTEST) tests/ -v
+	cd services/external-data && $(PYTEST) tests/ -v
 
 # ─── Test with Coverage ──────────────────────────────────────────────────────
 test-cov: test-cov-python test-cov-go
@@ -53,12 +55,20 @@ test-cov-python:
 		--cov=algo_engine --cov-report=term-missing --cov-fail-under=80
 	cd services/mt5-bridge && $(PYTEST) tests/unit/ \
 		--cov=mt5_bridge --cov-report=term-missing --cov-fail-under=75
+	cd services/console && $(PYTEST) tests/ \
+		--cov=moneymaker_console --cov-report=term-missing --cov-fail-under=70
+	cd services/external-data && $(PYTEST) tests/ \
+		--cov=external_data --cov-report=term-missing --cov-fail-under=70
 
 test-cov-go:
 	cd services/data-ingestion && go test -race -count=1 \
 		-coverprofile=coverage.out -covermode=atomic ./...
-	@echo "Go coverage:"
+	@echo "Go data-ingestion coverage:"
 	@cd services/data-ingestion && go tool cover -func=coverage.out | tail -1
+	cd shared/go-common && go test -race -count=1 \
+		-coverprofile=coverage.out -covermode=atomic ./...
+	@echo "Go go-common coverage:"
+	@cd shared/go-common && go tool cover -func=coverage.out | tail -1
 
 # ─── Integration Tests ───────────────────────────────────────────────────────
 test-integration: docker-test-up
@@ -87,12 +97,14 @@ lint-python:
 		services/algo-engine/src/ services/algo-engine/tests/ \
 		services/mt5-bridge/src/ services/mt5-bridge/tests/ \
 		services/console/src/ services/console/tests/ \
+		services/external-data/src/ services/external-data/tests/ \
 		shared/python-common/src/ shared/python-common/tests/ \
 		services/dashboard/backend/
 	$(BLACK) --check \
 		services/algo-engine/src/ services/algo-engine/tests/ \
 		services/mt5-bridge/src/ services/mt5-bridge/tests/ \
 		services/console/src/ services/console/tests/ \
+		services/external-data/src/ services/external-data/tests/ \
 		shared/python-common/src/ shared/python-common/tests/ \
 		services/dashboard/backend/
 
@@ -105,12 +117,14 @@ fmt:
 		services/algo-engine/src/ services/algo-engine/tests/ \
 		services/mt5-bridge/src/ services/mt5-bridge/tests/ \
 		services/console/src/ services/console/tests/ \
+		services/external-data/src/ services/external-data/tests/ \
 		shared/python-common/src/ shared/python-common/tests/ \
 		services/dashboard/backend/
 	$(RUFF) check --fix \
 		services/algo-engine/src/ services/algo-engine/tests/ \
 		services/mt5-bridge/src/ services/mt5-bridge/tests/ \
 		services/console/src/ services/console/tests/ \
+		services/external-data/src/ services/external-data/tests/ \
 		shared/python-common/src/ shared/python-common/tests/ \
 		services/dashboard/backend/
 	cd services/data-ingestion && gofmt -w .

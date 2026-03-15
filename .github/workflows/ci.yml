@@ -106,6 +106,7 @@ jobs:
             program/services/algo-engine/src/ \
             program/services/mt5-bridge/src/ \
             program/services/console/src/ \
+            program/services/external-data/src/ \
             program/shared/python-common/src/ \
             program/services/dashboard/backend/
       - name: Black format check
@@ -114,6 +115,7 @@ jobs:
             program/services/algo-engine/src/ program/services/algo-engine/tests/ \
             program/services/mt5-bridge/src/ program/services/mt5-bridge/tests/ \
             program/services/console/src/ program/services/console/tests/ \
+            program/services/external-data/src/ program/services/external-data/tests/ \
             program/shared/python-common/src/ program/shared/python-common/tests/ \
             program/services/dashboard/backend/
       - name: Mypy type check
@@ -347,7 +349,7 @@ jobs:
         run: npm run lint
       - name: Test
         working-directory: program/services/dashboard/frontend
-        run: npm test -- --reporter=default --reporter=junit --outputFile=reports/junit.xml
+        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile=reports/junit.xml
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -378,7 +380,7 @@ jobs:
             --cov=moneymaker_console \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=50 \
+            --cov-fail-under=70 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results
@@ -433,6 +435,83 @@ jobs:
           path: |
             program/services/data-ingestion/coverage.out
             program/services/data-ingestion/test-output.txt
+
+  # ─── Test: external-data ──────────────────────────────────────────────────
+  test-external-data:
+    name: Test External Data
+    needs: changes
+    if: needs.changes.outputs.external-data == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-extdata-${{ runner.os }}-${{ hashFiles('program/services/external-data/pyproject.toml') }}
+          restore-keys: pip-extdata-${{ runner.os }}-
+      - name: Install
+        run: |
+          pip install -e program/shared/python-common/
+          pip install -e "program/services/external-data/[dev]"
+      - name: Test
+        working-directory: program/services/external-data
+        run: |
+          python -m pytest tests/ \
+            --cov=external_data \
+            --cov-report=xml:reports/coverage.xml \
+            --junitxml=reports/junit.xml \
+            --cov-fail-under=70 \
+            --timeout=10 \
+            -v --tb=short
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-data-results
+          path: program/services/external-data/reports/
+
+  # ─── Test: go-common ─────────────────────────────────────────────────────
+  test-go-common:
+    name: Test Go Common
+    needs: changes
+    if: needs.changes.outputs.go-common == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: program/shared/go-common/go.sum
+      - name: Download dependencies
+        working-directory: program/shared/go-common
+        run: go mod download
+      - name: Test with coverage
+        working-directory: program/shared/go-common
+        run: |
+          go test -v -race -count=1 \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            ./... 2>&1 | tee test-output.txt
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          echo "Go-common coverage: ${COVERAGE}%"
+          if [ "$(echo "$COVERAGE < 70" | bc)" -eq 1 ]; then
+            echo "::error::Go-common coverage ${COVERAGE}% is below 70% threshold"
+            exit 1
+          fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-common-results
+          path: |
+            program/shared/go-common/coverage.out
+            program/shared/go-common/test-output.txt
 
   # ─── Proto Verification ───────────────────────────────────────────────────
   verify-proto:
@@ -565,6 +644,8 @@ jobs:
       - test-dashboard-backend
       - test-dashboard-frontend
       - test-console
+      - test-external-data
+      - test-go-common
       - lint-and-test-go
       - verify-proto
       - docker-build
@@ -580,6 +661,8 @@ jobs:
           echo "  test-dashboard-back:  ${{ needs.test-dashboard-backend.result }}"
           echo "  test-dashboard-front: ${{ needs.test-dashboard-frontend.result }}"
           echo "  test-console:         ${{ needs.test-console.result }}"
+          echo "  test-external-data:   ${{ needs.test-external-data.result }}"
+          echo "  test-go-common:       ${{ needs.test-go-common.result }}"
           echo "  lint-and-test-go:     ${{ needs.lint-and-test-go.result }}"
           echo "  verify-proto:         ${{ needs.verify-proto.result }}"
           echo "  docker-build:         ${{ needs.docker-build.result }}"
