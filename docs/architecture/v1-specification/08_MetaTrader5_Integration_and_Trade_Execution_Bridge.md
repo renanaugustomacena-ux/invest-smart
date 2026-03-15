@@ -27,7 +27,7 @@
 
 ### The Final Mile: Where Decisions Become Trades
 
-Every component in the MONEYMAKER ecosystem exists, ultimately, to support a single act: the submission of a trade order to a broker through the MetaTrader 5 terminal. The Data Ingestion Service fetches and normalizes market data. The Database Layer stores and serves that data. The ML Training Lab builds predictive models. The AI Trading Brain generates signals. But none of that matters if the final mile -- the translation of an AI-generated signal into a real market order -- fails, is slow, or is unreliable. The MetaTrader 5 Integration and Trade Execution Bridge is the component that owns this final mile. It is the single point of contact between MONEYMAKER's internal intelligence and the external financial markets.
+Every component in the MONEYMAKER ecosystem exists, ultimately, to support a single act: the submission of a trade order to a broker through the MetaTrader 5 terminal. The Data Ingestion Service fetches and normalizes market data. The Database Layer stores and serves that data. The Algo Engine generates signals. But none of that matters if the final mile -- the translation of a signal into a real market order -- fails, is slow, or is unreliable. The MetaTrader 5 Integration and Trade Execution Bridge is the component that owns this final mile. It is the single point of contact between MONEYMAKER's internal intelligence and the external financial markets.
 
 The Bridge is not merely a passthrough. It is an active participant in the execution process, responsible for validating signals before they become orders, calculating precise position sizes based on account equity and risk parameters, constructing MT5-compatible order requests with correct lot sizes, stop-loss levels, take-profit targets, and fill policies, submitting those orders to the MT5 terminal, monitoring their execution status, tracking open positions in real time, managing trailing stops and partial closes, and feeding execution results back to the Algo Engine for the learning feedback loop. It is, in effect, a complete Order Management System (OMS) wrapped around the MetaTrader5 Python API.
 
@@ -35,7 +35,7 @@ The Bridge is not merely a passthrough. It is an active participant in the execu
 
 Within MONEYMAKER's six-service architecture, the Bridge occupies a unique position. It is the only service that interacts with the external broker. It is the only service that can cause real financial gain or loss. It is the only service that operates under the constraints of a third-party platform (the MT5 terminal) running on a different operating system (Windows). These unique characteristics shape every design decision in the Bridge.
 
-The Bridge runs as a dedicated microservice inside a Docker container on a Windows VM (or a Linux VM with a Windows VM accessible via the network). It communicates with the AI Trading Brain via gRPC for signal reception and execution confirmations, with the Database Layer via PostgreSQL for trade logging and position reconciliation, and with the MT5 terminal via the MetaTrader5 Python package over a local or network connection.
+The Bridge runs as a dedicated microservice inside a Docker container on a Windows VM (or a Linux VM with a Windows VM accessible via the network). It communicates with the Algo Engine via gRPC for signal reception and execution confirmations, with the Database Layer via PostgreSQL for trade logging and position reconciliation, and with the MT5 terminal via the MetaTrader5 Python package over a local or network connection.
 
 ```
 +=====================================================================+
@@ -940,7 +940,7 @@ class ExecutionBridge:
 
 ### gRPC Server Interface
 
-The Bridge exposes a gRPC server that the AI Trading Brain connects to for sending trading signals and receiving execution confirmations. The gRPC service definition extends the basic signal service from Document 03 with execution-specific messages:
+The Bridge exposes a gRPC server that the Algo Engine connects to for sending trading signals and receiving execution confirmations. The gRPC service definition extends the basic signal service from Document 03 with execution-specific messages:
 
 ```protobuf
 syntax = "proto3";
@@ -4008,7 +4008,7 @@ async def config_listener(self):
 
 ## Summary
 
-The MetaTrader 5 Integration and Trade Execution Bridge is the most safety-critical component in the MONEYMAKER ecosystem. It stands at the boundary between the system's internal intelligence and the external financial markets, translating AI-generated signals into real broker orders with full validation, risk management, and audit trailing at every step.
+The MetaTrader 5 Integration and Trade Execution Bridge is the most safety-critical component in the MONEYMAKER ecosystem. It stands at the boundary between the system's internal intelligence and the external financial markets, translating algorithmic signals into real broker orders with full validation, risk management, and audit trailing at every step.
 
 The Bridge's architecture is built on five foundational pillars: safety (fail-safe defaults, idempotency, rate limiting, kill switch), reliability (automatic recovery, state reconciliation, position tracking), performance (sub-100ms execution latency, asyncio event loop, thread-safe MT5 access), observability (comprehensive metrics, slippage tracking, latency monitoring, execution quality scoring), and auditability (every action logged to the tamper-evident PostgreSQL audit trail).
 
