@@ -59,7 +59,7 @@ Questa analogia non e casuale: come in un ospedale vero, il sistema e progettato
 
 Il flusso e completamente asincrono e basato su messaggi ZMQ (ZeroMQ) in arrivo dal data ingestion service scritto in Go. Ogni messaggio multi-part contiene i dati OHLCV (Open, High, Low, Close, Volume) per un simbolo e un timeframe specifici. La pipeline elabora ciascuna barra attraverso fino a 24 passaggi distinti, molti dei quali condizionali o periodici, garantendo che il carico computazionale rimanga gestibile anche durante i periodi di massima attivita di mercato.
 
-La pipeline e inoltre progettata con il principio della **degradazione graziosa**: se un qualsiasi modulo opzionale non e disponibile -- che sia il modello ML, il knowledge base, o il calendario economico -- il sistema continua a funzionare, semplicemente scendendo a un livello inferiore della cascata decisionale. Questo garantisce che MONEYMAKER non si fermi mai completamente, anche in condizioni degradate.
+La pipeline e inoltre progettata con il principio della **degradazione graziosa**: se un qualsiasi modulo opzionale non e disponibile -- che sia il modello statistico, il knowledge base, o il calendario economico -- il sistema continua a funzionare, semplicemente scendendo a un livello inferiore della cascata decisionale. Questo garantisce che MONEYMAKER non si fermi mai completamente, anche in condizioni degradate.
 
 Un aspetto fondamentale dell'architettura e la separazione netta tra **decisione** e **esecuzione**. La pipeline di generazione segnali produce un oggetto `TradingSignal` completo di tutti i metadati necessari (prezzo di ingresso, stop-loss, take-profit, dimensione della posizione, confidenza, attribuzione causale), ma non esegue mai direttamente un ordine. L'esecuzione e delegata al MT5 Bridge attraverso una chiamata gRPC, mantenendo una separazione architetturale pulita tra il "cervello" che decide e il "braccio" che esegue.
 
@@ -114,7 +114,7 @@ flowchart TD
     S11["PASSO 11: Regime Classification<br/>RegimeEnsemble o RegimeClassifier"]
     S11 --> S12
 
-    S12["PASSO 12: Market Vectorization<br/>Vettore 60-dim per NN"]
+    S12["PASSO 12: Market Vectorization<br/>Vettore 60-dim per analisi"]
     S12 --> S13
 
     S13{{"PASSO 13: PERIODICO<br/>Ogni 10 barre<br/>Analysis Orchestration"}}
@@ -155,7 +155,7 @@ flowchart TD
     S23["PASSO 23: Trade Recording<br/>Portfolio + Performance"]
     S23 --> S24
 
-    S24{{"PASSO 24: PERIODICO<br/>Ogni 100 barre<br/>ML Lifecycle"}}
+    S24{{"PASSO 24: PERIODICO<br/>Ogni 100 barre<br/>Model Lifecycle"}}
     S24 --> END((Fine Barra))
 
     REC --> S23
@@ -190,17 +190,17 @@ flowchart TD
 
 **Passo 9 -- Feature Validation**: Dopo il calcolo, le feature vengono validate per assenza di valori NaN, Inf, o fuori range. Se una feature non supera la validazione, vengono utilizzate le feature dell'ultimo passo valido (con un contatore di stale che limita per quante barre consecutive e permesso usare valori vecchi).
 
-**Passo 10 -- Feature Drift Check (PERIODICO, ogni 100 barre)**: Il `DriftMonitor` (`feature_drift.py`) controlla se la distribuzione delle feature sta cambiando significativamente rispetto alla distribuzione di training. Utilizza il test di Kolmogorov-Smirnov e il Page-Hinkley test per rilevare drift graduale e brusco. Se il drift supera una soglia critica, il sistema puo declassare automaticamente il livello di maturita del modello.
+**Passo 10 -- Feature Drift Check (PERIODICO, ogni 100 barre)**: Il `DriftMonitor` (`feature_drift.py`) controlla se la distribuzione delle feature sta cambiando significativamente rispetto alla distribuzione di riferimento. Utilizza il test di Kolmogorov-Smirnov e il Page-Hinkley test per rilevare drift graduale e brusco. Se il drift supera una soglia critica, il sistema puo declassare automaticamente il livello di maturita del modello.
 
-**Passo 11 -- Regime Classification**: Il `RegimeEnsemble` (o `RegimeClassifier` se l'ensemble non e disponibile) classifica lo stato corrente del mercato in uno dei regimi fondamentali: TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE, o REVERSAL. La classificazione del regime e fondamentale perche determina quale esperto del Mixture-of-Experts riceve piu peso nella decisione finale. Il dettaglio dell'ensemble e descritto nel Capitolo 5.
+**Passo 11 -- Regime Classification**: Il `RegimeEnsemble` (o `RegimeClassifier` se l'ensemble non e disponibile) classifica lo stato corrente del mercato in uno dei regimi fondamentali: TRENDING_UP, TRENDING_DOWN, RANGING, VOLATILE, o REVERSAL. La classificazione del regime e fondamentale perche determina quale esperto del sistema multi-esperto riceve piu peso nella decisione finale. Il dettaglio dell'ensemble e descritto nel Capitolo 5.
 
-**Passo 12 -- Market Vectorization**: Il `MarketVectorizer` (`market_vectorizer.py`) comprime tutte le feature calcolate in un vettore denso a 60 dimensioni, normalizzato e pronto per essere consumato dalla rete neurale. Questo vettore e il "ritratto" numerico dello stato corrente del mercato, e costituisce l'input per il modello RAP Coach.
+**Passo 12 -- Market Vectorization**: Il `MarketVectorizer` (`market_vectorizer.py`) comprime tutte le feature calcolate in un vettore denso a 60 dimensioni, normalizzato e pronto per essere consumato dal modello statistico. Questo vettore e il "ritratto" numerico dello stato corrente del mercato, e costituisce l'input per il motore decisionale.
 
 **Passo 13 -- Analysis Orchestration (PERIODICO, ogni 10 barre)**: Il `MarketAnalysisOrchestrator` coordina analisi piu approfondite che non serve eseguire ad ogni barra: analisi della qualita dei segnali recenti, calcolo dei rendimenti del portafoglio, valutazione dell'efficienza del capitale, e aggiornamento del grafo di conoscenza di mercato. La periodicita di 10 barre (circa 50 minuti su M5) bilancia profondita analitica e carico computazionale.
 
 **Passo 14 -- Maturity Update (PERIODICO, ogni 50 barre)**: Il `TradingMaturityObservatory` aggiorna lo stato di maturita del modello ogni 50 barre (circa 4 ore su M5). Questo passaggio e descritto in dettaglio nel Capitolo 6. Lo stato di maturita determina il livello della cascata a cui il sistema opera e il moltiplicatore di dimensionamento delle posizioni.
 
-**Passo 15 -- Mode Selection e Recommendation (4-TIER CASCADE)**: Questo e il cuore decisionale della pipeline. Basandosi sullo stato di maturita, sulla disponibilita del modello ML, e sulla qualita dei dati, il sistema seleziona il livello appropriato della cascata a 4 livelli e produce una raccomandazione (BUY, SELL, o HOLD con confidenza). Il dettaglio della cascata e nel Capitolo 3.
+**Passo 15 -- Mode Selection e Recommendation (4-TIER CASCADE)**: Questo e il cuore decisionale della pipeline. Basandosi sullo stato di maturita, sulla disponibilita del modello statistico, e sulla qualita dei dati, il sistema seleziona il livello appropriato della cascata a 4 livelli e produce una raccomandazione (BUY, SELL, o HOLD con confidenza). Il dettaglio della cascata e nel Capitolo 3.
 
 **Passo 16 -- Strategy Attribution**: Dopo la raccomandazione, il sistema attribuisce la decisione a una strategia specifica (momentum, mean-reversion, statistical arbitrage, o defensive). Questa attribuzione e importante per il tracking delle performance per strategia e per il miglioramento continuo del modello.
 
@@ -218,37 +218,37 @@ flowchart TD
 
 **Passo 23 -- Trade Recording**: Indipendentemente dal risultato (segnale eseguito, rifiutato, o HOLD), la decisione viene registrata nel database (TimescaleDB) attraverso il modulo `portfolio.py` e il `PerformanceAnalyzer`. Questo crea un audit trail completo di ogni decisione del sistema, essenziale per l'analisi post-hoc e il miglioramento continuo.
 
-**Passo 24 -- ML Lifecycle (PERIODICO, ogni 100 barre)**: Il `MLLifecycleController` (`ml_lifecycle_controller.py`) gestisce il ciclo di vita del modello ML: verifica se e disponibile un nuovo checkpoint, controlla le metriche di performance del modello corrente, e puo triggerare un re-training se le performance degradano sotto soglie accettabili. Questo passaggio collega la pipeline di inferenza al ciclo di training descritto nel documento 04.
+**Passo 24 -- Model Lifecycle (PERIODICO, ogni 100 barre)**: Il `ModelLifecycleController` (`model_lifecycle_controller.py`) gestisce il ciclo di vita del modello statistico: verifica se e disponibile un nuovo checkpoint, controlla le metriche di performance del modello corrente, e puo triggerare una ricalibrazione se le performance degradano sotto soglie accettabili. Questo passaggio collega la pipeline di elaborazione al ciclo di calibrazione descritto nel documento 04.
 
 ---
 
 ## 3. Cascata a 4 Livelli (4-Tier Cascade)
 
-La cascata a 4 livelli e il meccanismo che garantisce che MONEYMAKER produca sempre una raccomandazione, indipendentemente dallo stato del modello ML o dalla disponibilita dei dati. Funziona come un sistema di fallback progressivo: il livello piu alto produce i segnali piu sofisticati e confidenti, mentre i livelli inferiori sono progressivamente piu conservativi.
+La cascata a 4 livelli e il meccanismo che garantisce che MONEYMAKER produca sempre una raccomandazione, indipendentemente dallo stato del modello statistico o dalla disponibilita dei dati. Funziona come un sistema di fallback progressivo: il livello piu alto produce i segnali piu sofisticati e confidenti, mentre i livelli inferiori sono progressivamente piu conservativi.
 
 ```mermaid
 flowchart TD
     START((Ingresso<br/>Cascata)) --> CHECK1
 
-    CHECK1{{"Maturita = MATURE/CONVICTION<br/>E modello ML caricato?"}}
+    CHECK1{{"Maturita = MATURE/CONVICTION<br/>E modello statistico caricato?"}}
     CHECK1 -->|SI| T1
 
-    subgraph TIER1 ["TIER 1 -- COPER (ML Completo)"]
+    subgraph TIER1 ["TIER 1 -- COPER (Statistico Completo)"]
         T1["1. Query TradeHistoryBank<br/>per esperienze simili"]
-        T1 --> T1B["2. ML Inference completa<br/>RAP Coach forward pass"]
-        T1B --> T1C["3. Fusione con Knowledge Base<br/>esperienze + ML"]
+        T1 --> T1B["2. Elaborazione statistica completa<br/>modello multi-esperto"]
+        T1B --> T1C["3. Fusione con Knowledge Base<br/>esperienze + modello"]
         T1C --> T1D["4. Output: BUY/SELL/HOLD<br/>Confidenza: 0.60-0.95"]
     end
 
     CHECK1 -->|NO| CHECK2
 
-    CHECK2{{"Maturita = LEARNING<br/>E modello ML disponibile?"}}
+    CHECK2{{"Maturita = LEARNING<br/>E modello statistico disponibile?"}}
     CHECK2 -->|SI| T2
 
-    subgraph TIER2 ["TIER 2 -- Hybrid (ML + Knowledge)"]
-        T2["1. ML Prediction<br/>(peso ridotto)"]
+    subgraph TIER2 ["TIER 2 -- Hybrid (Statistico + Knowledge)"]
+        T2["1. Predizione statistica<br/>(peso ridotto)"]
         T2 --> T2B["2. HybridSignalEngine<br/>calcola buy/sell/hold"]
-        T2B --> T2C["3. Knowledge Fusion<br/>media pesata ML + regole"]
+        T2B --> T2C["3. Knowledge Fusion<br/>media pesata modello + regole"]
         T2C --> T2D["4. Output: BUY/SELL/HOLD<br/>Confidenza: 0.45-0.75"]
     end
 
@@ -285,33 +285,33 @@ flowchart TD
 
 ### Tier 1 -- COPER (Confidence-Optimized Prediction with Experience Retrieval)
 
-**Condizioni di ingresso**: Il sistema deve trovarsi in stato di maturita MATURE o CONVICTION, E il modello ML (RAP Coach) deve essere caricato e funzionante. Queste sono le condizioni piu restrittive: il modello deve aver dimostrato stabilita e accuratezza predittiva per un periodo prolungato.
+**Condizioni di ingresso**: Il sistema deve trovarsi in stato di maturita MATURE o CONVICTION, E il modello statistico deve essere caricato e funzionante. Queste sono le condizioni piu restrittive: il modello deve aver dimostrato stabilita e accuratezza predittiva per un periodo prolungato.
 
 **Processo**:
 1. **Query TradeHistoryBank**: Il sistema cerca nel banco storico le esperienze di trading piu simili alla situazione corrente, utilizzando similarita coseno sul vettore di feature a 60 dimensioni. Le esperienze piu recenti e con risultato noto hanno peso maggiore.
-2. **ML Inference Completa**: Il vettore di mercato passa attraverso l'intero pipeline del RAP Coach: MarketPerception (128-dim) -> MarketMemory (256-dim hidden + 64-dim belief) -> MarketStrategy (4 esperti MoE -> 3 logits BUY/SELL/HOLD) -> softmax -> probabilita.
-3. **Knowledge Base Fusion**: Le probabilita ML vengono fuse con le esperienze storiche recuperate, utilizzando una media pesata dove il peso del ML e proporzionale al moltiplicatore di maturita (0.80 per CONVICTION, 1.00 per MATURE).
+2. **Elaborazione Statistica Completa**: Il vettore di mercato passa attraverso l'intero pipeline di elaborazione: MarketPerception (128-dim) -> MarketMemory (256-dim hidden + 64-dim belief) -> MarketStrategy (4 esperti -> 3 logits BUY/SELL/HOLD) -> softmax -> probabilita.
+3. **Knowledge Base Fusion**: Le probabilita del modello vengono fuse con le esperienze storiche recuperate, utilizzando una media pesata dove il peso del modello e proporzionale al moltiplicatore di maturita (0.80 per CONVICTION, 1.00 per MATURE).
 
 **Output**: Segnale BUY, SELL, o HOLD con confidenza nell'intervallo 0.60-0.95. Questa e la modalita con la massima precisione e la massima confidenza.
 
-**Trigger di fallback**: Se l'inferenza ML fallisce per qualsiasi motivo (errore di runtime, timeout, output anomalo), il sistema scende automaticamente al Tier 2.
+**Trigger di fallback**: Se l'elaborazione statistica fallisce per qualsiasi motivo (errore di runtime, timeout, output anomalo), il sistema scende automaticamente al Tier 2.
 
-### Tier 2 -- Hybrid (ML + Knowledge Fusion)
+### Tier 2 -- Hybrid (Statistico + Knowledge Fusion)
 
-**Condizioni di ingresso**: Maturita LEARNING (il modello sta ancora imparando) E un modello ML e disponibile (anche se non ancora completamente maturo).
+**Condizioni di ingresso**: Maturita LEARNING (il modello sta ancora imparando) E un modello statistico e disponibile (anche se non ancora completamente maturo).
 
 **Processo**:
-1. **ML Prediction con Peso Ridotto**: L'inferenza ML viene eseguita normalmente, ma il risultato riceve un peso ridotto (moltiplicatore 0.35 per LEARNING) nella decisione finale.
-2. **HybridSignalEngine**: Il motore ibrido (`hybrid_signal_engine.py`) combina la predizione ML con segnali derivati da regole tradizionali: incroci di medie mobili, divergenze RSI, breakout delle bande di Bollinger, e pattern di volume.
-3. **Knowledge Fusion**: La fusione media i segnali ML e quelli rule-based, con i pesi dinamicamente aggiustati in base alla performance recente di ciascuna componente.
+1. **Predizione Statistica con Peso Ridotto**: L'elaborazione statistica viene eseguita normalmente, ma il risultato riceve un peso ridotto (moltiplicatore 0.35 per LEARNING) nella decisione finale.
+2. **HybridSignalEngine**: Il motore ibrido (`hybrid_signal_engine.py`) combina la predizione statistica con segnali derivati da regole tradizionali: incroci di medie mobili, divergenze RSI, breakout delle bande di Bollinger, e pattern di volume.
+3. **Knowledge Fusion**: La fusione media i segnali del modello e quelli rule-based, con i pesi dinamicamente aggiustati in base alla performance recente di ciascuna componente.
 
 **Output**: Segnale con confidenza 0.45-0.75. Piu conservativo del Tier 1, ma comunque in grado di catturare opportunita significative.
 
-**Trigger di fallback**: Se il modello ML non e disponibile (non caricato, corrotto, o rimosso), il sistema scende al Tier 3.
+**Trigger di fallback**: Se il modello statistico non e disponibile (non caricato, corrotto, o rimosso), il sistema scende al Tier 3.
 
 ### Tier 3 -- Knowledge-Only (Solo Base di Conoscenza)
 
-**Condizioni di ingresso**: Nessun modello ML disponibile, MA la knowledge base contiene esperienze precedenti.
+**Condizioni di ingresso**: Nessun modello statistico disponibile, MA la knowledge base contiene esperienze precedenti.
 
 **Processo**:
 1. **Semantic Search**: Il sistema effettua una ricerca semantica nella knowledge base utilizzando il vettore di mercato corrente come query. Recupera le 10 esperienze piu simili con i loro risultati.
@@ -326,12 +326,12 @@ flowchart TD
 **Condizioni di ingresso**: Nessuna. Questo livello e SEMPRE disponibile come ultima risorsa.
 
 **Processo**:
-1. **RegimeRouter**: Il sistema utilizza solo la classificazione del regime corrente per determinare se ci sono condizioni favorevoli per un trade. In pratica, in assenza di ML e knowledge base, il sistema adotta un approccio ultra-conservativo.
+1. **RegimeRouter**: Il sistema utilizza solo la classificazione del regime corrente per determinare se ci sono condizioni favorevoli per un trade. In pratica, in assenza di modello e knowledge base, il sistema adotta un approccio ultra-conservativo.
 2. **Default HOLD**: Nella stragrande maggioranza dei casi, il Tier 4 produce un segnale HOLD con confidenza 0.30, ben al di sotto della soglia minima di validazione (tipicamente 0.65). Questo significa che il Tier 4 raramente produce segnali eseguibili.
 
 **Output**: Segnale HOLD con confidenza 0.30. Questo tier esiste per garantire che il sistema non si blocchi mai, anche se in pratica non produce operazioni.
 
-La bellezza di questo design e che il sistema si adatta automaticamente alle sue capacita: un sistema appena installato opera al Tier 4 (nessuna operazione), poi sale al Tier 3 quando accumula esperienze, al Tier 2 quando un modello viene addestrato, e infine al Tier 1 quando il modello raggiunge la maturita. Tutto questo senza intervento manuale.
+La bellezza di questo design e che il sistema si adatta automaticamente alle sue capacita: un sistema appena installato opera al Tier 4 (nessuna operazione), poi sale al Tier 3 quando accumula esperienze, al Tier 2 quando un modello viene calibrato, e infine al Tier 1 quando il modello raggiunge la maturita. Tutto questo senza intervento manuale.
 
 ---
 
@@ -361,7 +361,7 @@ graph LR
         M6[TradingModelManager]
         M7[MarketAnalysisOrchestrator]
         M8[TradingAdvisor]
-        M9[MLLifecycleController]
+        M9[ModelLifecycleController]
         M10[PerformanceAnalyzer]
     end
 
@@ -417,18 +417,18 @@ graph LR
 | 1 | **DataSanityChecker** | 3 | Verifica la plausibilita statistica dei dati OHLCV in ingresso. Cattura anomalie come gap di prezzo irrealistici, volumi impossibili, e timestamp fuori sequenza. | Disabilitato: dati non validati statisticamente, solo quality check strutturale. |
 | 2 | **MarketFeatureExtractor** | 1 | Calcola le 60+ feature tecniche dai dati OHLCV: indicatori (RSI, MACD, BB, ADX, ATR), rapporti di prezzo, z-score, e feature derivate. | Critico: senza feature non c'e analisi. |
 | 3 | **RegimeEnsemble** | 1 | Classifica il regime di mercato corrente usando un ensemble di 3 classificatori con voting a maggioranza e isteresi. | Fallback a RegimeClassifier singolo (solo rule-based). |
-| 4 | **DriftMonitor** | 8 | Monitora il drift delle feature rispetto alla distribuzione di training. Usa test KS e Page-Hinkley. | Disabilitato: nessun allarme drift, rischio di predizioni su dati out-of-distribution. |
+| 4 | **DriftMonitor** | 8 | Monitora il drift delle feature rispetto alla distribuzione di riferimento. Usa test KS e Page-Hinkley. | Disabilitato: nessun allarme drift, rischio di elaborazioni su dati out-of-distribution. |
 | 5 | **TradingMaturityObservatory** | 7 | Traccia la maturita del modello attraverso 5 segnali pesati. Governa il moltiplicatore di posizionamento e il livello della cascata. | Default: stato DOUBT, moltiplicatore 0.00, operativita Tier 4. |
-| 6 | **TradingModelManager** | 7 | Gestisce il caricamento, la validazione, e lo swap dei modelli ML. Supporta il versioning dei checkpoint. | Nessun modello: sistema opera in Tier 3 o 4. |
+| 6 | **TradingModelManager** | 7 | Gestisce il caricamento, la validazione, e lo swap dei modelli statistici. Supporta il versioning dei checkpoint. | Nessun modello: sistema opera in Tier 3 o 4. |
 | 7 | **MarketAnalysisOrchestrator** | 7 | Coordina le analisi periodiche: qualita segnali, rendimenti portafoglio, efficienza capitale, e aggiornamento knowledge graph. | Analisi periodiche disabilitate, decisioni basate solo su dati correnti. |
 | 8 | **TradingAdvisor** | 7 | Genera raccomandazioni di trading basate sull'analisi aggregata di tutti i moduli. Implementa la logica della cascata a 4 livelli. | Fallback a Tier 4 (solo regime). |
-| 9 | **MLLifecycleController** | 7 | Gestisce il ciclo di vita del modello: monitoraggio performance, trigger re-training, swap checkpoint. | Nessuna gestione automatica del lifecycle ML. |
+| 9 | **ModelLifecycleController** | 7 | Gestisce il ciclo di vita del modello: monitoraggio performance, trigger ricalibrazione, swap checkpoint. | Nessuna gestione automatica del lifecycle del modello. |
 | 10 | **PerformanceAnalyzer** | 7 | Calcola metriche di performance: Sharpe ratio, Sortino ratio, max drawdown, win rate, profit factor, e rendimenti per strategia. | Nessun tracking performance, impossibile ottimizzare. |
 | 11 | **PnLMomentumTracker** | 4 | Traccia il momentum del P&L (profit and loss) nel breve termine. Rileva sequenze di vittorie e perdite per aggiustare dinamicamente la dimensione delle posizioni. | Dimensione posizioni fissa, nessun aggiustamento dinamico. |
 | 12 | **StorageManager** | 9 | Gestisce la persistenza dei dati su TimescaleDB: salvataggio barre, feature, segnali, e trade. | Nessuna persistenza, dati persi al restart. |
 | 13 | **StateManager** | 9 | Gestisce lo stato in-memory dell'applicazione e la sua serializzazione per recovery dopo crash. | Nessun recovery, restart da zero. |
-| 14 | **HybridCoachingEngine** | 12 | Combina feedback ML e rule-based per migliorare le decisioni. Implementa la logica del Tier 2 della cascata. | Solo ML puro o solo regole, nessuna fusione. |
-| 15 | **ShadowEngine** | 13 | Motore di inferenza real-time. Esegue il forward pass del modello RAP Coach su ogni barra e produce predizioni con latenza minima. | HOLD con confidenza 0.0, nessuna inferenza ML. |
+| 14 | **HybridCoachingEngine** | 12 | Combina feedback statistico e rule-based per migliorare le decisioni. Implementa la logica del Tier 2 della cascata. | Solo modello puro o solo regole, nessuna fusione. |
+| 15 | **ShadowEngine** | 13 | Motore di elaborazione real-time. Esegue il forward pass del modello statistico su ogni barra e produce predizioni con latenza minima. | HOLD con confidenza 0.0, nessuna elaborazione statistica. |
 | 16 | **ReportGenerator** | 13 | Genera report periodici di performance, analisi delle decisioni, e dashboard per Grafana. | Nessun report automatico. |
 | 17 | **TradingAnalyticsEngine** | 13 | Analisi avanzate: decomposizione dei rendimenti per fattore, analisi delle correlazioni tra strategie, e stress testing. | Nessuna analisi avanzata. |
 | 18 | **LifecycleManager** | 14 | Gestisce il ciclo di vita dell'applicazione: startup, shutdown graceful, health checks, e recovery. | Startup/shutdown basici senza orchestrazione. |
@@ -439,7 +439,7 @@ graph LR
 
 ## 5. Rilevamento del Regime di Mercato
 
-Il rilevamento del regime di mercato e uno dei passaggi piu critici della pipeline perche determina quale esperto del Mixture-of-Experts riceve il peso maggiore nella decisione finale. MONEYMAKER utilizza un ensemble di tre classificatori indipendenti, ciascuno basato su un approccio diverso, le cui classificazioni vengono combinate attraverso un sistema di voting a maggioranza con isteresi.
+Il rilevamento del regime di mercato e uno dei passaggi piu critici della pipeline perche determina quale esperto del sistema multi-esperto riceve il peso maggiore nella decisione finale. MONEYMAKER utilizza un ensemble di tre classificatori indipendenti, ciascuno basato su un approccio diverso, le cui classificazioni vengono combinate attraverso un sistema di voting a maggioranza con isteresi.
 
 ```mermaid
 graph TD
@@ -511,13 +511,13 @@ Il **filtro di isteresi** previene il "flickering" -- il passaggio rapido e ripe
 
 ### I Quattro Regimi
 
-**TRENDING_UP**: Il mercato e in un trend rialzista confermato. Le strategie momentum long sono favorite, le strategie mean-reversion sono penalizzate. L'esperto MoE #0 (Trend Expert) riceve il peso maggiore. Stop-loss piu larghi per evitare di essere "shakeout" dai pullback normali.
+**TRENDING_UP**: Il mercato e in un trend rialzista confermato. Le strategie momentum long sono favorite, le strategie mean-reversion sono penalizzate. L'esperto #0 (Trend Expert) riceve il peso maggiore. Stop-loss piu larghi per evitare di essere "shakeout" dai pullback normali.
 
-**TRENDING_DOWN**: Il mercato e in un trend ribassista confermato. Le strategie momentum short sono favorite. L'esperto MoE #0 riceve il peso maggiore. Simmetrico al TRENDING_UP ma con asimmetrie nella gestione del rischio (i mercati scendono tipicamente piu velocemente di quanto salgano).
+**TRENDING_DOWN**: Il mercato e in un trend ribassista confermato. Le strategie momentum short sono favorite. L'esperto #0 riceve il peso maggiore. Simmetrico al TRENDING_UP ma con asimmetrie nella gestione del rischio (i mercati scendono tipicamente piu velocemente di quanto salgano).
 
-**RANGING**: Il mercato si muove lateralmente senza una direzione chiara. Le strategie mean-reversion sono favorite: comprare vicino al supporto, vendere vicino alla resistenza. L'esperto MoE #1 (Range Expert) e dominante. Stop-loss piu stretti, target piu modesti.
+**RANGING**: Il mercato si muove lateralmente senza una direzione chiara. Le strategie mean-reversion sono favorite: comprare vicino al supporto, vendere vicino alla resistenza. L'esperto #1 (Range Expert) e dominante. Stop-loss piu stretti, target piu modesti.
 
-**VOLATILE**: Il mercato mostra volatilita anormalmente alta. L'esperto MoE #2 (Volatile Expert) gestisce questa situazione con strategie conservative: dimensioni ridotte, stop-loss piu larghi basati su ATR, e soglia di confidenza piu alta per generare segnali. In condizioni estreme, l'esperto MoE #3 (Crisis Expert) subentra.
+**VOLATILE**: Il mercato mostra volatilita anormalmente alta. L'esperto #2 (Volatile Expert) gestisce questa situazione con strategie conservative: dimensioni ridotte, stop-loss piu larghi basati su ATR, e soglia di confidenza piu alta per generare segnali. In condizioni estreme, l'esperto #3 (Crisis Expert) subentra.
 
 ---
 
