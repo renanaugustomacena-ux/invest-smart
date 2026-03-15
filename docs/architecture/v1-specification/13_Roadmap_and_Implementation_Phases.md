@@ -27,7 +27,7 @@
 
 ### The Crawl, Walk, Run Approach
 
-This is the final document in the MONEYMAKER V1 Foundation Series. Twelve documents precede it, each describing a specific domain of the system in exhaustive technical detail: the architectural vision (Document 01), the Proxmox infrastructure (Document 02), the microservices communication patterns (Document 03), the data ingestion gateway (Document 04), the database architecture (Document 05), the ML training pipeline (Document 06), the AI Trading Brain (Document 07), the MT5 execution bridge (Document 08), the risk management service (Document 09), the monitoring and dashboard stack (Document 10), the testing strategy (Document 11), and the security framework (Document 12). Together, those twelve documents describe what MONEYMAKER is. This thirteenth document describes how to build it.
+This is the final document in the MONEYMAKER V1 Foundation Series. Twelve documents precede it, each describing a specific domain of the system in exhaustive technical detail: the architectural vision (Document 01), the Proxmox infrastructure (Document 02), the microservices communication patterns (Document 03), the data ingestion gateway (Document 04), the database architecture (Document 05), the MT5 execution bridge (Document 08), the risk management service (Document 09), the monitoring and dashboard stack (Document 10), the testing strategy (Document 11), and the security framework (Document 12). Together, those twelve documents describe what MONEYMAKER is. This thirteenth document describes how to build it.
 
 The roadmap follows a strict crawl-walk-run approach. The word "strict" is not rhetorical decoration. It means that no phase begins until the prior phase is complete and validated. It means that every phase delivers a working, testable, demonstrable increment of the system, not a pile of half-finished components that cannot be verified in isolation. It means that at the end of every phase, you can point to something that functions, run it, observe its behavior, and confirm that it meets its acceptance criteria before moving to the next layer of complexity.
 
@@ -132,7 +132,6 @@ The MONEYMAKER V1 infrastructure runs on a single bare-metal server. As describe
 |-----------|--------------|---------|
 | CPU | AMD Ryzen 9 7950X (16 cores / 32 threads) | All VM workloads, multi-service concurrency |
 | RAM | 128 GB DDR5-5600 (4x32 GB) | VM memory allocation across all services |
-| GPU | AMD Radeon RX 9070 XT (16 GB VRAM) | ML model training via ROCm/PyTorch |
 | Boot Drive | 1 TB NVMe (Samsung 990 Pro or equivalent) | Proxmox OS, VM images, ZFS metadata |
 | Data Drive | 2 TB NVMe (for ZFS data pool) | Database storage, model artifacts, logs |
 | UPS | 1000VA minimum (APC Back-UPS or equivalent) | Power protection for graceful shutdown |
@@ -151,7 +150,7 @@ The MONEYMAKER V1 infrastructure runs on a single bare-metal server. As describe
 - [ ] NVMe drives detected and healthy (check SMART data)
 - [ ] Thermal monitoring: idle temperatures below 45C for CPU, 40C for GPU
 
-If the hardware is already assembled and operational, this sub-phase is a verification step rather than a procurement step. Walk through the checklist regardless, because a misconfigured BIOS setting (IOMMU disabled, for example) will cause problems in Phase 2 when you attempt GPU passthrough for the ML Training VM.
+If the hardware is already assembled and operational, this sub-phase is a verification step rather than a procurement step. Walk through the checklist regardless, because a misconfigured BIOS setting can cause problems in later phases.
 
 ### 13.2.2 Proxmox VE Installation
 
@@ -175,7 +174,7 @@ Document 02 covers Proxmox installation and configuration in exhaustive detail. 
 5. Configure VLANs as Linux bridges per Document 02:
    - VLAN 10: Data Processing (data ingestion service)
    - VLAN 20: Data Storage (PostgreSQL, Redis)
-   - VLAN 30: ML Training (GPU VM)
+   - VLAN 30: Internal Services
    - VLAN 40: Trading Intelligence (Algo Engine, MT5 Bridge)
    - VLAN 50: Monitoring (Prometheus, Grafana)
 6. Configure basic Proxmox firewall rules (detailed hardening in Phase 5)
@@ -199,7 +198,7 @@ Before building any MONEYMAKER service, the development environment must be cons
 
 **Python Environment:**
 
-MONEYMAKER's Python services (Algo Engine, ML Training Lab, Risk Management, Dashboard) require Python 3.11 or later. The dependency manager is `uv` (preferred for its speed) or `poetry` as an alternative.
+MONEYMAKER's Python services (Algo Engine, Risk Management, Dashboard) require Python 3.11 or later. The dependency manager is `uv` (preferred for its speed) or `poetry` as an alternative.
 
 ```bash
 # Install uv (fast Python package manager)
@@ -583,25 +582,25 @@ At the end of Phase 1, MONEYMAKER has its sensory system. The database is fillin
 
 ---
 
-## 13.4 Phase 2 -- Intelligence: Feature Engineering and AI Models (Weeks 5-12)
+## 13.4 Phase 2 -- Intelligence: Feature Engineering and Statistical Models (Weeks 5-12)
 
-**Goal:** Build and train AI models that analyze market data and produce calibrated trading signals with confidence scores.
-**Theme:** Transform raw data into actionable intelligence through machine learning.
-**Documents Referenced:** Document 06 (AI/ML Training Infrastructure), Document 07 (AI Trading Brain), Document 05 (Database)
+**Goal:** Build statistical models that analyze market data and produce calibrated trading signals with confidence scores.
+**Theme:** Transform raw data into actionable intelligence through quantitative analysis.
+**Documents Referenced:** Document 05 (Database)
 
 ### Phase 2 Timeline
 
 ```
 Week 5-6      Week 7-8      Week 9-10     Week 11-12
-[Feature Eng] [Tree Models ] [Deep Learn ] [Ensemble   ]
-[Frac Diff  ] [LightGBM   ] [GPU Setup  ] [Confidence ]
-[Labeling   ] [XGBoost    ] [Transformer] [Fallback   ]
-[Selection  ] [Walk-Fwd   ] [BiLSTM/CNN ] [Calibration]
+[Feature Eng] [Tree Models ] [Advanced   ] [Ensemble   ]
+[Frac Diff  ] [LightGBM   ] [Strategies ] [Confidence ]
+[Labeling   ] [XGBoost    ] [Regime Rout] [Fallback   ]
+[Selection  ] [Walk-Fwd   ] [Validation ] [Calibration]
 ```
 
 ### Week 5-6: Feature Engineering Pipeline
 
-The feature engineering pipeline transforms raw OHLCV data into a rich feature space that captures the multi-dimensional structure of market behavior. This is the domain of Document 07, Section 3 (Real-Time Feature Engineering) and Document 06, Section 3 (Feature Engineering Pipeline).
+The feature engineering pipeline transforms raw OHLCV data into a rich feature space that captures the multi-dimensional structure of market behavior. This is a critical component of the Algo Engine's signal generation pipeline.
 
 **Implement Full Feature Engineering:**
 
@@ -650,7 +649,7 @@ Expand the basic indicators from Phase 1 into the complete 40+ feature set descr
 
 **Fractional Differencing for Stationarity:**
 
-As described in Document 06, Section 3 and referenced from Marcos Lopez de Prado's methodology, apply fractional differencing to price series to achieve stationarity while preserving memory. The differencing parameter d is in the range [0.35, 0.55], determined by the minimum value that passes the Augmented Dickey-Fuller test at the 95% confidence level. This is a critical preprocessing step: ML models struggle with non-stationary data, but integer differencing (d=1) destroys the memory structure that contains predictive information.
+As described in Document 06, Section 3 and referenced from Marcos Lopez de Prado's methodology, apply fractional differencing to price series to achieve stationarity while preserving memory. The differencing parameter d is in the range [0.35, 0.55], determined by the minimum value that passes the Augmented Dickey-Fuller test at the 95% confidence level. This is a critical preprocessing step: statistical models struggle with non-stationary data, but integer differencing (d=1) destroys the memory structure that contains predictive information.
 
 ```python
 def fractional_diff(series, d, threshold=1e-5):
@@ -670,7 +669,7 @@ def fractional_diff(series, d, threshold=1e-5):
 - Z-score normalization using rolling statistics (window = 252 trading days)
 - Robust scaling for features with outliers (using median and IQR instead of mean and std)
 - Clip extreme values at +/- 5 standard deviations
-- Store scaler parameters alongside model artifacts for inference consistency
+- Store scaler parameters alongside model artifacts for consistency
 
 **Feature Selection:**
 
@@ -683,7 +682,7 @@ Not all 40+ features are equally informative. Apply feature selection techniques
 
 **Triple Barrier Labeling:**
 
-As described in Document 06, Section 4, implement the Triple Barrier labeling method for generating training targets. For each bar, define three barriers:
+Implement the Triple Barrier labeling method for generating training targets. For each bar, define three barriers:
 
 1. **Upper barrier (take profit):** Price reaches ATR * multiplier above entry
 2. **Lower barrier (stop loss):** Price reaches ATR * multiplier below entry
@@ -695,7 +694,7 @@ The label is determined by which barrier is touched first:
 - Lower barrier first: SELL (-1)
 - Time barrier first: HOLD (0) or assigned based on unrealized P&L at expiry
 
-This labeling approach, borrowed from "Advances in Financial Machine Learning," is superior to simple future-return labeling because it accounts for the path-dependence of trading outcomes. A bar that eventually reaches the profit target but first triggers the stop loss is labeled differently than one that moves directly to profit.
+This labeling approach, borrowed from quantitative finance literature, is superior to simple future-return labeling because it accounts for the path-dependence of trading outcomes. A bar that eventually reaches the profit target but first triggers the stop loss is labeled differently than one that moves directly to profit.
 
 **Validation Criteria -- Week 5-6:**
 
@@ -710,11 +709,11 @@ This labeling approach, borrowed from "Advances in Financial Machine Learning," 
 
 ### Week 7-8: ML Model Development -- Tree-Based Models
 
-Start with the simpler, more interpretable models before moving to deep learning. This follows the "make it work, make it right, make it fast" principle: tree-based models train quickly, are easy to debug, and provide strong baselines.
+Start with interpretable tree-based models. This follows the "make it work, make it right, make it fast" principle: tree-based models train quickly, are easy to debug, and provide strong baselines.
 
 **LightGBM and XGBoost:**
 
-As described in Document 06, Section 5, train gradient-boosted tree models:
+Train gradient-boosted tree models:
 
 ```python
 import lightgbm as lgb
@@ -747,7 +746,7 @@ lgb_params = {
 
 **Walk-Forward Validation:**
 
-As specified in Document 06, Section 6, implement walk-forward validation instead of simple train/test split or k-fold cross-validation. Walk-forward validation respects the temporal ordering of financial data:
+Implement walk-forward validation instead of simple train/test split or k-fold cross-validation. Walk-forward validation respects the temporal ordering of financial data:
 
 ```
 Window 1: Train [Jan 2023 - Dec 2023]  Test [Jan 2024 - Mar 2024]
@@ -761,7 +760,7 @@ Aggregate performance across all test windows. If the model shows positive perfo
 
 **Hyperparameter Optimization:**
 
-Use Optuna for Bayesian hyperparameter optimization, as described in Document 06, Section 6:
+Use Optuna for Bayesian hyperparameter optimization:
 
 ```python
 import optuna
@@ -785,7 +784,7 @@ study.optimize(objective, n_trials=200)
 
 **Model Versioning:**
 
-Store every trained model with its metadata in the model registry table (Document 05, Section 3.3):
+Store every trained model with its metadata in the strategy registry:
 
 - Model architecture and hyperparameters
 - Training data window (start date, end date)
@@ -804,92 +803,44 @@ Store every trained model with its metadata in the model registry table (Documen
 - [ ] Feature importance analysis completed
 - [ ] Overfitting check: training performance vs validation performance gap < 20%
 
-### Week 9-10: ML Model Development -- Deep Learning
+### Week 9-10: Advanced Strategy Development and Regime Routing
 
-With tree-based baselines established, build the deep learning models that can capture sequential patterns and complex non-linear relationships in market data.
+With tree-based baselines established, build advanced rule-based strategies that leverage regime classification and multi-timeframe analysis.
 
-**GPU Passthrough Setup:**
+**Regime-Aware Strategy Routing:**
 
-Configure VFIO passthrough for the AMD RX 9070 XT GPU on the ML Training VM, as specified in Document 06, Section 2 and Document 02 (Infrastructure). This requires:
+Implement strategy routing based on detected market regime. Different strategies perform better in different market conditions:
 
-1. IOMMU enabled in BIOS (verified in Phase 0)
-2. VFIO drivers loaded in Proxmox kernel
-3. GPU PCI device passed through to ML Training VM
-4. ROCm 6.3 installed in the VM (Document 06, Section 2.1)
-5. PyTorch installed with ROCm backend
+- **Trending regime:** Trend-following strategies (moving average crossovers, breakout detection)
+- **Mean-reverting regime:** Mean-reversion strategies (Bollinger Band reversals, RSI extremes)
+- **High-volatility regime:** Conservative strategies with wider stops and smaller positions
+- **Low-volatility regime:** Range-trading strategies with tighter parameters
 
-```bash
-# Verify GPU is visible in VM
-rocminfo | grep gfx
-# Expected: Name: gfx1201
+**Multi-Timeframe Confluence:**
 
-# Verify PyTorch can see GPU
-python -c "import torch; print(torch.cuda.is_available())"
-# Expected: True (ROCm uses CUDA-compatible API)
-```
+Build strategies that confirm signals across multiple timeframes:
 
-**Note on RDNA 4 compatibility:** As documented in Document 06, Section 2.1, the RX 9070 XT (gfx1201) may require environment variable overrides:
+- M15 for entry timing
+- H1 for trend direction
+- H4 for major support/resistance levels
+- Require agreement across at least 2 timeframes before emitting a signal
 
-```bash
-export HSA_OVERRIDE_GFX_VERSION=11.0.0
-export PYTORCH_ROCM_ARCH=gfx1100
-```
+**COPER Experience Bank:**
 
-**Transformer Encoder Model (XAUTransformer):**
+Implement the COPER (Contextual Pattern Experience Repository) system:
 
-Implement the Transformer architecture described in Document 06, Section 5 and Document 07, Section 5. This model processes sequences of feature vectors (e.g., the last 60 M15 bars with their 30 features each) and produces trading signal probabilities.
-
-Architecture (from Document 06):
-
-- Input: sequence of 60 timesteps x 30 features
-- Positional encoding (sinusoidal)
-- 4 Transformer encoder layers with 8 attention heads
-- Hidden dimension: 128
-- Feedforward dimension: 512
-- Dropout: 0.1
-- Output: 3-class softmax (BUY, HOLD, SELL) + confidence score
-
-**BiLSTM Model:**
-
-Implement a Bidirectional LSTM for sequence modeling, capturing both forward and backward temporal dependencies:
-
-- 2 BiLSTM layers with 128 hidden units
-- Attention mechanism over LSTM outputs
-- Dropout: 0.2
-- Output: same 3-class structure
-
-**Dilated CNN Model:**
-
-Implement a dilated convolutional network for multi-scale pattern detection:
-
-- 4 dilated convolution layers with dilation rates [1, 2, 4, 8]
-- Kernel size: 3
-- Channels: 64
-- Residual connections
-- Global average pooling
-- Output: same 3-class structure
-
-**Training Pipeline:**
-
-For each deep learning model, implement:
-
-1. Data loading: custom PyTorch Dataset and DataLoader with proper temporal batching
-2. Training loop with learning rate scheduling (cosine annealing)
-3. Gradient clipping (max norm 1.0)
-4. Early stopping on validation loss
-5. Checkpoint saving (best model by validation Sharpe)
-6. TensorBoard logging for training curves (Document 06, Section 9)
+- Store market state vectors alongside their outcomes
+- Use cosine similarity to find historically similar market states
+- Weight recent experiences more heavily than old ones
+- Require minimum confidence threshold before using historical patterns
 
 **Validation Criteria -- Week 9-10:**
 
-- [ ] GPU passthrough working (ROCm detects the RX 9070 XT)
-- [ ] PyTorch training runs on GPU (verify with nvidia-smi equivalent: rocm-smi)
-- [ ] Transformer model trains and converges (loss decreasing over epochs)
-- [ ] BiLSTM model trains and converges
-- [ ] Dilated CNN model trains and converges
-- [ ] All models produce meaningful predictions (not random, not constant)
-- [ ] Training time per epoch is reasonable (< 10 minutes for initial dataset)
-- [ ] TensorBoard showing training curves for all models
+- [ ] Regime-aware routing implemented and tested
+- [ ] Multi-timeframe confluence producing filtered signals
+- [ ] COPER experience bank storing and retrieving patterns
+- [ ] Strategies produce meaningful signals (not random, not constant)
+- [ ] Walk-forward validation shows positive expectancy across regimes
 
 ### Week 11-12: Ensemble and Confidence System
 
@@ -897,14 +848,13 @@ Individual models have strengths and weaknesses. The ensemble combines them to p
 
 **Ensemble Architecture:**
 
-As described in Document 06, Section 7 and Document 07, Section 5, the ensemble combines tree-based and deep learning predictions:
+The ensemble combines multiple rule-based and statistical model predictions:
 
 ```
-LightGBM -----> [weight: 0.25]
-XGBoost  -----> [weight: 0.20]  ---> Weighted Average ---> Final Signal
-Transformer --> [weight: 0.30]
-BiLSTM -------> [weight: 0.15]
-Dilated CNN --> [weight: 0.10]
+LightGBM -----> [weight: 0.30]
+XGBoost  -----> [weight: 0.25]  ---> Weighted Average ---> Final Signal
+COPER --------> [weight: 0.25]
+Technical ----> [weight: 0.20]
 ```
 
 Weights are determined by each model's walk-forward validation Sharpe ratio, normalized to sum to 1.0. Models with negative out-of-sample Sharpe are excluded from the ensemble (weight set to 0).
@@ -1227,7 +1177,7 @@ Data Ingestion (Go, VLAN 10)
     |
     | ZeroMQ PUB/SUB (real-time data stream)
     v
-AI Trading Brain (Python, VLAN 40)
+Algo Engine (Python, VLAN 40)
     |
     | gRPC (trade proposal with confidence)
     v
@@ -1363,11 +1313,11 @@ moneymaker_drawdown_current
 moneymaker_drawdown_max
 
 # Algo Engine Health
-moneymaker_ai_confidence_histogram
-moneymaker_ai_predictions_total{direction}
-moneymaker_ai_regime_current{regime}
-moneymaker_ai_model_inference_duration_seconds
-moneymaker_ai_fallback_tier_used{tier}
+moneymaker_algo_confidence_histogram
+moneymaker_algo_predictions_total{direction}
+moneymaker_algo_regime_current{regime}
+moneymaker_algo_signal_duration_seconds
+moneymaker_algo_fallback_tier_used{tier}
 
 # Risk Management
 moneymaker_risk_circuit_breaker_status{level}
@@ -1385,7 +1335,7 @@ Create four primary dashboards, each aligned with a domain of concern from Docum
 
 2. **Trading Performance Dashboard:** Equity curve, daily P&L, win rate, Sharpe ratio, open positions, recent trade history, cumulative return.
 
-3. **AI Health Dashboard:** Confidence score distribution, predictions per hour, regime classification timeline, model inference latency, fallback tier usage, model drift indicators.
+3. **Algo Engine Dashboard:** Confidence score distribution, predictions per hour, regime classification timeline, signal generation latency, fallback tier usage, drift indicators.
 
 4. **Risk Status Dashboard:** Circuit breaker status (green/amber/red), current drawdown vs thresholds, margin utilization gauge, exposure heatmap by symbol, consecutive loss counter, kill switch status.
 
@@ -1486,7 +1436,7 @@ Default policy: DROP ALL on all VLANs. Then explicitly allow only the traffic th
 ```
 VLAN 10 (Data Ingestion) -> VLAN 20 (Database): TCP 5432, 6379    ALLOW
 VLAN 10 (Data Ingestion) -> Internet: TCP 443 (WSS/HTTPS)         ALLOW
-VLAN 30 (ML Training)    -> VLAN 20 (Database): TCP 5432          ALLOW
+VLAN 30 (Internal)       -> VLAN 20 (Database): TCP 5432          ALLOW
 VLAN 40 (Trading)        -> VLAN 20 (Database): TCP 5432, 6379    ALLOW
 VLAN 40 (Trading)        -> VLAN 10 (Data): TCP 5555 (ZeroMQ)     ALLOW
 VLAN 40 (Trading)        -> Internet: TCP 443 (broker connection)  ALLOW
@@ -1793,17 +1743,11 @@ MONEYMAKER V1 is not a product that is built once and left to run indefinitely. 
 - Statistical arbitrage on correlated pairs
 - Latency-optimized execution for arbitrage opportunities
 
-**Graph Neural Networks:**
+**Graph-Based Correlation Analysis:**
 
 - Model market microstructure as a graph
 - Assets as nodes, correlations as edges
-- GNN learns structural relationships that change over time
-
-**Federated Learning:**
-
-- Privacy-preserving model improvement
-- Share model updates without sharing raw data
-- Potential collaboration with other MONEYMAKER operators
+- Detect structural relationships that change over time
 
 **Self-Optimizing Hyperparameters:**
 
@@ -1902,7 +1846,7 @@ These are the performance metrics that determine whether MONEYMAKER is achieving
 |-----|--------|-------------|----------|
 | Order Execution Latency | < 500ms | Median, from signal to fill confirmation | > 2 seconds median |
 | Data Freshness | < 2 seconds | Age of most recent tick in cache | > 10 seconds |
-| Model Inference Time | < 100ms | Time for Algo Engine to produce signal from features | > 500ms |
+| Signal Generation Time | < 100ms | Time for Algo Engine to produce signal from features | > 500ms |
 | Zero Data Loss | 0 ticks dropped | Comparison with exchange records | Any confirmed data loss |
 | Backup Success Rate | 100% | Automated backup completion | Any failed backup |
 | Backup Restore Test | Pass | Quarterly restore drill | Failed restore |
@@ -1929,7 +1873,6 @@ These are the performance metrics that determine whether MONEYMAKER is achieving
 |------|---------------------|-------|
 | AMD Ryzen 9 7950X | ~550 | 16-core processor |
 | 128 GB DDR5-5600 (4x32 GB) | ~350 | High-capacity memory |
-| AMD Radeon RX 9070 XT | ~600 | ML training GPU |
 | 1 TB NVMe (boot) | ~100 | Samsung 990 Pro or equivalent |
 | 2 TB NVMe (data) | ~150 | For ZFS data pool |
 | Motherboard (AM5, ATX) | ~250 | With good IOMMU support |
@@ -1959,7 +1902,7 @@ These are the performance metrics that determine whether MONEYMAKER is achieving
 | PostgreSQL + TimescaleDB | Free (open source) | Community edition |
 | Redis | Free (open source) | Community edition |
 | Prometheus + Grafana | Free (open source) | Grafana OSS |
-| Python + all ML libraries | Free (open source) | PyTorch, scikit-learn, etc. |
+| Python + libraries | Free (open source) | scikit-learn, LightGBM, etc. |
 | Go | Free (open source) | Go compiler and tools |
 | MetaTrader 5 | Free | Provided by broker |
 | HashiCorp Vault | Free (open source) | Community edition |
@@ -2041,8 +1984,6 @@ Doc 01 (Vision) -----------> Foundation for everything
 | 03 | Microservices Architecture and Communication | Communication | Service decomposition, gRPC, ZeroMQ, Redis pub/sub, message formats, resilience |
 | 04 | Data Ingestion and Real-Time Market Data Service | Data | Go gateway, WebSocket management, exchange adapters, normalization, distribution |
 | 05 | Database Architecture and Time-Series Storage | Storage | PostgreSQL, TimescaleDB, Redis, schema design, hypertables, backup strategy |
-| 06 | AI/ML Training Infrastructure and Pipeline | ML Training | ROCm/GPU setup, feature engineering, Triple Barrier labeling, model architectures, walk-forward validation |
-| 07 | AI Trading Brain: The Intelligence Layer | Trading Logic | Real-time inference, regime classification, confidence gating, 4-tier fallback, COPER |
 | 08 | MetaTrader 5 Execution Bridge | Execution | Windows VM, MT5 Python API, order management, position tracking, execution quality |
 | 09 | Risk Management Service | Safety | Circuit breakers, position sizing (half-Kelly), kill switch, exposure limits, spiral protection |
 | 10 | Monitoring and Dashboard | Observability | Prometheus, Grafana, Alertmanager, Telegram, Streamlit dashboard, Loki logs |
@@ -2086,9 +2027,9 @@ Follow the phase order defined in this roadmap:
 
 You have now read thirteen documents that together describe, in exhaustive detail, every component, every decision, every protocol, and every safeguard of the MONEYMAKER V1 autonomous trading ecosystem. Document 01 established the vision: a system of cooperating, specialized services that together form an intelligence capable of observing financial markets, reasoning about their behavior, making probabilistic trading decisions, and executing those decisions with discipline that no human can sustain. Document 02 described the physical and virtual infrastructure on which this system lives. Documents 03 through 10 described each service in the ecosystem, from the Go-based data ingestion gateway to the Prometheus-powered monitoring stack. Documents 11 and 12 described how the system is tested and secured. And this document -- Document 13 -- has described how to build it all, phase by phase, from an empty server to a live trading operation.
 
-The scope of this project is significant. Building MONEYMAKER V1 is not a weekend project. It is not a "download a bot and start trading" exercise. It is a genuine engineering endeavor that spans infrastructure, networking, database design, distributed systems, machine learning, financial engineering, risk management, security, monitoring, and testing. It requires proficiency across multiple programming languages (Python, Go, SQL), multiple paradigms (machine learning, event-driven systems, request-response services), and multiple domains (software engineering, quantitative finance, system administration).
+The scope of this project is significant. Building MONEYMAKER V1 is not a weekend project. It is not a "download a bot and start trading" exercise. It is a genuine engineering endeavor that spans infrastructure, networking, database design, distributed systems, machine learning, financial engineering, risk management, security, monitoring, and testing. It requires proficiency across multiple programming languages (Python, Go, SQL), multiple paradigms (event-driven systems, request-response services, quantitative analysis), and multiple domains (software engineering, quantitative finance, system administration).
 
-But the scope is also bounded. MONEYMAKER V1 is a finite, achievable system. Every component described in these documents has been implemented successfully by others -- there is no novel research required, no unsolved problems to crack. PostgreSQL is a mature database. TimescaleDB is a production-ready extension. PyTorch is a battle-tested ML framework. MetaTrader 5 is the most widely used retail trading platform. Prometheus and Grafana are industry standards. The innovation in MONEYMAKER is not in any individual component; it is in the integration -- the way these components are connected, coordinated, and orchestrated to form a coherent autonomous trading intelligence.
+But the scope is also bounded. MONEYMAKER V1 is a finite, achievable system. Every component described in these documents has been implemented successfully by others -- there is no novel research required, no unsolved problems to crack. PostgreSQL is a mature database. TimescaleDB is a production-ready extension. MetaTrader 5 is the most widely used retail trading platform. Prometheus and Grafana are industry standards. The innovation in MONEYMAKER is not in any individual component; it is in the integration -- the way these components are connected, coordinated, and orchestrated to form a coherent autonomous trading system.
 
 ### The Importance of Patience and Discipline
 
@@ -2104,17 +2045,17 @@ Each block can be built independently, tested independently, and validated indep
 
 ### The System Will Grow and Improve Over Time
 
-MONEYMAKER V1 is the foundation, not the final form. The "V1" in the name is intentional. It acknowledges that this is the first version of a system that will evolve over years. The feature backlog in Section 13.9 hints at the trajectory: reinforcement learning agents, news sentiment analysis, multi-strategy orchestration, cross-exchange arbitrage, graph neural networks. None of these enhancements are possible without a solid V1 foundation. All of them become straightforward additions once the foundation exists.
+MONEYMAKER V1 is the foundation, not the final form. The "V1" in the name is intentional. It acknowledges that this is the first version of a system that will evolve over years. The feature backlog in Section 13.9 hints at the trajectory: news sentiment analysis, multi-strategy orchestration, cross-exchange arbitrage, graph-based correlation analysis. None of these enhancements are possible without a solid V1 foundation. All of them become straightforward additions once the foundation exists.
 
-The architecture was designed for evolution. Adding a new data source means implementing one adapter interface. Adding a new model architecture means training it and registering it in the model registry. Adding a new strategy means implementing the strategy interface and registering it with the regime router. The microservices boundaries, the communication protocols, the database schema, the monitoring infrastructure -- all of these are designed to accommodate growth without requiring wholesale redesign.
+The architecture was designed for evolution. Adding a new data source means implementing one adapter interface. Adding a new strategy means calibrating it and registering it in the strategy registry. Adding a new strategy means implementing the strategy interface and registering it with the regime router. The microservices boundaries, the communication protocols, the database schema, the monitoring infrastructure -- all of these are designed to accommodate growth without requiring wholesale redesign.
 
 ### The First Step
 
 The roadmap is defined. The phases are clear. The milestones are concrete. The risks are identified. The mitigations are planned. The budget is estimated. The cross-references are mapped. The success criteria are quantified.
 
-The first step is Phase 0: ensure the hardware is assembled, Proxmox is installed, the development environment is configured, and all accounts are created. This is the least glamorous phase. There are no AI models, no trading signals, no equity curves. There is only a server booting up, a hypervisor loading, a ZFS pool initializing, and a Python interpreter confirming its version. But this is the foundation. Everything that comes after -- the intelligence, the execution, the profits, the evolution -- rests on this foundation.
+The first step is Phase 0: ensure the hardware is assembled, Proxmox is installed, the development environment is configured, and all accounts are created. This is the least glamorous phase. There are no trading signals, no equity curves. There is only a server booting up, a hypervisor loading, a ZFS pool initializing, and a Python interpreter confirming its version. But this is the foundation. Everything that comes after -- the intelligence, the execution, the profits, the evolution -- rests on this foundation.
 
-Begin Phase 0. Complete it with the same rigor and attention to detail that you will apply to the AI models and the risk management systems. Then begin Phase 1. Then Phase 2. Block by block. Phase by phase. Crawl, walk, run.
+Begin Phase 0. Complete it with the same rigor and attention to detail that you will apply to the trading strategies and the risk management systems. Then begin Phase 1. Then Phase 2. Block by block. Phase by phase. Crawl, walk, run.
 
 MONEYMAKER awakens one phase at a time.
 
