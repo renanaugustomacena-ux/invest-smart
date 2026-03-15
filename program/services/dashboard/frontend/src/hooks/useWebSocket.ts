@@ -17,6 +17,7 @@ export function useWebSocket<T>(
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const onMessageRef = useRef(onMessage);
+  const connectRef = useRef<() => void>(() => {});
   const [connected, setConnected] = useState(false);
 
   // Keep callback ref up-to-date without re-connecting
@@ -51,7 +52,7 @@ export function useWebSocket<T>(
       setConnected(false);
       reconnectTimer.current = setTimeout(() => {
         reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30_000);
-        connect();
+        connectRef.current();
       }, reconnectDelay.current);
     };
 
@@ -61,6 +62,10 @@ export function useWebSocket<T>(
 
     wsRef.current = ws;
   }, [path, enabled]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -12,7 +12,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { fetchApi } from '../api/client';
 import { useTradingStore } from '../store/tradingStore';
 import { useSystemStore } from '../store/systemStore';
-import type { SystemStatus } from '../api/types';
+import type { SystemStatus, ServiceHealth, OverviewResponse } from '../api/types';
 
 interface WsOverviewPayload {
   type: string;
@@ -32,8 +32,8 @@ interface WsOverviewPayload {
 export default function OverviewPage() {
   const { overview, setOverview, setWsConnected } = useTradingStore();
   const { setStatus } = useSystemStore();
-  const [services, setServices] = useState<any[]>([]);
-  const [recentSignals, setRecentSignals] = useState<any[]>([]);
+  const [services, setServices] = useState<ServiceHealth[]>([]);
+  const [recentSignals, setRecentSignals] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   // WebSocket overview stream
@@ -56,7 +56,7 @@ export default function OverviewPage() {
       try {
         const [health, overview] = await Promise.all([
           fetchApi<SystemStatus>('/api/system/health'),
-          fetchApi<any>('/api/overview'),
+          fetchApi<OverviewResponse>('/api/overview'),
         ]);
         setStatus(health);
         setServices(overview?.services ?? []);

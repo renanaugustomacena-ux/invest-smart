@@ -8,7 +8,7 @@ export async function fetchApi<T>(path: string): Promise<T> {
   return res.json();
 }
 
-export function createWebSocket(path: string, onMessage: (data: any) => void): WebSocket {
+export function createWebSocket(path: string, onMessage: (data: unknown) => void): WebSocket {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.host}${path}`;
   const ws = new WebSocket(wsUrl);

@@ -44,9 +44,9 @@ export default function LogsPage() {
   }, [paused]);
 
   // Subscribe to the overview stream and translate state changes into log entries
-  const onMessage = useCallback((msg: any) => {
+  const onMessage = useCallback((msg: Record<string, unknown>) => {
     if (msg?.type === 'overview' && msg.data) {
-      const d = msg.data;
+      const d = msg.data as Record<string, unknown>;
       const ts = new Date().toISOString();
       addLog({ timestamp: ts, level: 'INFO', source: 'overview', message: `KPIs updated — PnL: ${d.daily_pnl} | Positions: ${d.open_positions} | Regime: ${d.regime ?? 'n/a'}` });
       if (d.kill_switch_active) {
@@ -54,7 +54,8 @@ export default function LogsPage() {
       }
     }
     if (msg?.type === 'error') {
-      addLog({ timestamp: new Date().toISOString(), level: 'WARN', source: 'websocket', message: msg.data?.message ?? 'WebSocket error' });
+      const errData = msg.data as Record<string, unknown> | undefined;
+      addLog({ timestamp: new Date().toISOString(), level: 'WARN', source: 'websocket', message: (errData?.message as string) ?? 'WebSocket error' });
     }
   }, [addLog]);
 

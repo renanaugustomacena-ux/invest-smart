@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createChart, CandlestickSeries, type IChartApi, type CandlestickData, type Time } from 'lightweight-charts';
 import { fetchApi } from '../api/client';
+import type { OHLCVBar } from '../api/types';
 
 export default function MarketDataPage() {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -12,8 +13,8 @@ export default function MarketDataPage() {
   useEffect(() => {
     fetchApi<{ symbols: string[] }>('/api/market/symbols').then((res) => {
       setSymbols(res.symbols);
-      if (res.symbols.length > 0 && !selectedSymbol) {
-        setSelectedSymbol(res.symbols[0]);
+      if (res.symbols.length > 0) {
+        setSelectedSymbol(prev => prev || res.symbols[0]);
       }
     }).catch(() => {});
   }, []);
@@ -51,9 +52,9 @@ export default function MarketDataPage() {
       wickDownColor: '#ef4444',
     });
 
-    fetchApi<{ bars: any[] }>(`/api/market/bars?symbol=${selectedSymbol}&timeframe=${timeframe}&limit=500`)
+    fetchApi<{ bars: OHLCVBar[] }>(`/api/market/bars?symbol=${selectedSymbol}&timeframe=${timeframe}&limit=500`)
       .then((res) => {
-        const data: CandlestickData<Time>[] = res.bars.map((b: any) => ({
+        const data: CandlestickData<Time>[] = res.bars.map((b: OHLCVBar) => ({
           time: (new Date(b.time).getTime() / 1000) as Time,
           open: parseFloat(b.open),
           high: parseFloat(b.high),

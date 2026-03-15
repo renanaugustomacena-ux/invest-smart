@@ -11,7 +11,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export default function DataTable<T extends Record<string, any>>({
+export default function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   emptyMessage = 'No data available',

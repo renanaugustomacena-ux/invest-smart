@@ -7,6 +7,29 @@ import { SkeletonCard } from '../components/common/Skeleton';
 import { fetchApi } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
+interface TooltipPayload {
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].value;
+  return (
+    <div className="glass-card px-3 py-2 text-xs">
+      <p className="font-medium">{label}</p>
+      <p className={p >= 0 ? 'text-[var(--color-accent-green)]' : 'text-[var(--color-accent-red)]'}>
+        P&L: ${p.toFixed(2)}
+      </p>
+    </div>
+  );
+}
+
 interface StrategyRow {
   strategy_name: string;
   symbol?: string;
@@ -42,7 +65,7 @@ export default function StrategyPage() {
     { key: 'total_signals', header: 'Signals' },
     {
       key: 'wins', header: 'W / L',
-      render: (row: any) => (
+      render: (row: StrategyRow) => (
         <span className="text-sm">
           <span className="text-[var(--color-accent-green)] font-medium">{row.wins}</span>
           <span className="text-[var(--color-text-muted)]"> / </span>
@@ -50,10 +73,10 @@ export default function StrategyPage() {
         </span>
       ),
     },
-    { key: 'win_rate', header: 'Win %', render: (row: any) => `${parseFloat(row.win_rate ?? 0).toFixed(1)}%` },
+    { key: 'win_rate', header: 'Win %', render: (row: StrategyRow) => `${parseFloat(row.win_rate ?? '0').toFixed(1)}%` },
     {
       key: 'total_profit', header: 'Profit',
-      render: (row: any) => {
+      render: (row: StrategyRow) => {
         const p = parseFloat(row.total_profit ?? '0');
         return (
           <span className={`font-semibold flex items-center gap-1 ${p >= 0 ? 'text-[var(--color-accent-green)]' : 'text-[var(--color-accent-red)]'}`}>
@@ -63,7 +86,7 @@ export default function StrategyPage() {
         );
       },
     },
-    { key: 'avg_confidence', header: 'Avg Conf', render: (row: any) => `${(parseFloat(row.avg_confidence ?? 0) * 100).toFixed(0)}%` },
+    { key: 'avg_confidence', header: 'Avg Conf', render: (row: StrategyRow) => `${(parseFloat(row.avg_confidence ?? '0') * 100).toFixed(0)}%` },
   ];
 
   // Build chart data grouped by strategy_name
@@ -75,19 +98,6 @@ export default function StrategyPage() {
     return acc;
   }, {});
   const chart = Object.values(chartData).slice(0, 10);
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null;
-    const p = payload[0].value as number;
-    return (
-      <div className="glass-card px-3 py-2 text-xs">
-        <p className="font-medium">{label}</p>
-        <p className={p >= 0 ? 'text-[var(--color-accent-green)]' : 'text-[var(--color-accent-red)]'}>
-          P&L: ${p.toFixed(2)}
-        </p>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">

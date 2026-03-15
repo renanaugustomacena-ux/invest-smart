@@ -45,8 +45,8 @@ export default function KillSwitchButton({
         message: nextActive ? 'Manual override from dashboard' : 'Trading resumed',
       });
       onToggle?.(nextActive);
-    } catch (err: any) {
-      addToast({ type: 'error', title: 'Kill switch failed', message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: 'error', title: 'Kill switch failed', message: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
       setConfirming(false);
