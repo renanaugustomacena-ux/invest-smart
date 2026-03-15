@@ -16,14 +16,13 @@ Activate this skill whenever:
 
 ## Core Pillars & Constraints
 
-### 1. The 6 Core Services (Non-Negotiable)
+### 1. The Core Services (Non-Negotiable)
 | Service | Tech Stack | Responsibility |
 |---------|------------|----------------|
 | **Data Ingestion** | **Go** (Goroutines) | Fetch, normalize, publish market data. No complex logic. |
 | **Database** | **PostgreSQL + TimescaleDB + Redis** | Persistence & State. Timescale for history, Redis for real-time. |
-| **AI Trading Brain** | **Python** (PyTorch, Pandas) | Feature engineering, regime class., strategy, signal gen. |
+| **Algo Engine** | **Python** (Pandas, NumPy) | Feature engineering, regime class., strategy, signal gen. |
 | **MT5 Bridge** | **Python** (`MetaTrader5`) | Execution only. No strategy logic. Fail-safe defaults. |
-| **ML Training Lab** | **Python** (PyTorch + ROCm) | Model training, walk-forward validation. GPU passthrough. |
 | **Monitoring** | **Prometheus + Grafana** | Observability. Metrics scrape every 15s. |
 
 ### 2. Communication Protocols
@@ -39,6 +38,6 @@ Activate this skill whenever:
 
 ### 4. Architecture Validation Checklist
 - [ ] Does this belong in this service? (Separation of Concerns)
-- [ ] Is the correct language being used? (Go for I/O, Python for AI)
+- [ ] Is the correct language being used? (Go for I/O, Python for algo logic)
 - [ ] Is the communication protocol appropriate? (ZMQ for speed, gRPC for reliability)
 - [ ] Are we avoiding look-ahead bias? (Strict timestamp ordering)
