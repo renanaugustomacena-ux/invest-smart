@@ -13,9 +13,9 @@
 5. [Linear Algebra, Optimization, and Portfolio Theory](#5-linear-algebra-optimization-and-portfolio-theory)
 6. [Risk Management Mathematics](#6-risk-management-mathematics)
 7. [Technical Indicator Mathematics](#7-technical-indicator-mathematics)
-8. Machine Learning for Finance
-9. Deep Learning Architectures
-10. Reinforcement Learning for Trading
+8. Statistical Learning for Finance
+9. Advanced Model Architectures
+10. Optimization Methods for Trading
 11. Natural Language Processing for Market Sentiment
 12. Signal Processing and Filtering
 13. Market Microstructure Mathematics
@@ -32,7 +32,7 @@
 
 ### 1.1 Scope and Design Philosophy
 
-This document consolidates ALL mathematical formulas referenced across the MONEYMAKER V1 ecosystem into a single, authoritative compendium. It serves as the canonical mathematical backbone for every quantitative operation — from indicator computation in the Data Ingestion Service (Document 04) through AI model training (Documents 06-07), risk calculations (Document 09), and performance monitoring (Document 10).
+This document consolidates ALL mathematical formulas referenced across the MONEYMAKER V1 ecosystem into a single, authoritative compendium. It serves as the canonical mathematical backbone for every quantitative operation — from indicator computation in the Data Ingestion Service (Document 04) through risk calculations (Document 09) and performance monitoring (Document 10).
 
 **Format convention**: every formula entry follows the same structure:
 
@@ -79,20 +79,20 @@ No lengthy derivations. No extended prose. Formula-first, implementation-aware. 
 | Section | Primary V1_Bot Documents | Key Services |
 |---------|--------------------------|--------------|
 | 2. Descriptive Statistics | Doc 04 (Data Ingestion), Doc 10 (Monitoring) | `data-ingestion-service`, `analytics-engine` |
-| 3. Probability & Distributions | Doc 06 (ML Training), Doc 09 (Risk) | `ml-training-pipeline`, `risk-manager` |
-| 4. Time Series | Doc 04, Doc 07 (Algo Engine) | `feature-engineering`, `signal-generator` |
-| 5. Linear Algebra & Portfolio | Doc 07, Doc 09 | `portfolio-optimizer`, `risk-manager` |
+| 3. Probability & Distributions | Doc 09 (Risk) | `algo-engine`, `risk-manager` |
+| 4. Time Series | Doc 04, Algo Engine | `feature-engineering`, `signal-generator` |
+| 5. Linear Algebra & Portfolio | Algo Engine, Doc 09 | `portfolio-optimizer`, `risk-manager` |
 | 6. Risk Management | Doc 09, Doc 08 (MT5 Bridge) | `risk-manager`, `position-sizer` |
-| 7. Technical Indicators | Doc 04, Doc 07 | `indicator-engine`, `signal-generator` |
-| 8-10. ML / DL / RL | Doc 06, Doc 07 | `ml-training-pipeline`, `algo-engine` |
-| 11. NLP & Sentiment | Doc 04, Doc 07 | `sentiment-analyzer`, `news-processor` |
-| 12. Signal Processing | Doc 04, Doc 07 | `feature-engineering`, `noise-filter` |
+| 7. Technical Indicators | Doc 04, Algo Engine | `indicator-engine`, `signal-generator` |
+| 8-10. Statistical / Advanced Models | Doc 09 | `algo-engine` |
+| 11. NLP & Sentiment | Doc 04, Algo Engine | `sentiment-analyzer`, `news-processor` |
+| 12. Signal Processing | Doc 04, Algo Engine | `feature-engineering`, `noise-filter` |
 | 13. Market Microstructure | Doc 04, Doc 08 | `order-flow-analyzer`, `execution-engine` |
-| 14. Stochastic Calculus | Doc 07, Doc 09 | `pricing-engine`, `risk-manager` |
-| 15. Information Theory | Doc 06, Doc 07 | `feature-selector`, `signal-evaluator` |
-| 16. Graph Theory | Doc 07 | `correlation-network`, `regime-detector` |
-| 17. Bayesian Methods | Doc 06, Doc 07 | `bayesian-optimizer`, `parameter-estimator` |
-| 18. Numerical Methods | Doc 06, Doc 09 | `solver-engine`, `monte-carlo-simulator` |
+| 14. Stochastic Calculus | Algo Engine, Doc 09 | `pricing-engine`, `risk-manager` |
+| 15. Information Theory | Doc 09 | `feature-selector`, `signal-evaluator` |
+| 16. Graph Theory | Doc 09 | `correlation-network`, `regime-detector` |
+| 17. Bayesian Methods | Doc 09 | `bayesian-optimizer`, `parameter-estimator` |
+| 18. Numerical Methods | Doc 09 | `solver-engine`, `monte-carlo-simulator` |
 | 19. Appendices | All | All |
 
 ---
@@ -231,7 +231,7 @@ Where: $\sigma$ = standard deviation; $\mu$ = mean (must be nonzero).
 
 Purpose: Normalizes dispersion by the mean, enabling comparison of variability across assets with different price scales.
 
-V1_Bot: Doc 07 feature normalization; Doc 10 cross-asset volatility comparison.
+V1_Bot: Algo Engine feature normalization; Doc 10 cross-asset volatility comparison.
 
 ---
 
@@ -257,7 +257,7 @@ Where: $n$ = sample size; $\bar{x}$ = sample mean; $s$ = sample standard deviati
 
 Purpose: Quantifies asymmetry of the return distribution — negative skewness (typical in equities) indicates a longer left tail with more extreme losses than gains.
 
-V1_Bot: Doc 09 tail risk assessment; Doc 07 feature for regime classification; Doc 10 return quality reporting.
+V1_Bot: Doc 09 tail risk assessment; feature for regime classification; Doc 10 return quality reporting.
 
 ---
 
@@ -269,7 +269,7 @@ Where: $n$ = sample size; excess kurtosis subtracts 3 so that $\mathcal{N}(0,1)$
 
 Purpose: Measures tail heaviness — positive excess kurtosis (leptokurtic, typical in financial returns) indicates more extreme events than a normal distribution predicts.
 
-V1_Bot: Doc 09 VaR model selection (fat-tailed distributions); Doc 07 risk feature; Doc 06 data quality checks.
+V1_Bot: Doc 09 VaR model selection (fat-tailed distributions); risk feature.
 
 ---
 
@@ -283,7 +283,7 @@ Where: $Q_1$ = 25th percentile; $Q_3$ = 75th percentile.
 
 Purpose: Provides a robust, non-parametric method for identifying extreme observations that may indicate data errors or genuine market dislocations.
 
-V1_Bot: Doc 04 data cleaning pipeline; Doc 06 training data preprocessing.
+V1_Bot: Doc 04 data cleaning pipeline.
 
 ---
 
@@ -309,7 +309,7 @@ Where: $P_t$ = price at time $t$; $R_t$ = simple return.
 
 Purpose: Provides time-additive returns ($r_{t_0 \to t_n} = \sum r_t$) and is approximately normally distributed, making it the preferred input for statistical models.
 
-V1_Bot: Doc 04 feature engineering; Doc 06 ML model inputs; Doc 07 signal generation.
+V1_Bot: Doc 04 feature engineering; signal generation.
 
 ---
 
@@ -347,7 +347,7 @@ Where: $x_i, y_i$ = paired observations; $\bar{x}, \bar{y}$ = sample means.
 
 Purpose: Measures the linear co-movement between two variables; positive covariance indicates they tend to move together.
 
-V1_Bot: Doc 07 portfolio optimization inputs; Doc 09 correlation-based risk.
+V1_Bot: Algo Engine portfolio optimization inputs; Doc 09 correlation-based risk.
 
 ---
 
@@ -359,7 +359,7 @@ Where: $\text{Cov}(X,Y)$ = covariance; $\sigma_x, \sigma_y$ = standard deviation
 
 Purpose: Normalizes covariance to $[-1, +1]$, providing a scale-independent measure of linear dependence.
 
-V1_Bot: Doc 07 correlation matrix computation; Doc 09 diversification analysis.
+V1_Bot: Algo Engine correlation matrix computation; Doc 09 diversification analysis.
 
 ---
 
@@ -371,7 +371,7 @@ Where: $d_i = \text{rank}(x_i) - \text{rank}(y_i)$; $n$ = number of paired obser
 
 Purpose: Measures monotonic (not necessarily linear) dependence between two variables, robust to outliers and non-normal distributions.
 
-V1_Bot: Doc 07 non-parametric dependence features; Doc 06 feature selection.
+V1_Bot: Algo Engine non-parametric dependence features.
 
 ---
 
@@ -383,7 +383,7 @@ Where: $\sigma_i^2$ = variance of asset $i$; $\sigma_{ij} = \text{Cov}(R_i, R_j)
 
 Purpose: Encodes all pairwise variance-covariance relationships among $k$ assets; the fundamental input for portfolio optimization.
 
-V1_Bot: Doc 07 `portfolio-optimizer`; Doc 09 multi-asset risk computation.
+V1_Bot: Algo Engine`portfolio-optimizer`; Doc 09 multi-asset risk computation.
 
 ---
 
@@ -395,7 +395,7 @@ Where: $\rho_{ij}$ = Pearson correlation between assets $i$ and $j$.
 
 Purpose: Converts correlations into a proper metric space distance for hierarchical clustering in the HRP algorithm.
 
-V1_Bot: Doc 07 HRP clustering step; Doc 09 portfolio construction.
+V1_Bot: Algo EngineHRP clustering step; Doc 09 portfolio construction.
 
 ---
 
@@ -425,7 +425,7 @@ Where: $P(A|B)$ = posterior probability; $P(B|A)$ = likelihood; $P(A)$ = prior; 
 
 Purpose: Updates prior beliefs about model parameters or market regimes when new evidence (data) arrives.
 
-V1_Bot: Doc 07 Bayesian regime detection; Doc 06 hyperparameter optimization; Doc 17 full Bayesian framework.
+V1_Bot: Algo EngineBayesian regime detection; Doc 17 full Bayesian framework.
 
 ---
 
@@ -437,7 +437,7 @@ Where: $\{A_i\}$ = mutually exclusive, collectively exhaustive partition of $\Om
 
 Purpose: Decomposes the probability of an event across disjoint scenarios (e.g., market regimes), enabling regime-conditional risk calculation.
 
-V1_Bot: Doc 07 regime-weighted signal generation; Doc 09 scenario-based VaR.
+V1_Bot: Algo Engine regime-weighted signal generation; Doc 09 scenario-based VaR.
 
 ---
 
@@ -449,7 +449,7 @@ Where: $A \cap B$ = joint occurrence of events $A$ and $B$.
 
 Purpose: Computes the probability of $A$ given that $B$ has occurred, fundamental to all conditional trading logic.
 
-V1_Bot: Doc 07 conditional signal filtering; Doc 09 conditional risk assessment.
+V1_Bot: Algo Engine conditional signal filtering; Doc 09 conditional risk assessment.
 
 ---
 
@@ -461,7 +461,7 @@ Where: $A \perp B$ denotes independence.
 
 Purpose: Two events are independent if knowing one provides no information about the other; critical assumption in many diversification and sampling methods.
 
-V1_Bot: Doc 06 bootstrap sampling assumptions; Doc 09 diversification calculations.
+V1_Bot: Doc 09 diversification calculations.
 
 ---
 
@@ -477,7 +477,7 @@ Where: $p$ = probability of success (e.g., winning trade); $k$ = outcome (1 = su
 
 Purpose: Models single binary outcomes such as win/loss on a single trade.
 
-V1_Bot: Doc 09 trade outcome modeling; Doc 07 signal accuracy assessment.
+V1_Bot: Doc 09 trade outcome modeling; signal accuracy assessment.
 
 ---
 
@@ -535,7 +535,7 @@ Where: $\mu$ = mean; $\sigma$ = standard deviation; the CDF has no closed form b
 
 Purpose: The foundational continuous distribution; while financial returns are not perfectly normal, it serves as the first-order approximation and the basis for parametric VaR.
 
-V1_Bot: Doc 09 parametric VaR; Doc 07 z-score normalization; Doc 06 likelihood computations.
+V1_Bot: Doc 09 parametric VaR; z-score normalization.
 
 ---
 
@@ -549,7 +549,7 @@ Where: $z$ = standardized score; $\mu, \sigma$ = distribution parameters.
 
 Purpose: Transforms any normal variable to a standard scale for probability lookup and cross-variable comparison.
 
-V1_Bot: Doc 07 Bollinger Band z-score signals; Doc 09 VaR percentile mapping.
+V1_Bot: Algo EngineBollinger Band z-score signals; Doc 09 VaR percentile mapping.
 
 ---
 
@@ -575,7 +575,7 @@ Where: $\nu$ = degrees of freedom; $\Gamma(\cdot)$ = gamma function; as $\nu \to
 
 Purpose: Provides heavier tails than the normal distribution, better modeling the empirical distribution of financial returns where extreme events are more frequent than Gaussian predictions.
 
-V1_Bot: Doc 09 t-distributed VaR; Doc 06 GARCH-t model residuals; Doc 07 robust signal thresholds.
+V1_Bot: Doc 09 t-distributed VaR; robust signal thresholds.
 
 ---
 
@@ -589,7 +589,7 @@ Where: $\lambda$ = rate parameter (events per unit time).
 
 Purpose: Models inter-arrival times of events (time between trades, time between regime changes), characterized by the memoryless property.
 
-V1_Bot: Doc 13 inter-trade arrival modeling; Doc 07 regime duration estimation.
+V1_Bot: Doc 13 inter-trade arrival modeling; regime duration estimation.
 
 ---
 
@@ -643,7 +643,7 @@ Where: $\Delta X_t = X_t - X_{t-1}$; $\alpha$ = constant; $\beta t$ = determinis
 
 Purpose: Tests for unit roots (non-stationarity) in time series; rejection ($p < 0.05$) implies stationarity, a prerequisite for many statistical models.
 
-V1_Bot: Doc 04 fractional differentiation $d$-optimization; Doc 07 cointegration pre-test.
+V1_Bot: Doc 04 fractional differentiation $d$-optimization; cointegration pre-test.
 
 ---
 
@@ -655,7 +655,7 @@ Where: $n$ = sample size; $m$ = number of lags tested; $\hat{\rho}_k$ = sample a
 
 Purpose: Tests whether a set of autocorrelations are jointly zero, used to validate that model residuals are white noise.
 
-V1_Bot: Doc 06 model diagnostics; Doc 07 residual whiteness check post-ARIMA.
+V1_Bot: Algo Engine residual whiteness check post-ARIMA.
 
 ---
 
@@ -667,7 +667,7 @@ Where: $n$ = sample size; $S$ = skewness; $K$ = excess kurtosis; $JB \sim \chi^2
 
 Purpose: Tests whether data follow a normal distribution; rejection motivates use of fat-tailed distributions (t, stable) for risk models.
 
-V1_Bot: Doc 06 data distribution profiling; Doc 09 VaR model selection.
+V1_Bot: Doc 09 VaR model selection.
 
 ---
 
@@ -679,7 +679,7 @@ Where: $\bar{r}$ = sample mean return; $s$ = sample standard deviation; $n$ = nu
 
 Purpose: Tests whether average strategy returns are statistically significantly different from zero, guarding against confusing noise for edge.
 
-V1_Bot: Doc 10 strategy significance reporting; Doc 06 backtest validation.
+V1_Bot: Doc 10 strategy significance reporting.
 
 ---
 
@@ -693,7 +693,7 @@ Where: $\hat{\theta}$ = maximum likelihood estimate; $f(x_i|\theta)$ = probabili
 
 Purpose: Finds the parameter values that make the observed data most probable; the primary estimation method for GARCH, ARIMA, and distribution fitting.
 
-V1_Bot: Doc 06 model parameter estimation; Doc 07 GARCH fitting.
+V1_Bot: Algo EngineGARCH fitting.
 
 ---
 
@@ -705,7 +705,7 @@ Where: $k$ = number of estimated parameters; $\hat{L}$ = maximized likelihood va
 
 Purpose: Balances model fit against complexity; lower AIC indicates a better model, penalizing overfitting with fewer parameters.
 
-V1_Bot: Doc 06 ARIMA order selection; Doc 07 model comparison.
+V1_Bot: Algo Engine model comparison.
 
 ---
 
@@ -717,7 +717,7 @@ Where: $k$ = number of parameters; $n$ = number of observations; $\hat{L}$ = max
 
 Purpose: Similar to AIC but with a stronger penalty for model complexity (scales with $\ln(n)$), preferred for large datasets.
 
-V1_Bot: Doc 06 model selection with large training sets; Doc 07 parsimonious model preference.
+V1_Bot: Algo Engine parsimonious model preference.
 
 ---
 
@@ -739,7 +739,7 @@ Where: $\mu$ = constant mean; $\sigma^2$ = constant finite variance; $\gamma_k$ 
 
 Purpose: Stationarity is required for the statistical properties estimated from historical data to be valid for future predictions; violation necessitates differencing or transformation.
 
-V1_Bot: Doc 04 feature stationarity enforcement; Doc 07 model input validation.
+V1_Bot: Doc 04 feature stationarity enforcement; model input validation.
 
 ---
 
@@ -751,7 +751,7 @@ Where: $P_t$ = price at time $t$; $\epsilon_t$ = white noise innovation.
 
 Purpose: Defines a pure random walk (non-stationary, $I(1)$) where price changes are unpredictable; first differencing yields stationary returns.
 
-V1_Bot: Doc 04 rationale for return-based features; Doc 07 baseline null hypothesis for predictability.
+V1_Bot: Doc 04 rationale for return-based features; baseline null hypothesis for predictability.
 
 ---
 
@@ -763,7 +763,7 @@ Where: $B$ = backshift operator; $d$ = minimum integer differencing order to ach
 
 Purpose: Classifies time series by how many times they must be differenced to become stationary, determining the $d$ parameter in ARIMA and motivating fractional differentiation.
 
-V1_Bot: Doc 04 fractional $d$ optimization; Doc 07 ARIMA $d$ selection.
+V1_Bot: Doc 04 fractional $d$ optimization;ARIMA $d$ selection.
 
 ---
 
@@ -777,7 +777,7 @@ Where: $k$ = lag; $\mu$ = mean of stationary series.
 
 Purpose: Measures the linear dependence between a time series and its own lagged values at lag $k$.
 
-V1_Bot: Doc 07 feature engineering for lag selection.
+V1_Bot: Algo Engine feature engineering for lag selection.
 
 ---
 
@@ -789,7 +789,7 @@ Where: $\gamma_k$ = autocovariance at lag $k$; $\gamma_0 = \text{Var}(X_t)$.
 
 Purpose: Normalizes autocovariance to $[-1, 1]$, used in ARIMA model identification (MA order) and residual diagnostics.
 
-V1_Bot: Doc 06 model identification; Doc 07 signal autocorrelation analysis.
+V1_Bot: Algo Engine signal autocorrelation analysis.
 
 ---
 
@@ -801,7 +801,7 @@ Where: $\phi_{kk}$ = correlation between $X_t$ and $X_{t-k}$ after removing the 
 
 Purpose: Isolates the direct effect of lag $k$ (removing indirect effects through intermediate lags), used to identify AR order in ARIMA models.
 
-V1_Bot: Doc 06 AR order selection; Doc 07 direct lag dependency analysis.
+V1_Bot: Algo Engine direct lag dependency analysis.
 
 ---
 
@@ -813,7 +813,7 @@ Where: $n$ = sample size; values outside these bands are statistically significa
 
 Purpose: Determines which autocorrelation lags are statistically significant for model specification.
 
-V1_Bot: Doc 06 automated model order selection.
+V1_Bot: Automated model order selection in the Algo Engine.
 
 ---
 
@@ -865,7 +865,7 @@ Where: $\tilde{X}_t(d)$ = fractionally differenced series at order $d$; ADF = Au
 
 Purpose: Finds the minimum differencing order that achieves stationarity, thereby preserving maximum memory (predictive information) from the original series.
 
-V1_Bot: Doc 04 automated $d$-search grid; Doc 07 input feature stationarity pipeline.
+V1_Bot: Doc 04 automated $d$-search grid; input feature stationarity pipeline.
 
 ---
 
@@ -879,7 +879,7 @@ V1_Bot: Doc 04 automated $d$-search grid; Doc 07 input feature stationarity pipe
 
 Purpose: Illustrates why fractional differentiation ($0 < d < 1$) is superior to the binary choice of prices ($d=0$) or returns ($d=1$) for ML features.
 
-V1_Bot: Doc 04 Section 4.3 design rationale; Doc 07 feature quality justification.
+V1_Bot: Doc 04 Section 4.3 design rationale; feature quality justification.
 
 ---
 
@@ -893,7 +893,7 @@ Where: $c$ = constant; $\phi_i$ = AR coefficients; $p$ = order; $\epsilon_t \sim
 
 Purpose: Models the current value as a linear combination of $p$ past values plus noise; captures mean-reverting dynamics.
 
-V1_Bot: Doc 07 mean-reversion signal for pairs trading.
+V1_Bot: Algo Engine mean-reversion signal for pairs trading.
 
 ---
 
@@ -905,7 +905,7 @@ Where: $c$ = constant; $\theta_j$ = MA coefficients; $q$ = order; $\epsilon_t \s
 
 Purpose: Models the current value as a linear combination of $q$ past shocks; captures short-lived effects of news or events.
 
-V1_Bot: Doc 07 forecast error modeling.
+V1_Bot: Algo Engine forecast error modeling.
 
 ---
 
@@ -917,7 +917,7 @@ Where: $p$ = AR order; $d$ = differencing order; $q$ = MA order; $B$ = backshift
 
 Purpose: Combines autoregression, differencing, and moving average into a unified model for non-stationary time series forecasting.
 
-V1_Bot: Doc 07 baseline statistical forecast; Doc 06 benchmark model.
+V1_Bot: Algo Engine baseline statistical forecast.
 
 ---
 
@@ -929,7 +929,7 @@ Where: uppercase $\Phi, \Theta, P, D, Q$ = seasonal components; $s$ = seasonal p
 
 Purpose: Extends ARIMA with seasonal AR, differencing, and MA components to model periodic patterns in financial data.
 
-V1_Bot: Doc 07 seasonal pattern detection; Doc 06 calendar-effect modeling.
+V1_Bot: Algo Engine seasonal pattern detection.
 
 ---
 
@@ -942,7 +942,7 @@ V1_Bot: Doc 07 seasonal pattern detection; Doc 06 calendar-effect modeling.
 
 Purpose: Systematic four-step procedure for ARIMA model building.
 
-V1_Bot: Doc 06 automated ARIMA pipeline.
+V1_Bot: Automated ARIMA pipeline in the Algo Engine.
 
 ---
 
@@ -956,7 +956,7 @@ Where: $\alpha_0 > 0$; $\alpha_i \geq 0$; $\epsilon_t = \sigma_t z_t$, $z_t \sim
 
 Purpose: Models time-varying volatility as a function of past squared residuals, capturing the empirical observation that large shocks tend to cluster.
 
-V1_Bot: Doc 07 volatility modeling foundation.
+V1_Bot: Algo Engine volatility modeling foundation.
 
 ---
 
@@ -968,7 +968,7 @@ Where: $\omega > 0$; $\alpha \geq 0$ (shock coefficient); $\beta \geq 0$ (persis
 
 Purpose: The workhorse volatility model — parsimoniously captures both volatility clustering and mean-reversion in variance with just three parameters.
 
-V1_Bot: Doc 07 primary volatility forecast; Doc 09 dynamic risk adjustment.
+V1_Bot: Algo Engine primary volatility forecast; Doc 09 dynamic risk adjustment.
 
 ---
 
@@ -1004,7 +1004,7 @@ Where: $z_t = \epsilon_t / \sigma_t$ = standardized residual; $\gamma$ = leverag
 
 Purpose: Models the log of variance (ensuring positivity without parameter constraints) and captures the asymmetric leverage effect where declines increase volatility more than equivalent rallies.
 
-V1_Bot: Doc 07 equity volatility modeling with leverage effect.
+V1_Bot: Algo Engine equity volatility modeling with leverage effect.
 
 ---
 
@@ -1016,7 +1016,7 @@ Where: $I_{t-1} = 1$ if $\epsilon_{t-1} < 0$ (indicator for negative shock); $\g
 
 Purpose: Directly models the leverage effect by adding an asymmetric term for negative innovations, simpler than EGARCH.
 
-V1_Bot: Doc 07 alternative asymmetric volatility model.
+V1_Bot: Algo Engine alternative asymmetric volatility model.
 
 ---
 
@@ -1046,7 +1046,7 @@ Where: $Y_t, X_t$ = two $I(1)$ series; $\beta$ = cointegrating coefficient (hedg
 
 Purpose: Identifies long-run equilibrium relationships between pairs of non-stationary series; if $\epsilon_t \sim I(0)$, the pair is cointegrated and the spread is mean-reverting.
 
-V1_Bot: Doc 07 pairs trading spread construction; Doc 04 cointegration screening.
+V1_Bot: Algo Engine pairs trading spread construction; Doc 04 cointegration screening.
 
 ---
 
@@ -1058,7 +1058,7 @@ Where: $Y_t$ = vector of $k$ $I(1)$ series; $\Pi = \alpha\beta'$ = impact matrix
 
 Purpose: Tests for the number of cointegrating relationships among $k > 2$ variables simultaneously, superior to pairwise Engle-Granger for multivariate systems.
 
-V1_Bot: Doc 07 multi-asset cointegration analysis.
+V1_Bot: Algo Engine multi-asset cointegration analysis.
 
 ---
 
@@ -1070,7 +1070,7 @@ Where: $T$ = sample size; $\hat{\lambda}_i$ = $i$-th largest eigenvalue of $\Pi$
 
 Purpose: Sequentially tests $H_0: \text{rank}(\Pi) \leq r$ against $H_1: \text{rank}(\Pi) > r$ to determine the cointegration rank.
 
-V1_Bot: Doc 07 Johansen rank determination.
+V1_Bot: Algo EngineJohansen rank determination.
 
 ---
 
@@ -1082,7 +1082,7 @@ Where: $\alpha$ = speed-of-adjustment vector; $\beta' Y_{t-1}$ = error correctio
 
 Purpose: Models both the short-run dynamics and the long-run equilibrium adjustment of cointegrated systems, used for spread forecasting and optimal entry/exit timing.
 
-V1_Bot: Doc 07 pairs trading signal generation with mean-reversion speed.
+V1_Bot: Algo Engine pairs trading signal generation with mean-reversion speed.
 
 ---
 
@@ -1094,7 +1094,7 @@ Where: $\phi$ = AR(1) coefficient of the spread series (from $\Delta S_t = \phi 
 
 Purpose: Estimates the expected time for the spread to revert halfway to its mean, used to set holding period expectations and optimize lookback windows.
 
-V1_Bot: Doc 07 pairs trading holding period calibration; Doc 09 spread-trade timeout.
+V1_Bot: Algo Engine pairs trading holding period calibration; Doc 09 spread-trade timeout.
 
 ---
 
@@ -1108,7 +1108,7 @@ Where: $\beta_t$ = unobserved state (e.g., time-varying hedge ratio); $V_\omega$
 
 Purpose: Models the evolution of hidden parameters as a random walk with Gaussian innovations.
 
-V1_Bot: Doc 07 dynamic hedge ratio estimation for pairs trading.
+V1_Bot: Algo Engine dynamic hedge ratio estimation for pairs trading.
 
 ---
 
@@ -1120,7 +1120,7 @@ Where: $y_t$ = observed dependent variable; $x_t$ = observed regressors; $V_\eps
 
 Purpose: Links the observed data to the hidden state through a linear model with noise.
 
-V1_Bot: Doc 07 spread observation model.
+V1_Bot: Algo Engine spread observation model.
 
 ---
 
@@ -1134,7 +1134,7 @@ Where: $\hat{\beta}_{t|t-1}$ = predicted state; $P_{t|t-1}$ = predicted state co
 
 Purpose: Projects the state estimate and its uncertainty one step forward before observing new data.
 
-V1_Bot: Doc 07 Kalman predict phase.
+V1_Bot: Algo EngineKalman predict phase.
 
 ---
 
@@ -1146,7 +1146,7 @@ Where: $K_t$ = Kalman gain matrix; controls how much the new observation updates
 
 Purpose: Optimally balances trust in the model prediction versus the new observation; high gain means the new data dominates.
 
-V1_Bot: Doc 07 adaptive weight computation.
+V1_Bot: Algo Engine adaptive weight computation.
 
 ---
 
@@ -1160,7 +1160,7 @@ Where: $y_t - x_t \hat{\beta}_{t|t-1}$ = innovation (prediction error); $P_{t|t}
 
 Purpose: Incorporates the new observation to refine the state estimate and reduce uncertainty, completing one filter cycle.
 
-V1_Bot: Doc 07 Kalman update phase; `signal-generator` dynamic parameter adaptation.
+V1_Bot: Algo EngineKalman update phase; `signal-generator` dynamic parameter adaptation.
 
 ---
 
@@ -1176,7 +1176,7 @@ Where: $\mathbf{w}$ = weight vector $(w_1, \ldots, w_k)^T$; $\mathbf{r}$ = retur
 
 Purpose: Computes the portfolio return as the weighted sum of individual asset returns.
 
-V1_Bot: Doc 07 `portfolio-optimizer`; Doc 10 portfolio return attribution.
+V1_Bot: Algo Engine`portfolio-optimizer`; Doc 10 portfolio return attribution.
 
 ---
 
@@ -1188,7 +1188,7 @@ Where: $x_i$ = components of vector $\mathbf{x}$.
 
 Purpose: Measures total absolute magnitude; used as a sparsity-inducing regularization penalty (LASSO) and in turnover constraints for portfolio rebalancing.
 
-V1_Bot: Doc 06 LASSO regularization; Doc 07 turnover penalty.
+V1_Bot: Algo Engine turnover penalty.
 
 ---
 
@@ -1200,7 +1200,7 @@ Where: $x_i$ = components of vector $\mathbf{x}$.
 
 Purpose: Measures the standard Euclidean length; used as a shrinkage regularization penalty (Ridge) and in distance computations for clustering.
 
-V1_Bot: Doc 06 Ridge regularization; Doc 07 clustering distance metric.
+V1_Bot: Algo Engine clustering distance metric.
 
 ---
 
@@ -1212,7 +1212,7 @@ Where: $\mathbf{w}$ = weight vector; $\Sigma$ = covariance matrix; $\sigma_{ij}$
 
 Purpose: Computes the total portfolio risk accounting for all pairwise asset interactions — the core quantity minimized in mean-variance optimization.
 
-V1_Bot: Doc 07 `portfolio-optimizer` objective function; Doc 09 portfolio risk computation.
+V1_Bot: Algo Engine`portfolio-optimizer` objective function; Doc 09 portfolio risk computation.
 
 ---
 
@@ -1224,7 +1224,7 @@ Where: $Q$ = orthogonal matrix of eigenvectors (principal directions); $\Lambda 
 
 Purpose: Decomposes the covariance matrix into independent risk factors ordered by explanatory power, forming the basis of PCA and factor models.
 
-V1_Bot: Doc 07 PCA risk decomposition; Doc 06 dimensionality reduction.
+V1_Bot: Algo EnginePCA risk decomposition.
 
 ---
 
@@ -1236,7 +1236,7 @@ Where: $Q_k$ = matrix of top-$k$ eigenvectors of $\Sigma$; $\mathbf{z}$ = projec
 
 Purpose: Reduces dimensionality by projecting data onto the $k$ directions of maximum variance, removing noise and multicollinearity from feature sets.
 
-V1_Bot: Doc 06 feature reduction pre-ML; Doc 07 factor exposure analysis.
+V1_Bot: Algo Engine factor exposure analysis.
 
 ---
 
@@ -1248,7 +1248,7 @@ Where: $A \in \mathbb{R}^{m \times n}$; $U \in \mathbb{R}^{m \times m}$ = left s
 
 Purpose: Generalizes eigendecomposition to non-square matrices; used in pseudo-inverse computation, low-rank matrix approximation, and robust PCA.
 
-V1_Bot: Doc 06 robust feature decomposition; Doc 07 covariance denoising.
+V1_Bot: Algo Engine covariance denoising.
 
 ---
 
@@ -1276,7 +1276,7 @@ Where: $\mathbf{w}$ = weight vector; $\Sigma$ = covariance matrix; $\boldsymbol{
 
 Purpose: Finds the minimum-risk portfolio that achieves a specified target return, tracing out the efficient frontier as $\mu_p$ varies.
 
-V1_Bot: Doc 07 `portfolio-optimizer` mean-variance module.
+V1_Bot: Algo Engine`portfolio-optimizer` mean-variance module.
 
 ---
 
@@ -1290,7 +1290,7 @@ Where: $\mathbf{w}_A, \mathbf{w}_B$ = any two distinct portfolios on the efficie
 
 Purpose: Demonstrates that the entire efficient frontier can be generated by combining two reference portfolios, simplifying computation and portfolio blending.
 
-V1_Bot: Doc 07 frontier construction; Doc 10 allocation visualization.
+V1_Bot: Algo Engine frontier construction; Doc 10 allocation visualization.
 
 ---
 
@@ -1302,7 +1302,7 @@ Where: $\Sigma^{-1}$ = inverse covariance matrix; $\mathbf{1}$ = vector of ones.
 
 Purpose: Identifies the portfolio with the lowest possible risk regardless of return target; useful when expected returns are unreliable or unknown.
 
-V1_Bot: Doc 07 conservative allocation mode; Doc 09 minimum-risk baseline.
+V1_Bot: Algo Engine conservative allocation mode; Doc 09 minimum-risk baseline.
 
 ---
 
@@ -1314,7 +1314,7 @@ Where: $r_f$ = risk-free rate; $\boldsymbol{\mu} - r_f\mathbf{1}$ = excess retur
 
 Purpose: Finds the portfolio with the highest Sharpe ratio (optimal risk-adjusted return), which is the tangent point where the capital allocation line touches the efficient frontier.
 
-V1_Bot: Doc 07 `portfolio-optimizer` Sharpe-maximization mode.
+V1_Bot: Algo Engine`portfolio-optimizer` Sharpe-maximization mode.
 
 ---
 
@@ -1328,7 +1328,7 @@ Where: $\lambda$ = risk aversion coefficient ($\lambda = (E[R_m] - r_f)/\sigma_m
 
 Purpose: Reverse-engineers the expected returns implied by the current market portfolio, providing a neutral starting point that avoids extreme allocations from noisy return estimates.
 
-V1_Bot: Doc 07 Black-Litterman equilibrium baseline.
+V1_Bot: Algo EngineBlack-Litterman equilibrium baseline.
 
 ---
 
@@ -1340,7 +1340,7 @@ Where: $\tau$ = scalar (uncertainty of equilibrium); $P$ = view pick matrix ($K 
 
 Purpose: Blends market-implied equilibrium returns with investor/model views, weighting each by its confidence level, producing stable and intuitive portfolio allocations.
 
-V1_Bot: Doc 07 Black-Litterman posterior for AI-view integration.
+V1_Bot: Algo EngineBlack-Litterman posterior for AI-view integration.
 
 ---
 
@@ -1354,7 +1354,7 @@ Where: $\rho_{ij}$ = Pearson correlation between assets $i$ and $j$; $d_{ij} \in
 
 Purpose: Converts correlations into Euclidean distances for hierarchical clustering (assets with $\rho = 1 \Rightarrow d = 0$; $\rho = -1 \Rightarrow d = 2$).
 
-V1_Bot: Doc 07 HRP distance matrix computation.
+V1_Bot: Algo EngineHRP distance matrix computation.
 
 ---
 
@@ -1364,7 +1364,7 @@ Reorder the covariance matrix $\Sigma$ according to the hierarchical clustering 
 
 Purpose: Places similar assets nearby in the matrix, enabling the recursive bisection to split along natural cluster boundaries.
 
-V1_Bot: Doc 07 HRP matrix reordering.
+V1_Bot: Algo EngineHRP matrix reordering.
 
 ---
 
@@ -1376,7 +1376,7 @@ Where: $V_L = \mathbf{w}_L^T \Sigma_{LL} \mathbf{w}_L$ = variance of left sub-cl
 
 Purpose: Allocates capital between left and right sub-clusters inversely proportional to their variance, ensuring that riskier clusters receive less weight.
 
-V1_Bot: Doc 07 HRP allocation engine; Doc 09 robust allocation without covariance inversion.
+V1_Bot: Algo EngineHRP allocation engine; Doc 09 robust allocation without covariance inversion.
 
 ---
 
@@ -1390,7 +1390,7 @@ Where: $(\Sigma \mathbf{w})_i$ = $i$-th element of $\Sigma\mathbf{w}$; $\sigma_p
 
 Purpose: Measures how much portfolio risk changes for an infinitesimal increase in weight $w_i$.
 
-V1_Bot: Doc 07 risk decomposition module.
+V1_Bot: Algo Engine risk decomposition module.
 
 ---
 
@@ -1404,7 +1404,7 @@ Where: $RC_i$ = dollar risk contributed by asset $i$; the sum of all risk contri
 
 Purpose: Decomposes total portfolio risk into additive contributions from each asset.
 
-V1_Bot: Doc 07 risk attribution dashboard; Doc 09 concentration monitoring.
+V1_Bot: Algo Engine risk attribution dashboard; Doc 09 concentration monitoring.
 
 ---
 
@@ -1416,7 +1416,7 @@ Where: the objective drives all $RC_i$ toward equality.
 
 Purpose: Finds the portfolio where every asset contributes equally to total risk, achieving maximum diversification without return estimates.
 
-V1_Bot: Doc 07 `portfolio-optimizer` risk-parity mode.
+V1_Bot: Algo Engine`portfolio-optimizer` risk-parity mode.
 
 ---
 
@@ -1428,9 +1428,9 @@ $$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t)$$
 
 Where: $\eta$ = learning rate; $\nabla_\theta \mathcal{L}$ = gradient of loss w.r.t. parameters; $t$ = iteration.
 
-Purpose: Iteratively moves parameters in the direction of steepest descent to minimize a loss function; the backbone of all neural network training.
+Purpose: Iteratively moves parameters in the direction of steepest descent to minimize a loss function; the backbone of gradient-based optimization.
 
-V1_Bot: Doc 06 all gradient-based training loops.
+V1_Bot: All gradient-based optimization loops in the Algo Engine.
 
 ---
 
@@ -1442,7 +1442,7 @@ Where: $(x_i, y_i)$ = randomly sampled mini-batch; gradient is an unbiased estim
 
 Purpose: Approximates the full gradient using random subsets, enabling training on large datasets with reduced per-iteration cost.
 
-V1_Bot: Doc 06 mini-batch training pipeline.
+V1_Bot: Mini-batch optimization pipeline in the Algo Engine.
 
 ---
 
@@ -1460,7 +1460,7 @@ Where: $m_t$ = first moment (momentum); $v_t$ = second moment (adaptive learning
 
 Purpose: Combines momentum (SGD with inertia) and RMSprop (per-parameter adaptive learning rates) with bias correction for fast and stable convergence.
 
-V1_Bot: Doc 06 default optimizer for neural network training.
+V1\_Bot: Default optimizer for gradient-based model training.
 
 ---
 
@@ -1476,7 +1476,7 @@ Where: $\mu_i$ = inequality multipliers; $\lambda_j$ = equality multipliers; $\m
 
 Purpose: Necessary conditions for optimality in constrained optimization; the theoretical foundation for portfolio optimization with inequality constraints (no shorting, position limits).
 
-V1_Bot: Doc 07 constrained portfolio optimization solver.
+V1_Bot: Algo Engine constrained portfolio optimization solver.
 
 ---
 
@@ -1640,7 +1640,7 @@ Where: $\text{target\_vol}$ = target portfolio volatility (annualized); $\text{A
 
 Purpose: Normalizes position sizes so that each position contributes approximately equal volatility to the portfolio, regardless of the asset's inherent volatility.
 
-V1_Bot: Doc 09 volatility-normalized sizing; Doc 07 signal strength scaling.
+V1_Bot: Doc 09 volatility-normalized sizing; signal strength scaling.
 
 ---
 
@@ -1652,7 +1652,7 @@ Where: $\sigma_i$ = volatility of asset $i$; weights are inversely proportional 
 
 Purpose: Simple risk parity approximation that equalizes volatility contribution without requiring the full covariance matrix.
 
-V1_Bot: Doc 09 simplified risk parity; Doc 07 quick allocation heuristic.
+V1_Bot: Doc 09 simplified risk parity; quick allocation heuristic.
 
 ---
 
@@ -1797,7 +1797,7 @@ Where: $R_p$ = portfolio return; $R_b$ = benchmark return; $\text{TE} = \sigma(R
 
 Purpose: Measures the consistency of outperformance relative to a benchmark; high IR indicates reliable alpha generation.
 
-V1_Bot: Doc 10 benchmark-relative performance; Doc 07 signal quality assessment.
+V1_Bot: Doc 10 benchmark-relative performance; signal quality assessment.
 
 ---
 
@@ -1809,7 +1809,7 @@ Where: $\widehat{SR}$ = observed Sharpe ratio; $SR_0 = \sqrt{\frac{V[\{\max SR_N
 
 Purpose: Adjusts the Sharpe ratio for multiple testing (strategy selection bias), non-normal returns, and finite sample size — a $DSR > 0.95$ indicates genuine skill.
 
-V1_Bot: Doc 10 strategy validation gate; Doc 06 backtest deflation.
+V1_Bot: Doc 10 strategy validation gate.
 
 ---
 
@@ -1849,7 +1849,7 @@ Where: $C_{t-i}$ = closing price $i$ periods ago; $n$ = lookback window.
 
 Purpose: Smooths price data by equally weighting the last $n$ observations, identifying the underlying trend direction.
 
-V1_Bot: Doc 04 `indicator-engine` SMA; Doc 07 trend filter baseline.
+V1_Bot: Doc 04 `indicator-engine` SMA; trend filter baseline.
 
 ---
 
@@ -1861,7 +1861,7 @@ Where: $\alpha$ = smoothing factor; $n$ = equivalent period; initialization: $\t
 
 Purpose: Applies exponentially decaying weights favoring recent prices, providing faster trend detection than SMA with the same period.
 
-V1_Bot: Doc 04 `indicator-engine` EMA; Doc 07 all EMA-based signals.
+V1_Bot: Doc 04 `indicator-engine` EMA; allEMA-based signals.
 
 ---
 
@@ -1873,7 +1873,7 @@ Where: first term is a standard EMA; second term is an EMA of the EMA (double-sm
 
 Purpose: Reduces lag compared to a standard EMA by subtracting the smoothed version of itself, providing a more responsive trend line.
 
-V1_Bot: Doc 04 `indicator-engine` DEMA; Doc 07 low-lag trend detection.
+V1_Bot: Doc 04 `indicator-engine` DEMA; low-lag trend detection.
 
 ---
 
@@ -1885,7 +1885,7 @@ Where: three levels of EMA nesting on period $n$.
 
 Purpose: Further reduces lag beyond DEMA by triple-correcting the smoothing delay.
 
-V1_Bot: Doc 04 `indicator-engine` TEMA; Doc 07 ultra-responsive trend.
+V1_Bot: Doc 04 `indicator-engine` TEMA; ultra-responsive trend.
 
 ---
 
@@ -1897,7 +1897,7 @@ Where: $\text{WMA}$ = weighted moving average; $n/2$ and $\sqrt{n}$ are rounded 
 
 Purpose: Achieves near-zero lag while maintaining smoothness by using a weighted combination of different-period WMAs.
 
-V1_Bot: Doc 04 `indicator-engine` HMA; Doc 07 fast trend following.
+V1_Bot: Doc 04 `indicator-engine` HMA; fast trend following.
 
 ---
 
@@ -1921,7 +1921,7 @@ Where: $V_{t-i}$ = volume at period $t-i$; high-volume bars receive proportional
 
 Purpose: Weights price by volume, causing the average to be pulled toward prices where the most trading occurred — a volume-aware trend measure.
 
-V1_Bot: Doc 04 `indicator-engine` VWMA; Doc 07 volume-confirmed trend.
+V1_Bot: Doc 04 `indicator-engine` VWMA; volume-confirmed trend.
 
 ---
 
@@ -1933,7 +1933,7 @@ Where: the input is adjusted by the difference between current price and the pri
 
 Purpose: Compensates for EMA lag by adding a momentum correction term to the price input before smoothing.
 
-V1_Bot: Doc 04 `indicator-engine` ZLEMA; Doc 07 lag-compensated signals.
+V1_Bot: Doc 04 `indicator-engine` ZLEMA; lag-compensated signals.
 
 ---
 
@@ -1949,7 +1949,7 @@ Where: $ER_t$ = efficiency ratio (direction / volatility); $sc_t$ = scaled smoot
 
 Purpose: Adapts its speed to market conditions — fast during trends (high ER) and slow during chop (low ER), reducing whipsaws.
 
-V1_Bot: Doc 04 `indicator-engine` KAMA; Doc 07 adaptive trend filter.
+V1_Bot: Doc 04 `indicator-engine` KAMA; adaptive trend filter.
 
 ---
 
@@ -1981,7 +1981,7 @@ Where: $+DI$ = positive directional indicator; $-DI$ = negative directional indi
 
 Purpose: Quantifies both the direction ($+DI$ vs $-DI$) and strength ($ADX$) of a trend; $ADX > 25$ indicates a strong trend.
 
-V1_Bot: Doc 04 `indicator-engine` ADX/DMI; Doc 07 trend strength filter.
+V1_Bot: Doc 04 `indicator-engine` ADX/DMI; trend strength filter.
 
 ---
 
@@ -2013,7 +2013,7 @@ Where: $\max(H, n)$ = highest high over $n$ periods; $\min(L, n)$ = lowest low o
 
 Purpose: Provides a complete trend-following system with support/resistance (cloud), trend direction (Tenkan/Kijun cross), momentum (Chikou), and future levels (Senkou projection).
 
-V1_Bot: Doc 04 `indicator-engine` Ichimoku; Doc 07 multi-timeframe trend system.
+V1_Bot: Doc 04 `indicator-engine` Ichimoku; multi-timeframe trend system.
 
 ---
 
@@ -2029,7 +2029,7 @@ Where: $n$ = lookback period (default 25).
 
 Purpose: Identifies whether price is trending and how long since the last extreme, with crossovers signaling trend changes.
 
-V1_Bot: Doc 04 `indicator-engine` Aroon; Doc 07 trend initiation detection.
+V1_Bot: Doc 04 `indicator-engine` Aroon; trend initiation detection.
 
 ---
 
@@ -2043,7 +2043,7 @@ Where: $VM+, VM-$ = positive/negative vortex movement; $TR$ = True Range; $n$ = 
 
 Purpose: Captures positive and negative trend movement normalized by volatility; $VI+ > VI-$ indicates uptrend.
 
-V1_Bot: Doc 04 `indicator-engine` Vortex; Doc 07 trend direction confirmation.
+V1_Bot: Doc 04 `indicator-engine` Vortex; trend direction confirmation.
 
 ---
 
@@ -2059,7 +2059,7 @@ Where: $m$ = multiplier (default 3); $\text{ATR}(n)$ = Average True Range with p
 
 Purpose: Provides a volatility-adaptive trend-following stop that flips between upper and lower bands based on price crossing.
 
-V1_Bot: Doc 04 `indicator-engine` SuperTrend; Doc 09 dynamic stop-loss; Doc 07 trend signal.
+V1_Bot: Doc 04 `indicator-engine` SuperTrend; Doc 09 dynamic stop-loss; trend signal.
 
 ---
 
@@ -2079,7 +2079,7 @@ Where: $\text{Gain}_t = \max(C_t - C_{t-1}, 0)$; $\text{Loss}_t = \max(C_{t-1} -
 
 Purpose: Measures the speed and magnitude of recent price changes on a 0-100 scale; overbought $> 70$, oversold $< 30$.
 
-V1_Bot: Doc 04 `indicator-engine` RSI; Doc 07 mean-reversion signal; Doc 09 overextension filter.
+V1_Bot: Doc 04 `indicator-engine` RSI; mean-reversion signal; Doc 09 overextension filter.
 
 ---
 
@@ -2095,7 +2095,7 @@ Where: 12, 26, 9 are default periods; MACD Line measures momentum; Signal Line s
 
 Purpose: Captures trend momentum through the convergence and divergence of two EMAs; signal line crossovers and histogram zero-crosses generate trade signals.
 
-V1_Bot: Doc 04 `indicator-engine` MACD; Doc 07 momentum crossover signals.
+V1_Bot: Doc 04 `indicator-engine` MACD; momentum crossover signals.
 
 ---
 
@@ -2109,7 +2109,7 @@ Where: $n$ = %K period (default 14); $m$ = %D smoothing period (default 3); $\mi
 
 Purpose: Locates the closing price relative to the recent range on a 0-100 scale; overbought $> 80$, oversold $< 20$; %K/%D crossovers signal reversals.
 
-V1_Bot: Doc 04 `indicator-engine` Stochastic; Doc 07 reversal signal generator.
+V1_Bot: Doc 04 `indicator-engine` Stochastic; reversal signal generator.
 
 ---
 
@@ -2121,7 +2121,7 @@ Where: $RSI_t$ = RSI value at time $t$; $n$ = lookback period (default 14); outp
 
 Purpose: Applies the Stochastic formula to RSI rather than price, creating an oscillator of an oscillator that is more sensitive to short-term overbought/oversold conditions.
 
-V1_Bot: Doc 04 `indicator-engine` StochRSI; Doc 07 high-sensitivity momentum.
+V1_Bot: Doc 04 `indicator-engine` StochRSI; high-sensitivity momentum.
 
 ---
 
@@ -2137,7 +2137,7 @@ Where: $TP_t$ = typical price; $\text{MD}$ = mean deviation; $0.015$ = Lambert's
 
 Purpose: Measures the deviation of price from its statistical mean normalized by average deviation; values beyond $\pm 100$ indicate strong momentum.
 
-V1_Bot: Doc 04 `indicator-engine` CCI; Doc 07 momentum breakout detection.
+V1_Bot: Doc 04 `indicator-engine` CCI; momentum breakout detection.
 
 ---
 
@@ -2149,7 +2149,7 @@ Where: $n$ = lookback period (default 14); output range $[-100, 0]$; overbought 
 
 Purpose: Inverse of the Stochastic %K (reflected), measuring where the close sits relative to the recent range from the top.
 
-V1_Bot: Doc 04 `indicator-engine` Williams %R; Doc 07 overbought/oversold filter.
+V1_Bot: Doc 04 `indicator-engine` Williams %R; overbought/oversold filter.
 
 ---
 
@@ -2165,7 +2165,7 @@ Where: $TP_t$ = typical price; $V_t$ = volume; $MFR$ = money flow ratio; $n$ = p
 
 Purpose: Volume-weighted RSI — incorporates volume into momentum, with overbought $> 80$ and oversold $< 20$ levels.
 
-V1_Bot: Doc 04 `indicator-engine` MFI; Doc 07 volume-confirmed momentum.
+V1_Bot: Doc 04 `indicator-engine` MFI; volume-confirmed momentum.
 
 ---
 
@@ -2177,7 +2177,7 @@ Where: $n$ = lookback period; $C_{t-n}$ = closing price $n$ periods ago.
 
 Purpose: Measures the percentage price change over $n$ periods — the simplest momentum indicator.
 
-V1_Bot: Doc 04 `indicator-engine` ROC; Doc 07 momentum feature.
+V1_Bot: Doc 04 `indicator-engine` ROC; momentum feature.
 
 ---
 
@@ -2189,7 +2189,7 @@ Where: $n$ = lookback period.
 
 Purpose: Measures the absolute price change over $n$ periods; positive values indicate upward momentum.
 
-V1_Bot: Doc 04 `indicator-engine` Momentum; Doc 07 raw momentum feature.
+V1_Bot: Doc 04 `indicator-engine` Momentum; raw momentum feature.
 
 ---
 
@@ -2201,7 +2201,7 @@ Where: $\text{EMA3} = \text{EMA}(\text{EMA}(\text{EMA}(C, n), n), n)$ = triple-s
 
 Purpose: Filters out insignificant price movements through triple smoothing, showing the rate of change of a smoothed trend — zero-line crossovers signal trend changes.
 
-V1_Bot: Doc 04 `indicator-engine` TRIX; Doc 07 smoothed momentum signal.
+V1_Bot: Doc 04 `indicator-engine` TRIX; smoothed momentum signal.
 
 ---
 
@@ -2213,7 +2213,7 @@ Where: $\Delta C = C_t - C_{t-1}$; $r$ = long period (default 25); $s$ = short p
 
 Purpose: Double-smoothed momentum oscillator that captures both trend direction and overbought/oversold conditions with reduced noise.
 
-V1_Bot: Doc 04 `indicator-engine` TSI; Doc 07 smooth momentum signal.
+V1_Bot: Doc 04 `indicator-engine` TSI; smooth momentum signal.
 
 ---
 
@@ -2227,7 +2227,7 @@ Where: $BP_t$ = buying pressure; $TR_t$ = true range; periods 7, 14, 28; weights
 
 Purpose: Combines momentum across three timeframes to reduce false signals; overbought $> 70$, oversold $< 30$.
 
-V1_Bot: Doc 04 `indicator-engine` Ultimate Oscillator; Doc 07 multi-timeframe momentum.
+V1_Bot: Doc 04 `indicator-engine` Ultimate Oscillator; multi-timeframe momentum.
 
 ---
 
@@ -2239,7 +2239,7 @@ Where: same EMAs as MACD but expressed as a percentage.
 
 Purpose: Percentage-normalized MACD that allows cross-asset comparison of momentum magnitude.
 
-V1_Bot: Doc 04 `indicator-engine` PPO; Doc 07 normalized momentum comparison.
+V1_Bot: Doc 04 `indicator-engine` PPO; normalized momentum comparison.
 
 ---
 
@@ -2251,7 +2251,7 @@ Where: $\text{Up} = \max(C_t - C_{t-1}, 0)$; $\text{Down} = \max(C_{t-1} - C_t, 
 
 Purpose: Unsmoothed momentum oscillator that measures the net momentum as a fraction of total movement.
 
-V1_Bot: Doc 04 `indicator-engine` CMO; Doc 07 raw momentum ratio.
+V1_Bot: Doc 04 `indicator-engine` CMO; raw momentum ratio.
 
 ---
 
@@ -2263,7 +2263,7 @@ Where: $\text{streak}$ = consecutive up/down close count (positive for up-streak
 
 Purpose: Combines short-term RSI, streak duration, and relative magnitude into a composite mean-reversion oscillator optimized for short-term trading.
 
-V1_Bot: Doc 04 `indicator-engine` Connors RSI; Doc 07 short-term reversal signal.
+V1_Bot: Doc 04 `indicator-engine` Connors RSI; short-term reversal signal.
 
 ---
 
@@ -2275,7 +2275,7 @@ Where: $n$ = period; the price is shifted back by $n/2 + 1$ periods to align wit
 
 Purpose: Removes the trend component from price to isolate cyclical oscillations, helping identify cycle length and turning points.
 
-V1_Bot: Doc 04 `indicator-engine` DPO; Doc 07 cycle detection feature.
+V1_Bot: Doc 04 `indicator-engine` DPO; cycle detection feature.
 
 ---
 
@@ -2287,7 +2287,7 @@ Where: $ROC(C, n)$ = rate of change over $n$ months; $WMA$ with period 10 months
 
 Purpose: Originally designed for monthly stock market bottoms — buy signal when the curve turns up from below zero.
 
-V1_Bot: Doc 04 `indicator-engine` Coppock; Doc 07 long-term bottom detection.
+V1_Bot: Doc 04 `indicator-engine` Coppock; long-term bottom detection.
 
 ---
 
@@ -2301,7 +2301,7 @@ Where: $v_t$ is clamped to $(-0.999, +0.999)$; $n$ = period (default 10); output
 
 Purpose: Transforms price into a Gaussian-like distribution using the inverse hyperbolic tangent, making peaks and troughs sharper and easier to identify.
 
-V1_Bot: Doc 04 `indicator-engine` Fisher Transform; Doc 07 sharp reversal detection.
+V1_Bot: Doc 04 `indicator-engine` Fisher Transform; sharp reversal detection.
 
 ---
 
@@ -2317,7 +2317,7 @@ Where: fast = 23, slow = 50, $n$ = cycle period (default 10); output range $[0, 
 
 Purpose: Applies double Stochastic smoothing to MACD to create a cycle-sensitive oscillator that detects trend changes faster than MACD alone.
 
-V1_Bot: Doc 04 `indicator-engine` STC; Doc 07 cycle-aware trend signal.
+V1_Bot: Doc 04 `indicator-engine` STC; cycle-aware trend signal.
 
 ---
 
@@ -2349,7 +2349,7 @@ Where: $n$ = SMA period (default 20); $k$ = standard deviation multiplier (defau
 
 Purpose: Creates volatility-adaptive bands around a moving average; bands widen in high-volatility and narrow in low-volatility regimes.
 
-V1_Bot: Doc 04 `indicator-engine` Bollinger Bands; Doc 07 volatility breakout and mean-reversion signals.
+V1_Bot: Doc 04 `indicator-engine` Bollinger Bands; volatility breakout and mean-reversion signals.
 
 ---
 
@@ -2361,7 +2361,7 @@ Where: components as defined in Bollinger Bands.
 
 Purpose: Normalizes band width as a percentage of the middle band, directly measuring relative volatility; low BandWidth signals a potential Squeeze breakout.
 
-V1_Bot: Doc 04 `indicator-engine` BB Width; Doc 07 squeeze detection.
+V1_Bot: Doc 04 `indicator-engine` BB Width; squeeze detection.
 
 ---
 
@@ -2373,7 +2373,7 @@ Where: $\%B > 1$ means price is above the upper band; $\%B < 0$ means price is b
 
 Purpose: Normalizes price position within the bands to $[0, 1]$ (approximate), enabling quantitative comparison of relative overbought/oversold levels across assets.
 
-V1_Bot: Doc 04 `indicator-engine` BB %B; Doc 07 mean-reversion signal.
+V1_Bot: Doc 04 `indicator-engine` BB %B; mean-reversion signal.
 
 ---
 
@@ -2389,7 +2389,7 @@ Where: $n$ = EMA period (default 20); $m$ = ATR period (default 10); $k$ = ATR m
 
 Purpose: Volatility bands using ATR instead of standard deviation, less sensitive to closing-price outliers; combined with Bollinger Bands for the TTM Squeeze.
 
-V1_Bot: Doc 04 `indicator-engine` Keltner; Doc 07 Squeeze (BB inside Keltner = low vol).
+V1_Bot: Doc 04 `indicator-engine` Keltner;Squeeze (BB inside Keltner = low vol).
 
 ---
 
@@ -2405,7 +2405,7 @@ Where: $n$ = lookback period (default 20); note: current bar excluded to avoid l
 
 Purpose: Defines the highest high and lowest low channel, forming the basis for breakout systems (Turtle Trading); channel width measures volatility.
 
-V1_Bot: Doc 04 `indicator-engine` Donchian; Doc 07 breakout signal; Doc 09 channel-width volatility.
+V1_Bot: Doc 04 `indicator-engine` Donchian; breakout signal; Doc 09 channel-width volatility.
 
 ---
 
@@ -2417,7 +2417,7 @@ Where: components from Donchian Channels.
 
 Purpose: Normalizes channel width as a percentage, measuring range-based volatility.
 
-V1_Bot: Doc 04 `indicator-engine` DCW; Doc 07 volatility regime filter.
+V1_Bot: Doc 04 `indicator-engine` DCW; volatility regime filter.
 
 ---
 
@@ -2429,7 +2429,7 @@ Where: $\overline{C}_n$ = SMA of close over $n$ periods.
 
 Purpose: Rolling sample standard deviation of price, used directly as a volatility measure and as the Bollinger Band width parameter.
 
-V1_Bot: Doc 04 `indicator-engine` rolling StdDev; Doc 07 volatility feature.
+V1_Bot: Doc 04 `indicator-engine` rolling StdDev; volatility feature.
 
 ---
 
@@ -2441,7 +2441,7 @@ Where: $n$ = EMA period (default 10); $m$ = ROC period (default 10).
 
 Purpose: Measures the rate of change of the smoothed high-low spread, capturing whether volatility is expanding or contracting.
 
-V1_Bot: Doc 04 `indicator-engine` Chaikin Volatility; Doc 07 volatility expansion signal.
+V1_Bot: Doc 04 `indicator-engine` Chaikin Volatility; volatility expansion signal.
 
 ---
 
@@ -2453,7 +2453,7 @@ Where: $\text{UpDev}_t = \sigma_t(s)$ if $C_t > C_{t-1}$, else $0$; $\text{DownD
 
 Purpose: RSI-like oscillator applied to standard deviation rather than price, measuring the directionality of volatility.
 
-V1_Bot: Doc 04 `indicator-engine` RVI; Doc 07 volatility direction filter.
+V1_Bot: Doc 04 `indicator-engine` RVI; volatility direction filter.
 
 ---
 
@@ -2465,7 +2465,7 @@ Where: $n$ = period (default 14); range approximately $[0, 100]$; $CI > 61.8$ = 
 
 Purpose: Quantifies whether the market is trending or range-bound by comparing the sum of ATR values to the total range — higher values indicate choppier markets.
 
-V1_Bot: Doc 04 `indicator-engine` Choppiness Index; Doc 07 regime classifier (trend vs. range).
+V1_Bot: Doc 04 `indicator-engine` Choppiness Index; regime classifier (trend vs. range).
 
 ---
 
@@ -2491,7 +2491,7 @@ Where: $V_t$ = volume at time $t$; $C_t$ = closing price.
 
 Purpose: Cumulative volume flow indicator where volume is added on up-closes and subtracted on down-closes; divergences between OBV and price indicate potential reversals.
 
-V1_Bot: Doc 04 `indicator-engine` OBV; Doc 07 volume divergence signal.
+V1_Bot: Doc 04 `indicator-engine` OBV; volume divergence signal.
 
 ---
 
@@ -2509,7 +2509,7 @@ Where: $TP_i = (H_i + L_i + C_i)/3$; $V_i$ = volume; reset daily for intraday VW
 
 Purpose: Provides the volume-weighted mean price with statistical deviation bands, serving as institutional execution benchmarks and support/resistance levels.
 
-V1_Bot: Doc 04 `indicator-engine` VWAP bands; Doc 08 execution quality; Doc 07 intraday mean-reversion.
+V1_Bot: Doc 04 `indicator-engine` VWAP bands; Doc 08 execution quality; intraday mean-reversion.
 
 ---
 
@@ -2523,7 +2523,7 @@ Where: $CLV \in [-1, +1]$; $CLV = +1$ when close = high; $CLV = -1$ when close =
 
 Purpose: Cumulative indicator that weights volume by where the close falls within the bar's range, measuring buying/selling pressure; divergence from price signals accumulation or distribution.
 
-V1_Bot: Doc 04 `indicator-engine` A/D Line; Doc 07 accumulation/distribution divergence.
+V1_Bot: Doc 04 `indicator-engine` A/D Line; accumulation/distribution divergence.
 
 ---
 
@@ -2535,7 +2535,7 @@ Where: $CLV$ = close location value; $n$ = period (default 20); $CMF \in [-1, +1
 
 Purpose: Volume-weighted average of CLV over $n$ periods; positive CMF indicates buying pressure (accumulation), negative indicates selling pressure (distribution).
 
-V1_Bot: Doc 04 `indicator-engine` CMF; Doc 07 money flow confirmation.
+V1_Bot: Doc 04 `indicator-engine` CMF; money flow confirmation.
 
 ---
 
@@ -2547,7 +2547,7 @@ Where: $AD$ = Accumulation/Distribution Line; default fast/slow periods 3 and 10
 
 Purpose: MACD-style oscillator applied to the A/D Line, signaling momentum changes in accumulation/distribution.
 
-V1_Bot: Doc 04 `indicator-engine` Chaikin Oscillator; Doc 07 volume momentum.
+V1_Bot: Doc 04 `indicator-engine` Chaikin Oscillator; volume momentum.
 
 ---
 
@@ -2561,7 +2561,7 @@ Where: $n$ = smoothing period (default 13); positive $FI$ = bulls in control; ne
 
 Purpose: Combines price change and volume into a single oscillator measuring the force behind each price move.
 
-V1_Bot: Doc 04 `indicator-engine` Force Index; Doc 07 force-based entry signal.
+V1_Bot: Doc 04 `indicator-engine` Force Index; force-based entry signal.
 
 ---
 
@@ -2579,7 +2579,7 @@ Where: $DM$ = distance moved (midpoint change); $BR$ = box ratio (volume per uni
 
 Purpose: Relates price movement to volume, measuring how easily price moves — high positive EMV indicates price rising easily on low volume.
 
-V1_Bot: Doc 04 `indicator-engine` EMV; Doc 07 ease-of-movement feature.
+V1_Bot: Doc 04 `indicator-engine` EMV; ease-of-movement feature.
 
 ---
 
@@ -2595,7 +2595,7 @@ Where: $dm_t = H_t - L_t$; $cm_t$ = cumulative $dm$ (reset when trend $T$ change
 
 Purpose: Long-term volume oscillator that captures the difference between short-term and long-term volume accumulation to detect reversals.
 
-V1_Bot: Doc 04 `indicator-engine` Klinger; Doc 07 long-term volume divergence.
+V1_Bot: Doc 04 `indicator-engine` Klinger; long-term volume divergence.
 
 ---
 
@@ -2611,7 +2611,7 @@ Where: $\text{POC}$ = Point of Control (price level with highest volume); $\text
 
 Purpose: Constructs a volume-by-price histogram to identify the most-traded price level (POC) and the range where 70% of volume occurred (VA), serving as key support/resistance.
 
-V1_Bot: Doc 04 `indicator-engine` Volume Profile; Doc 07 support/resistance from volume; Doc 08 execution anchoring.
+V1_Bot: Doc 04 `indicator-engine` Volume Profile; support/resistance from volume; Doc 08 execution anchoring.
 
 ---
 
@@ -2627,7 +2627,7 @@ Where: $\phi$ = the golden ratio; $F_n / F_{n-1} \to \phi$ as $n \to \infty$ for
 
 Purpose: The mathematical constant from which all Fibonacci retracement and extension levels derive, forming the theoretical basis for harmonic trading.
 
-V1_Bot: Doc 07 Fibonacci calculation engine.
+V1_Bot: Algo EngineFibonacci calculation engine.
 
 ---
 
@@ -2650,7 +2650,7 @@ Where: $A$ = swing low; $B$ = swing high; for downtrend retracements, swap $A$ a
 
 Purpose: Identifies potential support/resistance levels where price retracements are statistically more likely to stall or reverse.
 
-V1_Bot: Doc 04 `indicator-engine` Fibonacci Retracement; Doc 07 S/R level generation.
+V1_Bot: Doc 04 `indicator-engine` Fibonacci Retracement;S/R level generation.
 
 ---
 
@@ -2675,7 +2675,7 @@ Where: $A$ = swing start; $B$ = swing end; $C$ = retracement end.
 
 Purpose: Projects potential profit targets beyond the initial swing, where trending moves tend to find resistance/support.
 
-V1_Bot: Doc 04 `indicator-engine` Fibonacci Extensions; Doc 07 take-profit targets.
+V1_Bot: Doc 04 `indicator-engine` Fibonacci Extensions; take-profit targets.
 
 ---
 
@@ -2692,7 +2692,7 @@ V1_Bot: Doc 04 `indicator-engine` Fibonacci Extensions; Doc 07 take-profit targe
 
 Purpose: Defines the Gartley harmonic pattern through specific Fibonacci ratio relationships between four legs ($XA$, $AB$, $BC$, $CD$), identifying high-probability reversal zones.
 
-V1_Bot: Doc 07 harmonic pattern scanner — Gartley module.
+V1_Bot: Algo Engine harmonic pattern scanner — Gartley module.
 
 ---
 
@@ -2707,7 +2707,7 @@ V1_Bot: Doc 07 harmonic pattern scanner — Gartley module.
 
 Purpose: A variant of the Gartley with a deeper $D$-point ($0.886$ of $XA$), offering tighter stop-loss placement at the $X$ point.
 
-V1_Bot: Doc 07 harmonic pattern scanner — Bat module.
+V1_Bot: Algo Engine harmonic pattern scanner — Bat module.
 
 ---
 
@@ -2722,7 +2722,7 @@ V1_Bot: Doc 07 harmonic pattern scanner — Bat module.
 
 Purpose: An extension pattern where $D$ extends beyond the initial $X$ point, used at major market turning points.
 
-V1_Bot: Doc 07 harmonic pattern scanner — Butterfly module.
+V1_Bot: Algo Engine harmonic pattern scanner — Butterfly module.
 
 ---
 
@@ -2737,7 +2737,7 @@ V1_Bot: Doc 07 harmonic pattern scanner — Butterfly module.
 
 Purpose: The most extended harmonic pattern with $D$ at $1.618$ of $XA$, typically found at extreme market exhaustion points.
 
-V1_Bot: Doc 07 harmonic pattern scanner — Crab module.
+V1_Bot: Algo Engine harmonic pattern scanner — Crab module.
 
 ---
 
@@ -2753,7 +2753,7 @@ Where: legs $AB$ and $CD$ are equal (or related by Fibonacci ratios) in both pri
 
 Purpose: The foundational harmonic pattern — price completes a symmetric (or Fibonacci-proportional) four-point structure signaling reversal at $D$.
 
-V1_Bot: Doc 07 harmonic pattern scanner — AB=CD module.
+V1_Bot: Algo Engine harmonic pattern scanner — AB=CD module.
 
 ---
 
@@ -2779,7 +2779,7 @@ An impulse wave consists of 5 sub-waves (1-2-3-4-5) with these typical Fibonacci
 
 Purpose: Defines the Fibonacci-ratio structure of five-wave impulse moves in Elliott Wave Theory, used for wave counting validation and target projection.
 
-V1_Bot: Doc 07 Elliott Wave analyzer — impulse validation.
+V1_Bot: Algo EngineElliott Wave analyzer — impulse validation.
 
 ---
 
@@ -2804,7 +2804,7 @@ A corrective wave (A-B-C) follows an impulse with these typical relationships:
 
 Purpose: Defines the corrective wave structures that follow impulse waves, used for identifying completion of pullbacks and continuation of the larger trend.
 
-V1_Bot: Doc 07 Elliott Wave analyzer — corrective pattern recognition.
+V1_Bot: Algo EngineElliott Wave analyzer — corrective pattern recognition.
 
 ---
 
@@ -2814,7 +2814,7 @@ V1_Bot: Doc 07 Elliott Wave analyzer — corrective pattern recognition.
 
 ## MONEYMAKER V1 Trading Ecosystem
 
-> **Scope:** Stochastic calculus, machine learning mathematics, deep learning architectures, reinforcement learning, market microstructure, and information theory. Every formula includes a display equation, variable definitions, purpose statement, and V1\_Bot mapping.
+> **Scope:** Stochastic calculus, statistical learning mathematics, advanced model architectures, optimization methods, market microstructure, and information theory. Every formula includes a display equation, variable definitions, purpose statement, and V1\_Bot mapping.
 
 ---
 
@@ -2911,7 +2911,7 @@ Where:
 
 Purpose: Shows that log-returns under GBM are normally distributed, justifying Gaussian assumptions in many trading models.
 
-V1\_Bot: Log-return computation basis for all feature engineering in the ML Lab pipeline (Doc 06).
+V1\_Bot: Log-return computation basis for all feature engineering in the Algo Engine pipeline.
 
 ---
 
@@ -3029,7 +3029,7 @@ V1\_Bot: Volatility surface feature extractor for options-aware models; SVI para
 
 ---
 
-## Section 9: Machine Learning Mathematics for Trading
+## Section 9: Statistical Learning Mathematics for Trading
 
 ### 9.1 Supervised Learning Foundations
 
@@ -3072,7 +3072,7 @@ Where:
 
 Purpose: Prevents overfitting and multicollinearity by penalizing large coefficients while keeping all features in the model.
 
-V1\_Bot: Regularized regression component in the stacking meta-learner (Doc 06 Section 7).
+V1\_Bot: Regularized regression component in the stacking meta-learner.
 
 ---
 
@@ -3089,7 +3089,7 @@ Where:
 
 Purpose: Produces sparse models by driving irrelevant feature coefficients to exactly zero.
 
-V1\_Bot: Feature selection pre-filter in the ML Lab pipeline to reduce dimensionality before ensemble training.
+V1\_Bot: Feature selection pre-filter in the Algo Engine pipeline to reduce dimensionality before ensemble training.
 
 ---
 
@@ -3125,7 +3125,7 @@ Where:
 
 Purpose: Models the probability of a binary outcome (e.g., price up/down) as a function of input features.
 
-V1\_Bot: Directional classification baseline and meta-label calibration model (Doc 07).
+V1\_Bot: Directional classification baseline and meta-label calibration model (Algo Engine).
 
 ---
 
@@ -3216,7 +3216,7 @@ Where:
 
 Purpose: Combines many decorrelated decision trees to produce a low-variance ensemble prediction.
 
-V1\_Bot: Feature importance extraction tool and baseline ensemble member in ML Lab.
+V1\_Bot: Feature importance extraction tool and baseline ensemble member in the Algo Engine.
 
 ---
 
@@ -3234,7 +3234,7 @@ Where:
 
 Purpose: Iteratively corrects residuals of the previous model by fitting each new tree to the gradient of the loss function.
 
-V1\_Bot: Core training loop for LightGBM and XGBoost ensemble members (Doc 06 Section 5).
+V1\_Bot: Core training loop for LightGBM and XGBoost ensemble members.
 
 ---
 
@@ -3254,7 +3254,7 @@ Where:
 
 Purpose: Balances predictive accuracy with model complexity via explicit regularization of tree structure and leaf weights.
 
-V1\_Bot: Objective function for XGBoost hyperparameter tuning in Optuna sweeps (Doc 06).
+V1\_Bot: Objective function for XGBoost hyperparameter tuning in Optuna sweeps.
 
 ---
 
@@ -3272,7 +3272,7 @@ Where:
 
 Purpose: Enables Newton-step optimization of the tree structure, giving XGBoost its speed and accuracy advantage over first-order gradient boosting.
 
-V1\_Bot: Internal optimization used by XGBoost/LightGBM during tree construction in the ML Lab ensemble pipeline (Doc 06).
+V1\_Bot: Internal optimization used by XGBoost/LightGBM during tree construction in the Algo Engine ensemble pipeline.
 
 ---
 
@@ -3326,7 +3326,7 @@ $$
 
 Purpose: Harmonic mean of precision and recall; balances both error types in a single scalar.
 
-V1\_Bot: Primary classification metric for model selection in the ML Lab (Doc 06 Section 6).
+V1\_Bot: Primary classification metric for model selection in the Algo Engine.
 
 ---
 
@@ -3344,7 +3344,7 @@ Where:
 
 Purpose: Measures how often the model correctly predicts the direction of price movement, which is directly tied to trading profitability.
 
-V1\_Bot: Core evaluation metric for all directional models in the ensemble (Doc 06, Doc 11).
+V1\_Bot: Core evaluation metric for all directional models in the ensemble (Doc 11).
 
 ---
 
@@ -3361,7 +3361,7 @@ Where:
 
 Purpose: Provides a complete picture of classification performance across all classes.
 
-V1\_Bot: Logged to MLflow after every validation fold for audit and diagnostics (Doc 06, Doc 10).
+V1\_Bot: Logged to MLflow after every validation fold for audit and diagnostics (Doc 10).
 
 ---
 
@@ -3382,7 +3382,7 @@ Where:
 
 Purpose: Simulates realistic sequential deployment where models are trained on past data and evaluated on unseen future data.
 
-V1\_Bot: Primary validation strategy for all models in ML Lab (Doc 06 Section 6).
+V1\_Bot: Primary validation strategy for all models in the Algo Engine.
 
 ---
 
@@ -3401,7 +3401,7 @@ Where:
 
 Purpose: Prevents leakage in cross-validation when labels span multiple time bars.
 
-V1\_Bot: Implemented via `PurgedKFold` class in ML Lab validation module (Doc 06 Section 6).
+V1\_Bot: Implemented via `PurgedKFold` class in the Algo Engine validation module.
 
 ---
 
@@ -3418,7 +3418,7 @@ Where:
 
 Purpose: Provides an extra safety margin beyond the purge to account for serial correlation in features.
 
-V1\_Bot: Configurable parameter `embargo_pct` in the cross-validation configuration (Doc 06).
+V1\_Bot: Configurable parameter `embargo_pct` in the cross-validation configuration.
 
 ---
 
@@ -3436,7 +3436,7 @@ Where:
 
 Purpose: Weights samples by their information content; highly overlapping samples are downweighted in training.
 
-V1\_Bot: Sample weight computation for class-balanced, uniqueness-weighted training in all ensemble members (Doc 06).
+V1\_Bot: Sample weight computation for class-balanced, uniqueness-weighted training in all ensemble members.
 
 ---
 
@@ -3455,7 +3455,7 @@ Where:
 
 Purpose: Centers and scales features to prevent magnitude-driven dominance in gradient-based models.
 
-V1\_Bot: Default scaler for neural network inputs in the inference normalization pipeline (Doc 07 Section 5.2).
+V1\_Bot: Default scaler for model inputs in the normalization pipeline.
 
 ---
 
@@ -3490,7 +3490,7 @@ Where:
 
 Purpose: Scales features using statistics that are resilient to outliers, common in financial data with fat tails.
 
-V1\_Bot: Preferred scaler for price-derived features subject to flash crashes and gap events (Doc 07 Section 5.2).
+V1\_Bot: Preferred scaler for price-derived features subject to flash crashes and gap events (Algo Engine).
 
 ---
 
@@ -3507,7 +3507,7 @@ Where:
 
 Purpose: Clips extreme values to percentile thresholds before scaling, preventing outliers from distorting normalization statistics.
 
-V1\_Bot: Applied before all scalers in the preprocessing pipeline; configurable via `winsor_pct` parameter (Doc 07).
+V1\_Bot: Applied before all scalers in the preprocessing pipeline; configurable via `winsor_pct` parameter (Algo Engine).
 
 ---
 
@@ -3553,7 +3553,7 @@ Where:
 
 Purpose: Transforms continuous price paths into discrete supervised learning labels that encode both direction and timing of trade outcomes.
 
-V1\_Bot: Core labeling pipeline in the ML Lab (Doc 06 Section 4); barrier widths $\mu, \lambda$ are calibrated per volatility regime.
+V1\_Bot: Core labeling pipeline in the Algo Engine; barrier widths $\mu, \lambda$ are calibrated per volatility regime.
 
 ---
 
@@ -3583,7 +3583,7 @@ Where:
 
 Purpose: Decouples signal generation (direction) from signal filtering (confidence), allowing a secondary model to gate trade execution.
 
-V1\_Bot: Confidence gating enhancement in the AI Trading Brain (Doc 07); the meta-model output $\hat{Z}_t$ directly scales position size.
+V1\_Bot: Confidence gating enhancement in the Algo Engine; the meta-model output $\hat{Z}_t$ directly scales position size.
 
 ---
 
@@ -3621,7 +3621,7 @@ V1\_Bot: Backtest validation gate -- strategies must pass the DSR test at the 95
 
 ---
 
-## Section 10: Deep Learning Architectures
+## Section 10: Advanced Model Architectures
 
 ### 10.1 LSTM Gate Equations
 
@@ -3673,7 +3673,7 @@ Where:
 
 Purpose: Selectively remembers and forgets information over long sequences, solving the vanishing gradient problem that plagues vanilla RNNs.
 
-V1\_Bot: BiLSTM ensemble member in the ML Lab (Doc 06 Section 5); processes temporal feature sequences for directional prediction.
+V1\_Bot: BiLSTM ensemble member in the Algo Engine; processes temporal feature sequences for directional prediction.
 
 ---
 
@@ -3696,7 +3696,7 @@ Where:
 
 Purpose: Captures both past and future context in the sequence, improving representation quality for fixed-length input windows.
 
-V1\_Bot: Default LSTM configuration in the ensemble; the backward pass leverages the full lookback window for richer feature extraction (Doc 06).
+V1\_Bot: Default LSTM configuration in the ensemble; the backward pass leverages the full lookback window for richer feature extraction.
 
 ---
 
@@ -3718,7 +3718,7 @@ Where:
 
 Purpose: Computes a weighted sum of values where weights reflect the compatibility between queries and keys.
 
-V1\_Bot: Core attention mechanism in the XAUTransformer primary model (Doc 06, Doc 07).
+V1\_Bot: Core attention mechanism in the XAUTransformer primary model (Algo Engine).
 
 ---
 
@@ -3880,7 +3880,7 @@ Where:
 
 Purpose: Expands the receptive field exponentially with depth without increasing parameter count, enabling efficient long-range temporal modeling.
 
-V1\_Bot: Dilated CNN ensemble member processes multi-scale temporal patterns in the lookback window (Doc 06).
+V1\_Bot: Dilated CNN ensemble member processes multi-scale temporal patterns in the lookback window.
 
 ---
 
@@ -3910,7 +3910,7 @@ $$
 
 Purpose: Ensures the convolution output at time $t$ depends only on inputs at times $\leq t$, preventing future information leakage.
 
-V1\_Bot: Enforced in all convolutional layers to maintain temporal causality during both training and inference.
+V1\_Bot: Enforced in all convolutional layers to maintain temporal causality during computation.
 
 ---
 
@@ -3930,11 +3930,11 @@ Where:
 
 Purpose: Combines a tanh filter with a sigmoid gate to model complex temporal distributions, as introduced in WaveNet.
 
-V1\_Bot: Activation function in the dilated CNN ensemble member; improves modeling of non-linear price dynamics (Doc 06).
+V1\_Bot: Activation function in the dilated CNN ensemble member; improves modeling of non-linear price dynamics.
 
 ---
 
-### 10.5 Domain Adversarial Neural Networks (DANN)
+### 10.5 Domain Adversarial Networks (DANN)
 
 **Architecture Components:**
 
@@ -4010,7 +4010,7 @@ Where:
 
 Purpose: Standard classification loss; penalizes confident wrong predictions heavily.
 
-V1\_Bot: Default training loss for multi-class triple barrier label prediction (Doc 06).
+V1\_Bot: Default training loss for multi-class triple barrier label prediction.
 
 ---
 
@@ -4029,7 +4029,7 @@ Where:
 
 Purpose: Addresses class imbalance by focusing training on hard-to-classify examples.
 
-V1\_Bot: Applied when the triple barrier label distribution is highly skewed (e.g., many $Y=0$ neutral labels); configured with $\gamma = 2.0$ (Doc 06).
+V1\_Bot: Applied when the triple barrier label distribution is highly skewed (e.g., many $Y=0$ neutral labels); configured with $\gamma = 2.0$.
 
 ---
 
@@ -4048,7 +4048,7 @@ Where:
 
 Purpose: Directly optimizes the risk-adjusted return metric rather than a proxy loss, aligning the training objective with the evaluation metric.
 
-V1\_Bot: Alternative training objective for end-to-end models that output position weights; gradient flows through the Sharpe computation (Doc 06, Concept 04).
+V1\_Bot: Alternative training objective for end-to-end models that output position weights; gradient flows through the Sharpe computation (Concept 04).
 
 ---
 
@@ -4067,11 +4067,11 @@ Where:
 
 Purpose: Penalizes models that are systematically overconfident (or underconfident), producing well-calibrated probability outputs.
 
-V1\_Bot: Training objective for models feeding into the confidence gating system, ensuring predicted probabilities are reliable for position sizing (Doc 06, Doc 07).
+V1\_Bot: Training objective for models feeding into the confidence gating system, ensuring predicted probabilities are reliable for position sizing (Algo Engine).
 
 ---
 
-### 10.7 Graph Neural Networks
+### 10.7 Graph-Based Models
 
 **Graph Convolutional Network (GCN):**
 
@@ -4136,7 +4136,7 @@ V1\_Bot: Tracks evolving crypto token correlations and on-chain transfer pattern
 
 ---
 
-## Section 11: Reinforcement Learning for Trading
+## Section 11: Optimization Methods for Trading
 
 ### 11.1 MDP Formulation for Trading
 
@@ -4172,7 +4172,7 @@ Where:
 
 Purpose: Defines the set of decisions available to the agent at each time step.
 
-V1\_Bot: Continuous action space for SAC agent; discrete action space for DQN ensemble member (Concept 04, Doc 06).
+V1\_Bot: Continuous action space for SAC agent; discrete action space for DQN ensemble member (Concept 04,).
 
 ---
 
@@ -4245,7 +4245,7 @@ Where:
 
 Purpose: Quantifies the long-term value of taking action $a$ in state $s$.
 
-V1\_Bot: Value function approximated by a neural network in the DQN ensemble member (Doc 06).
+V1\_Bot: Value function approximation in the DQN ensemble member.
 
 ---
 
@@ -4263,7 +4263,7 @@ Where:
 
 Purpose: Recursive definition of the optimal Q-function; the foundation of all value-based RL methods.
 
-V1\_Bot: Target computation in DQN training (Doc 06, Concept 04).
+V1\_Bot: Target computation in DQN training (Concept 04).
 
 ---
 
@@ -4281,7 +4281,7 @@ Where:
 
 Purpose: Stabilizes training by decoupling the target from the online network, preventing oscillation.
 
-V1\_Bot: DQN training loss with target network update frequency $N = 1000$ steps (Doc 06).
+V1\_Bot: DQN training loss with target network update frequency $N = 1000$ steps.
 
 ---
 
@@ -4299,7 +4299,7 @@ Where:
 
 Purpose: Mitigates the maximization bias of standard DQN by separating action selection from value estimation.
 
-V1\_Bot: Default DQN variant used in the ensemble (Doc 06).
+V1\_Bot: Default DQN variant used in the ensemble.
 
 ---
 
@@ -4317,7 +4317,7 @@ Where:
 
 Purpose: Decomposes Q-values into state value and action advantage, improving learning efficiency when many actions have similar values.
 
-V1\_Bot: Architecture variant tested in DQN hyperparameter sweeps (Doc 06, Concept 04).
+V1\_Bot: Architecture variant tested in DQN hyperparameter sweeps (Concept 04).
 
 ---
 
@@ -4534,7 +4534,7 @@ Where:
 
 Purpose: Estimates the probability of informed trading in real-time using volume-bucketed data, without requiring trade-level buyer/seller identification.
 
-V1\_Bot: Order flow toxicity feature computed on tick data and fed as a real-time input to the AI Trading Brain (Concept 02).
+V1\_Bot: Order flow toxicity feature computed on tick data and fed as a real-time input to the Algo Engine.
 
 ---
 
@@ -4885,7 +4885,7 @@ Where:
 
 Purpose: Measures the information lost when approximating $P$ with $Q$; used to detect distributional drift.
 
-V1\_Bot: Drift detector in the confidence gating module -- when $D_{KL}(\text{train} \| \text{live})$ exceeds a threshold, the system reduces confidence and may halt trading (Doc 07 Section 6.3).
+V1\_Bot: Drift detector in the confidence gating module -- when $D_{KL}(\text{train} \| \text{live})$ exceeds a threshold, the system reduces confidence and may halt trading (Algo Engine).
 
 ---
 
@@ -4980,7 +4980,7 @@ $$
 
 **Purpose:** Proves that aggregating many slightly-better-than-random classifiers yields near-perfect accuracy.
 
-**V1\_Bot:** Justification for ensemble diversity in ML Lab (Doc 06 Section 7).
+**V1\_Bot:** Justification for ensemble diversity in the Algo Engine.
 
 ---
 
@@ -4997,7 +4997,7 @@ $$
 
 **Purpose:** Quantifies the diversification benefit when combining independent alpha sources.
 
-**V1\_Bot:** Ensemble sizing decisions in ML Lab (Doc 06 Section 7).
+**V1\_Bot:** Ensemble sizing decisions in the Algo Engine.
 
 ---
 
@@ -5014,7 +5014,7 @@ $$
 
 **Purpose:** Extends the Sharpe scaling formula to the realistic case of nonzero inter-strategy correlation, showing diminishing returns as $\bar{\rho} \to 1$.
 
-**V1\_Bot:** Diversity constraint enforcement in ensemble construction (Doc 06 Section 7).
+**V1\_Bot:** Diversity constraint enforcement in ensemble construction.
 
 ---
 
@@ -5035,7 +5035,7 @@ $$
 
 **Purpose:** Computes the soft routing weight that determines how much each expert contributes to the final prediction.
 
-**V1\_Bot:** MONEYMAKER Grand Unification meta-strategy (Concept 100), TradingBrain MoE architecture.
+**V1\_Bot:** MONEYMAKER strategy ensemble routing via weighted expert combination.
 
 ---
 
@@ -5052,7 +5052,7 @@ $$
 
 **Purpose:** Produces the final prediction as a convex combination of expert outputs, trained end-to-end via backpropagation through both the gating network and all experts.
 
-**V1\_Bot:** TradingBrain final signal aggregation layer.
+**V1\_Bot:** Algo Engine final signal aggregation layer.
 
 ---
 
@@ -5073,7 +5073,7 @@ $$
 
 **Purpose:** Collapses multiple directional signals into a single scalar that drives position decisions.
 
-**V1\_Bot:** SignalProcessor multi-timeframe analysis (Doc 07 Sections 3.5, 7.4).
+**V1\_Bot:** SignalProcessor multi-timeframe analysis (Algo Engine).
 
 ---
 
@@ -5090,7 +5090,7 @@ $$
 
 **Purpose:** Enforces hierarchical timeframe alignment so that lower-timeframe entries are only taken in the direction of the dominant trend.
 
-**V1\_Bot:** SignalProcessor multi-timeframe confluence logic (Doc 07 Sections 3.5, 7.4).
+**V1\_Bot:** SignalProcessor multi-timeframe confluence logic (Algo Engine).
 
 ---
 
@@ -5119,7 +5119,7 @@ $$
 
 **Purpose:** Learns the optimal way to combine heterogeneous base-model predictions, correcting for individual model biases and exploiting complementary strengths.
 
-**V1\_Bot:** Ensemble stacking pipeline in ML Lab (Doc 06 Section 7).
+**V1\_Bot:** Ensemble stacking pipeline in the Algo Engine.
 
 ---
 
@@ -5145,7 +5145,7 @@ $$
 
 **Purpose:** Defines a composite fitness that rewards profitability, penalizes drawdown quadratically, and requires sufficient trade frequency.
 
-**V1\_Bot:** Ensemble weight optimization via evolutionary search (Doc 06 Section 7).
+**V1\_Bot:** Ensemble weight optimization via evolutionary search.
 
 ---
 
@@ -5162,7 +5162,7 @@ $$
 
 **Purpose:** Introduces random perturbations into the weight vector to explore the fitness landscape and escape local optima.
 
-**V1\_Bot:** Genetic algorithm mutation step in ensemble weight evolution (Doc 06 Section 7).
+**V1\_Bot:** Genetic algorithm mutation step in ensemble weight evolution.
 
 ---
 
@@ -5559,7 +5559,7 @@ $$
 
 **Purpose:** Prescribes the central bank's optimal policy rate as a function of inflation and output deviations, enabling prediction of rate decisions.
 
-**V1\_Bot:** Central bank policy prediction and carry trade signal generation (Doc 07).
+**V1\_Bot:** Central bank policy prediction and carry trade signal generation (Algo Engine).
 
 ---
 
@@ -5651,7 +5651,7 @@ $$
 
 **Purpose:** Detects upward distributional shifts in a sequential stream; used to identify concept drift or regime change in model performance.
 
-**V1\_Bot:** Drift detector in confidence gating pipeline (Doc 07 Section 6.3).
+**V1\_Bot:** Drift detector in confidence gating pipeline (Algo Engine).
 
 ---
 
@@ -5699,7 +5699,7 @@ $$
 
 **Purpose:** Flags extreme deviations from normal operating conditions, activating the confidence gating silence rule to halt trading.
 
-**V1\_Bot:** Silence rule Condition 1 in confidence gating (Doc 07 Section 6.3).
+**V1\_Bot:** Silence rule Condition 1 in confidence gating (Algo Engine).
 
 ---
 
@@ -5717,7 +5717,7 @@ $$
 
 **Purpose:** Measures directional similarity between two feature vectors, independent of magnitude, for retrieving analogous historical market states.
 
-**V1\_Bot:** COPER experience bank pattern matching (Doc 07 Section 7.2).
+**V1\_Bot:** COPER experience bank pattern matching (Algo Engine).
 
 ---
 
@@ -5746,7 +5746,7 @@ $$
 
 **Purpose:** Reduces nearest-neighbor search complexity from $O(n)$ brute force to $O(\sqrt{n})$ while compressing memory via product quantization.
 
-**V1\_Bot:** COPER experience bank search acceleration (Doc 07 Section 7.2).
+**V1\_Bot:** COPER experience bank search acceleration (Algo Engine).
 
 ---
 
@@ -5930,16 +5930,16 @@ $$
 | Section | Formula Name | One-Line Equation | V1\_Bot Component |
 |---------|-------------|-------------------|-------------------|
 | **Ensemble (14)** | | | |
-| 14.1 | Condorcet Majority | $P(\text{maj}) = \sum \binom{n}{k}p^k(1-p)^{n-k}$ | ML Lab ensemble |
-| 14.1 | Sharpe Scaling (uncorr.) | $SR_p = \sqrt{N} \cdot SR_s$ | ML Lab sizing |
-| 14.1 | Sharpe Scaling (corr.) | $SR_p = \frac{\sqrt{N}}{\sqrt{1+(N-1)\bar\rho}} SR_s$ | ML Lab diversity |
-| 14.2 | MoE Gating | $g_i = \text{softmax}(\mathbf{v}_i^T x)$ | TradingBrain MoE |
-| 14.2 | MoE Output | $y = \sum g_i E_i(x)$ | TradingBrain |
+| 14.1 | Condorcet Majority | $P(\text{maj}) = \sum \binom{n}{k}p^k(1-p)^{n-k}$ | Algo Engine ensemble |
+| 14.1 | Sharpe Scaling (uncorr.) | $SR_p = \sqrt{N} \cdot SR_s$ | Algo Engine sizing |
+| 14.1 | Sharpe Scaling (corr.) | $SR_p = \frac{\sqrt{N}}{\sqrt{1+(N-1)\bar\rho}} SR_s$ | Algo Engine diversity |
+| 14.2 | MoE Gating | $g_i = \text{softmax}(\mathbf{v}_i^T x)$ | Algo Engine MoE |
+| 14.2 | MoE Output | $y = \sum g_i E_i(x)$ | Algo Engine |
 | 14.3 | Net Signal | $s = \sum w_i d_i \cdot \text{str}_i$ | SignalProcessor |
 | 14.3 | MTF Confluence | $\text{score} = \sum w_{tf} s_{tf}$ | SignalProcessor |
-| 14.4 | Stacking Meta-Learner | $\hat{y} = \sigma(\sum \beta_k \hat{y}_k + b)$ | ML Lab stacking |
-| 14.5 | GA Fitness | $F = \text{profit}\cdot(1-\text{MDD})^2\cdot\log(n)$ | ML Lab GA |
-| 14.5 | GA Mutation | $w' = w + \mathcal{N}(0,\sigma_m)$ | ML Lab GA |
+| 14.4 | Stacking Meta-Learner | $\hat{y} = \sigma(\sum \beta_k \hat{y}_k + b)$ | Algo Engine stacking |
+| 14.5 | GA Fitness | $F = \text{profit}\cdot(1-\text{MDD})^2\cdot\log(n)$ | Algo Engine GA |
+| 14.5 | GA Mutation | $w' = w + \mathcal{N}(0,\sigma_m)$ | Algo Engine GA |
 | **Blockchain/DeFi (15)** | | | |
 | 15.1 | Constant Product | $xy = k$ | DEX strategy |
 | 15.1 | Trade Output | $\Delta y = y\Delta x/(x+\Delta x)$ | DEX execution |
@@ -5979,12 +5979,11 @@ $$
 | MONEYMAKER Component | Document | Key Formulas Used |
 |-------------------|----------|-------------------|
 | **Data Ingestion** | Doc 04 | OHLCV aggregation, VWAP (Sec 7), data quality z-scores (Sec 17.3) |
-| **AI Trading Brain** | Doc 07 | All technical indicators (Sec 7), confidence gating and silence rules (Sec 17.1--17.3), COPER cosine similarity and FAISS search (Sec 17.4--17.5), MoE ensemble (Sec 14.2), weighted signal aggregation (Sec 14.3), multi-timeframe confluence (Sec 14.3) |
-| **ML Lab** | Doc 06 | All ML formulas (Sec 9): logistic regression, SVM, random forest, XGBoost, triple barrier labeling (Sec 9.6), purged k-fold CV (Sec 9.7); all DL formulas (Sec 10): LSTM, Transformer, TFT; all RL formulas (Sec 11): DQN, PPO, SAC; stacking and ensemble methods (Sec 14.4), genetic algorithm weight evolution (Sec 14.5) |
+| **Algo Engine** | — | All technical indicators (Sec 7), confidence gating and silence rules (Sec 17.1--17.3), COPER cosine similarity and FAISS search (Sec 17.4--17.5), ensemble routing (Sec 14.2), weighted signal aggregation (Sec 14.3), multi-timeframe confluence (Sec 14.3), tree-based models (Sec 9), walk-forward validation (Sec 9.7), stacking and ensemble methods (Sec 14.4) |
 | **Risk Manager** | Doc 09 | VaR and CVaR (Sec 6.1--6.2), Kelly criterion (Sec 6.3), position sizing (Sec 6.4), maximum drawdown (Sec 6.5), health factor (Sec 18.3) |
 | **Execution Bridge** | Doc 08 | Almgren-Chriss optimal execution (Sec 12.6), slippage models (Sec 12), effective spread monitoring (Sec 18.2), TWAP/VWAP benchmarks (Sec 7) |
 | **Monitoring & Dashboard** | Doc 10 | Sharpe ratio, Sortino ratio (Sec 6.7), equity curve statistics, CUSUM degradation detection (Sec 17.2), performance attribution metrics |
-| **Macro Module** | Doc 07 | GDP decomposition (Sec 16.1), Nelson-Siegel yield curve (Sec 16.3), Taylor rule (Sec 16.4), interest rate parity (Sec 16.5), PPP (Sec 16.6) |
+| **Macro Module** | Algo Engine| GDP decomposition (Sec 16.1), Nelson-Siegel yield curve (Sec 16.3), Taylor rule (Sec 16.4), interest rate parity (Sec 16.5), PPP (Sec 16.6) |
 | **Crypto/DeFi Module** | Concept 06 | Constant product AMM (Sec 15.1), impermanent loss (Sec 15.2), concentrated liquidity (Sec 15.3), MEV and sandwich (Sec 15.4), cyclic arbitrage (Sec 15.5), gas auction (Sec 15.7) |
 
 ---
@@ -6013,17 +6012,15 @@ $$
 - **Avellaneda, M., & Stoikov, S.** (2008). "High-frequency trading in a limit order book." *Quantitative Finance*, 8(3), 217--224.
 - **Almgren, R., & Chriss, N.** (2001). "Optimal execution of portfolio transactions." *Journal of Risk*, 3(2), 5--39.
 
-### Machine Learning and Deep Learning
+### Statistical Learning and Quantitative Methods
 
 - **de Prado, M. Lopez** (2018). *Advances in Financial Machine Learning.* Wiley. (Triple barrier labeling, fractional differentiation, purged cross-validation.)
 - **de Prado, M. Lopez** (2020). "Building Diversified Portfolios that Outperform Out-of-Sample." *Journal of Portfolio Management*, 42(4). (Hierarchical Risk Parity.)
-- **Vaswani, A., Shazeer, N., Parmar, N., et al.** (2017). "Attention Is All You Need." *Advances in Neural Information Processing Systems (NeurIPS).*
-- **Lim, B., Arik, S.O., Loeff, N., & Pfister, T.** (2021). "Temporal Fusion Transformers for interpretable multi-horizon time series forecasting." *International Journal of Forecasting*, 37(4), 1748--1764.
 
-### Reinforcement Learning
+### Optimization Methods
 
-- **Haarnoja, T., Zhou, A., Abbeel, P., & Levine, S.** (2018). "Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor." *Proceedings of the 35th ICML.*
-- **Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O.** (2017). "Proximal Policy Optimization Algorithms." *arXiv:1707.06347.*
+- **Nocedal, J., & Wright, S.J.** (2006). *Numerical Optimization.* Springer. (Gradient-based optimization, convergence theory.)
+- **Boyd, S., & Vandenberghe, L.** (2004). *Convex Optimization.* Cambridge University Press. (Portfolio optimization, risk minimization.)
 
 ### Options and Stochastic Volatility
 
