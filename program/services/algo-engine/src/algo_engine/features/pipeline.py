@@ -1,4 +1,4 @@
-"""Pipeline di calcolo indicatori tecnici per il Cervello AI di Trading.
+"""Pipeline di calcolo indicatori tecnici per l'Algo Engine di Trading.
 
 Come un laboratorio di analisi: prende le candele OHLCV grezze
 (i "campioni di sangue" del mercato) e produce un dizionario di

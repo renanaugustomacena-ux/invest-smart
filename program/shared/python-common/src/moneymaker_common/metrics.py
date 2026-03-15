@@ -7,7 +7,7 @@ tempo impiega ogni operazione — essenziale per la supervisione.
 
 Organizzate per dominio di servizio:
 - Metriche comuni (condivise tra tutti i servizi)
-- Metriche Cervello AI (indicatori, regime, segnali, pipeline)
+- Metriche Algo Engine (indicatori, regime, segnali, pipeline)
 - Metriche Data Ingestion (tick, candele)
 - Metriche MT5 Bridge (esecuzioni, posizioni)
 """
@@ -47,7 +47,7 @@ ERROR_COUNTER = Counter(
 
 
 # ============================================================
-# Metriche Cervello AI — i "contatori" della linea di produzione segnali
+# Metriche Algo Engine — i "contatori" della linea di produzione segnali
 # ============================================================
 
 FEATURES_COMPUTED = Counter(

@@ -1,7 +1,7 @@
 """Punto di ingresso per il servizio MONEYMAKER MT5 Bridge.
 
 Il MT5 Bridge è lo "sportello bancario" — il livello di esecuzione.
-Riceve segnali di trading validati dal Cervello AI via gRPC e li
+Riceve segnali di trading validati dall'Algo Engine via gRPC e li
 traduce in chiamate API MetaTrader 5.
 
 Fail-safe per default: in caso di ambiguità o fallimento, non fare nulla.
@@ -106,7 +106,7 @@ async def main() -> None:
         trailing_pips=settings.trailing_stop_pips,
     )
 
-    # --- Trade Recorder — l'"archivista" per il feedback loop ML ---
+    # --- Trade Recorder — l'"archivista" per il feedback loop ---
     trade_recorder: TradeRecorder | None = None
     try:
         database_url = (
@@ -115,10 +115,10 @@ async def main() -> None:
         )
         trade_recorder = TradeRecorder(database_url=database_url)
         await trade_recorder.connect()
-        logger.info("Trade recorder inizializzato per feedback loop ML")
+        logger.info("Trade recorder inizializzato per feedback loop")
     except Exception as e:
         logger.warning(
-            "Trade recorder non disponibile, feedback loop ML disabilitato",
+            "Trade recorder non disponibile, feedback loop disabilitato",
             error=str(e),
         )
 
@@ -191,7 +191,7 @@ async def main() -> None:
                             symbol=pos.get("symbol"),
                             profit=str(pos.get("profit", "0")),
                         )
-                        # Registra il trade chiuso per il feedback loop ML
+                        # Registra il trade chiuso per il feedback loop
                         if trade_recorder and trade_recorder.is_connected:
                             trade_result = tracker.build_trade_result(pos)
                             record_id = await trade_recorder.record_closed_trade(trade_result)

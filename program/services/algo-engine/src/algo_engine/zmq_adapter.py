@@ -2,7 +2,7 @@
 
 Come un traduttore simultaneo all'ONU: il servizio Go pubblica dati in un
 formato, e questo modulo li traduce nel linguaggio che la pipeline del
-Cervello AI sa leggere. Fornisce:
+Algo Engine sa leggere. Fornisce:
 
 - ``parse_bar_message`` — traduce un singolo JSON bar dal formato Go in OHLCVBar
 - ``determine_message_type`` — classifica un topic ZMQ come bar / tick / sconosciuto
