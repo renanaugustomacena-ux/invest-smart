@@ -41,7 +41,7 @@
 
 Automated trading systems operate in an environment where the cost of ignorance is measured in direct financial loss. Unlike traditional web applications where a few seconds of degraded performance might cause user frustration, a few seconds of undetected anomaly in a trading system can result in unauthorized position accumulation, unchecked drawdowns, or missed hedging signals that cascade into catastrophic losses. The V1_Bot ecosystem therefore treats observability not as a supplementary operational concern but as a foundational architectural pillar with the same importance as the trading logic itself.
 
-The distinction between monitoring and observability is crucial to understand before proceeding. Monitoring is the practice of collecting predefined metrics and checking them against known thresholds -- it answers the question "is this known thing broken?" Observability, by contrast, is the property of a system that allows operators to ask arbitrary questions about its internal state based on the external outputs it produces. A truly observable system allows engineers to diagnose novel failure modes that were never anticipated at design time. In trading systems, novel failure modes are the norm: market microstructure changes, broker API behavior shifts, data provider outages with partial data, GPU thermal throttling affecting model inference latency -- these are not scenarios you can enumerate exhaustively in advance.
+The distinction between monitoring and observability is crucial to understand before proceeding. Monitoring is the practice of collecting predefined metrics and checking them against known thresholds -- it answers the question "is this known thing broken?" Observability, by contrast, is the property of a system that allows operators to ask arbitrary questions about its internal state based on the external outputs it produces. A truly observable system allows engineers to diagnose novel failure modes that were never anticipated at design time. In trading systems, novel failure modes are the norm: market microstructure changes, broker API behavior shifts, data provider outages with partial data, GPU thermal throttling affecting processing latency -- these are not scenarios you can enumerate exhaustively in advance.
 
 The V1_Bot monitoring infrastructure is therefore designed to support both reactive monitoring (alerting on known failure conditions) and proactive observability (enabling deep investigation of unknown-unknowns through rich telemetry data).
 
@@ -104,7 +104,7 @@ The monitoring infrastructure runs on a dedicated Proxmox VM (`vm-monitor`, VM I
 | **Data Disk**    | 256 GB (SSD)   | Prometheus TSDB, Loki chunks, Grafana SQLite    |
 | **Network**      | VLAN 50 (mgmt) | Monitoring traffic isolated from trading data   |
 
-The monitoring VM resides on VLAN 50 (Management) but has firewall rules permitting it to scrape metrics endpoints on all other VLANs (VLAN 10 for Data Ingestion, VLAN 20 for AI, VLAN 30 for Execution, VLAN 40 for Database). This is the only VM with cross-VLAN read access to all service metrics.
+The monitoring VM resides on VLAN 50 (Management) but has firewall rules permitting it to scrape metrics endpoints on all other VLANs (VLAN 10 for Data Ingestion, VLAN 20 for Algo Engine, VLAN 30 for Execution, VLAN 40 for Database). This is the only VM with cross-VLAN read access to all service metrics.
 
 ### 10.2.2 High-Level Architecture Diagram
 
@@ -405,11 +405,11 @@ Any non-zero network drop rate on VLAN 10 (Data Ingestion) or VLAN 30 (Execution
           node_hwmon_temp_celsius{instance="pve-trade-01:9100", sensor="coretemp"}
 ```
 
-SSD write latency above 5ms triggers a WARNING; above 20ms triggers CRITICAL. CPU temperatures above 80C trigger a WARNING; above 90C trigger CRITICAL with automatic reduction of AI workload (the Algo Engine's GPU operations are the primary heat source).
+SSD write latency above 5ms triggers a WARNING; above 20ms triggers CRITICAL. CPU temperatures above 80C trigger a WARNING; above 90C trigger CRITICAL with automatic reduction of workload.
 
 **GPU Monitoring**
 
-The NVIDIA GPU used for AI inference is monitored via the `nvidia-gpu-exporter` running on the Algo Engine VM:
+The GPU (if present) is monitored via the `nvidia-gpu-exporter` running on the Algo Engine VM:
 
 ```yaml
   - name: v1bot_gpu
@@ -435,7 +435,7 @@ The NVIDIA GPU used for AI inference is monitored via the `nvidia-gpu-exporter` 
           nvidia_gpu_clock_speed_mhz < (nvidia_gpu_max_clock_speed_mhz * 0.9)
 ```
 
-GPU thermal throttling is a critical issue for trading because it introduces unpredictable latency spikes in AI inference. If the GPU clock drops below 90% of maximum due to thermal limits, a WARNING alert fires and the Algo Engine begins routing predictions to CPU-based fallback models.
+GPU thermal throttling is a critical issue for trading because it introduces unpredictable latency spikes in computation. If the GPU clock drops below 90% of maximum due to thermal limits, a WARNING alert fires and the Algo Engine begins routing predictions to CPU-based fallback strategies.
 
 ### 10.3.2 Per-VM Monitoring
 
@@ -648,7 +648,7 @@ var (
 
 ### 10.4.2 Algo Engine Service (Python)
 
-The Algo Engine is the most computationally intensive service and requires careful monitoring of both its machine learning performance and its computational resource usage.
+The Algo Engine is the most computationally intensive service and requires careful monitoring of both its trading strategy performance and its computational resource usage.
 
 **Custom Metrics Exposed on `:8082/metrics`**
 
@@ -683,9 +683,9 @@ active_model_version = Info(
     'Information about the currently active model'
 )
 
-model_last_retrain_timestamp = Gauge(
-    'v1bot_algo_engine_model_last_retrain_timestamp_seconds',
-    'Unix timestamp of the last model retraining',
+model_last_recalibration_timestamp = Gauge(
+    'v1bot_algo_engine_model_last_recalibration_timestamp_seconds',
+    'Unix timestamp of the last model recalibration',
     ['model_name']
 )
 
@@ -702,9 +702,9 @@ prediction_distribution_drift = Gauge(
 )
 
 # GPU/compute metrics
-gpu_inference_batch_size = Histogram(
-    'v1bot_algo_engine_inference_batch_size',
-    'Number of samples in each inference batch',
+prediction_batch_size = Histogram(
+    'v1bot_algo_engine_prediction_batch_size',
+    'Number of samples in each prediction batch',
     ['model_name'],
     buckets=[1, 2, 4, 8, 16, 32, 64, 128]
 )
@@ -744,7 +744,7 @@ feature_cache_miss_total = Counter(
 
 The Algo Engine monitoring pays special attention to **confidence distribution monitoring**. If the model suddenly starts producing predictions with uniformly low confidence (below 0.3), it may indicate feature pipeline corruption or model drift. Conversely, if confidence is uniformly high (above 0.95), the model may be overfitting to recent patterns. A healthy confidence distribution shows a spread with a slight right skew.
 
-**Fallback tier monitoring** tracks how often the system falls back from GPU inference to CPU inference to rule-based fallback. If the `cpu_fallback` or `rule_based` tier is invoked more than 5% of the time during trading hours, this indicates GPU reliability issues that need investigation.
+**Fallback tier monitoring** tracks how often the system falls back from primary strategy to secondary strategy to rule-based fallback. If the `cpu_fallback` or `rule_based` tier is invoked more than 5% of the time during trading hours, this indicates reliability issues that need investigation.
 
 ### 10.4.3 Execution Bridge Service (Python)
 
@@ -1893,7 +1893,7 @@ groups:
           team: devops
         annotations:
           summary: "GPU is thermal throttling"
-          description: "GPU clock speed has dropped below 90% of maximum. AI inference latency is degraded."
+          description: "GPU clock speed has dropped below 90% of maximum. Processing latency is degraded."
 ```
 
 ```yaml
@@ -2020,22 +2020,22 @@ groups:
 ```
 
 ```yaml
-# /opt/monitoring/prometheus/rules/alert_rules_ai.yml
+# /opt/monitoring/prometheus/rules/alert_rules_algo.yml
 groups:
-  - name: v1bot_ai_alerts
+  - name: v1bot_algo_alerts
     rules:
-      - alert: V1Bot_AI_HighInferenceLatency
-        expr: v1bot:ai:prediction_latency_p95:seconds > 0.5
+      - alert: V1Bot_Algo_HighPredictionLatency
+        expr: v1bot:algo:prediction_latency_p95:seconds > 0.5
         for: 2m
         labels:
           severity: warning
-          category: ai
-          team: ml
+          category: algo
+          team: trading
         annotations:
-          summary: "AI inference latency is high"
+          summary: "Prediction latency is high"
           description: "p95 prediction latency for {{ $labels.model_name }} is {{ $value }}s."
 
-      - alert: V1Bot_AI_ModelDrift
+      - alert: V1Bot_Algo_ModelDrift
         expr: v1bot_algo_engine_prediction_drift_score > 0.5
         for: 10m
         labels:
@@ -2348,7 +2348,7 @@ This dashboard is the operator's primary tool for understanding trading results.
 - Prediction distribution drift (KL divergence over time)
 - Feature drift PSI scores (heatmap by feature)
 - GPU utilization and temperature
-- Inference batch size distribution
+- Prediction batch size distribution
 - Fallback tier usage (pie chart: primary_gpu / secondary_gpu / cpu_fallback / rule_based)
 - Ensemble agreement ratio by symbol
 - Model version info panel
@@ -3181,7 +3181,7 @@ if __name__ == '__main__':
 |-----------------|-----------------------------------------------|---------------------------------------------------|----------------------------------------------|
 | **Trading**     | MT5 disconnect, kill switch, margin call       | High slippage, low fill rate, drawdown approach    | Trade executed, position opened/closed        |
 | **Infrastructure** | VM down, disk full, clock drift > 50ms     | High CPU/memory, disk space low, network errors    | Service restart, config reload                |
-| **AI/ML**       | Model inference failure, all fallback          | Model drift, feature drift, low confidence         | Model retrained, version updated              |
+| **Algo Engine** | Strategy failure, all fallback                 | Model drift, feature drift, low confidence         | Model recalibrated, version updated           |
 | **Risk**        | Kill switch activated, risk manager down       | Circuit breaker open, high veto rate               | Circuit breaker closed, drawdown recovered    |
 | **Database**    | Connection pool exhausted, replication failed  | High connection usage, slow queries, bloat         | Maintenance completed, backup finished        |
 
@@ -3646,7 +3646,7 @@ Distributed tracing in V1_Bot is implemented using OpenTelemetry (OTel) for inst
   |                  |     |                  |     |                  |
   | Span: receive    |     | Span: predict    |     | Span: evaluate   |
   | Span: parse      |---->| Span: preprocess |---->| Span: check_dd   |
-  | Span: forward    |     | Span: inference  |     | Span: check_pos  |
+  | Span: forward    |     | Span: evaluate   |     | Span: check_pos  |
   +------------------+     | Span: ensemble   |     | Span: approve    |
                            +------------------+     +--------+---------+
                                                              |
@@ -3747,11 +3747,11 @@ async def handle_prediction_request(market_data: dict) -> dict:
             prep_span.set_attribute("v1bot.feature_count", len(features))
             prep_span.set_attribute("v1bot.cache_hit", features.from_cache)
 
-        # Model inference
-        with tracer.start_as_current_span("model_inference") as inf_span:
-            prediction = await run_inference(features)
-            inf_span.set_attribute("v1bot.model_name", prediction.model_name)
-            inf_span.set_attribute("v1bot.execution_device", prediction.device)
+        # Strategy evaluation
+        with tracer.start_as_current_span("strategy_evaluation") as eval_span:
+            prediction = await run_strategy(features)
+            eval_span.set_attribute("v1bot.strategy_name", prediction.strategy_name)
+            eval_span.set_attribute("v1bot.execution_device", prediction.device)
             inf_span.set_attribute("v1bot.confidence", prediction.confidence)
 
         # Ensemble aggregation
@@ -3847,13 +3847,13 @@ Trade Decision Trace (example: ~450ms total)
 [Data Ingestion]    parse_tick .................. 2ms   -> 3ms    (1ms)
 [Data Ingestion]    validate_data ............... 3ms   -> 4ms    (1ms)
 [Data Ingestion]    publish_to_redis ............ 4ms   -> 6ms    (2ms)
-[Data Ingestion]    forward_to_ai ............... 6ms   -> 8ms    (2ms)
+[Data Ingestion]    forward_to_algo ............. 6ms   -> 8ms    (2ms)
 [Algo Engine]        predict ....................... 10ms  -> 180ms  (170ms)
 [Algo Engine]          preprocess_features ......... 10ms  -> 35ms   (25ms)
 [Algo Engine]            fetch_cached_features ..... 10ms  -> 12ms   (2ms)
 [Algo Engine]            compute_new_features ...... 12ms  -> 35ms   (23ms)
-[Algo Engine]          model_inference ............. 35ms  -> 155ms  (120ms)
-[Algo Engine]            gpu_forward_pass .......... 36ms  -> 150ms  (114ms)
+[Algo Engine]          strategy_evaluation ......... 35ms  -> 155ms  (120ms)
+[Algo Engine]            compute_signals ........... 36ms  -> 150ms  (114ms)
 [Algo Engine]            postprocess_output ........ 150ms -> 155ms  (5ms)
 [Algo Engine]          ensemble_aggregate .......... 155ms -> 175ms  (20ms)
 [Algo Engine]          publish_prediction .......... 175ms -> 180ms  (5ms)
@@ -3871,7 +3871,7 @@ Trade Decision Trace (example: ~450ms total)
                                                             TOTAL: ~250ms
 ```
 
-This trace structure makes it immediately visible that the GPU forward pass dominates the latency budget at 114ms. If a performance regression occurs and end-to-end latency jumps to 800ms, the trace will immediately pinpoint which span grew -- whether it is the GPU inference (thermal throttling?), the MT5 submission (network issue?), or the risk evaluation (added complexity?).
+This trace structure makes it immediately visible that the signal computation dominates the latency budget at 114ms. If a performance regression occurs and end-to-end latency jumps to 800ms, the trace will immediately pinpoint which span grew -- whether it is the strategy evaluation, the MT5 submission (network issue?), or the risk evaluation (added complexity?).
 
 ### 10.11.4 Sampling Strategy
 
@@ -4290,7 +4290,7 @@ When a dependency becomes unavailable, services fall back to degraded operation:
 
 | Service           | Dependency Failure        | Failover Action                                     |
 |-------------------|---------------------------|------------------------------------------------------|
-| Algo Engine          | GPU unavailable           | Switch to CPU inference (higher latency)             |
+| Algo Engine          | GPU unavailable           | Switch to CPU-based computation (higher latency)     |
 | Algo Engine          | Redis unavailable         | Disable feature caching, compute on-the-fly          |
 | Algo Engine          | PostgreSQL unavailable    | Use last cached features, limit to short-term signals|
 | Execution Bridge  | Risk Manager unavailable  | Activate local kill switch, halt new trades           |
