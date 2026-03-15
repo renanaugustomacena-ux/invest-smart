@@ -920,7 +920,6 @@ Every pull request uses a standard template that ensures consistency and complet
 - [ ] Risk Manager
 - [ ] MT5 Bridge
 - [ ] Data Ingestion
-- [ ] ML Training
 - [ ] Monitoring
 - [ ] Shared Libraries
 - [ ] Infrastructure

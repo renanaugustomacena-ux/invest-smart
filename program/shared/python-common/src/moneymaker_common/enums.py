@@ -47,7 +47,7 @@ class TrendDirection(str, Enum):
 class SourceTier(str, Enum):
     """Livello della fonte decisionale — la "gerarchia" delle fonti. Rispecchia l'enum proto."""
 
-    ML_PRIMARY = "ml_primary"
+    STATISTICAL_PRIMARY = "statistical_primary"
     TECHNICAL = "technical"
     SENTIMENT = "sentiment"
     RULE_BASED = "rule_based"

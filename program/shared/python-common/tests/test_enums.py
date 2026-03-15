@@ -55,6 +55,6 @@ class TestTrendDirection:
 
 class TestSourceTier:
     def test_values(self):
-        assert SourceTier.ML_PRIMARY == "ml_primary"
+        assert SourceTier.STATISTICAL_PRIMARY == "statistical_primary"
         assert SourceTier.TECHNICAL == "technical"
         assert SourceTier.RULE_BASED == "rule_based"

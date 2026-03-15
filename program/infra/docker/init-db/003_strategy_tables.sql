@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS strategy_performance (
     direction       TEXT NOT NULL,          -- "BUY" or "SELL"
     confidence      NUMERIC(5, 4) NOT NULL,
     regime          TEXT,                   -- Market regime at signal time
-    source_tier     TEXT,                   -- "TECHNICAL", "ML_PRIMARY", etc.
+    source_tier     TEXT,                   -- "TECHNICAL", "STATISTICAL_PRIMARY", etc.
     entry_price     NUMERIC(20, 8),
     exit_price      NUMERIC(20, 8),
     stop_loss       NUMERIC(20, 8),

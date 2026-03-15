@@ -1937,7 +1937,7 @@ This section maps each phase of the roadmap to the specific documents that provi
 |-------|------------------|---------------------|
 | Phase 0 | Doc 01 (Vision), Doc 02 (Infrastructure) | Doc 12 (Security - initial firewall) |
 | Phase 1 | Doc 04 (Data Ingestion), Doc 05 (Database) | Doc 03 (Communication), Doc 10 (Monitoring basics) |
-| Phase 2 | Doc 06 (ML Training), Doc 07 (Algo Engine) | Doc 05 (Database - model registry) |
+| Phase 2 | Algo Engine (Signal Generation) | Doc 05 (Database - signal storage) |
 | Phase 3 | Doc 08 (MT5 Bridge), Doc 09 (Risk Mgmt) | Doc 03 (Communication - gRPC), Doc 07 (Brain - signals) |
 | Phase 4 | Doc 10 (Monitoring/Dashboard) | Doc 03 (Communication - metrics), Doc 05 (Database - metrics storage) |
 | Phase 5 | Doc 11 (Testing), Doc 12 (Security) | All documents (test coverage spans entire system) |
@@ -1958,11 +1958,9 @@ Doc 01 (Vision) -----------> Foundation for everything
     |       |
     |       +-> Doc 10 (Monitoring) -> Monitors all services
     |
-    +-> Doc 04 (Data Ingestion) -> Feeds Doc 05, Doc 06, Doc 07
+    +-> Doc 04 (Data Ingestion) -> Feeds Doc 05, Algo Engine
     |
-    +-> Doc 06 (ML Training) -> Produces models for Doc 07
-    |       |
-    |       +-> Doc 07 (Algo Engine) -> Consumes models, produces signals
+    +-> Algo Engine -> Generates signals from market data
     |               |
     |               +-> Doc 08 (MT5 Bridge) -> Executes signals
     |               |
@@ -2007,7 +2005,7 @@ Follow the phase order defined in this roadmap:
 
 1. Document 02 (Infrastructure) -- Phase 0
 2. Document 05 (Database), Document 04 (Data Ingestion) -- Phase 1
-3. Document 06 (ML Training), Document 07 (Algo Engine) -- Phase 2
+3. Algo Engine (Signal Generation) -- Phase 2
 4. Document 08 (MT5 Bridge), Document 09 (Risk Management) -- Phase 3
 5. Document 10 (Monitoring) -- Phase 4
 6. Document 12 (Security), Document 11 (Testing) -- Phase 5
