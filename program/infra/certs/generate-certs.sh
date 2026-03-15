@@ -160,7 +160,7 @@ log_info "Certificato Redis generato: redis-server.crt, redis-server.key"
 # ============================================================
 # 4. Service Certificates (per mTLS futuro)
 # ============================================================
-SERVICES=("algo-engine" "mt5-bridge" "data-ingestion" "ml-training")
+SERVICES=("algo-engine" "mt5-bridge" "data-ingestion")
 
 for SERVICE in "${SERVICES[@]}"; do
     log_info "Generazione certificato per $SERVICE..."
