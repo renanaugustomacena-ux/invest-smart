@@ -693,7 +693,7 @@ Il quarto controllo esegue il validatore headless, che verifica l'integrita stru
 python -m moneymaker.tools.headless_validator
 ```
 
-Il risultato atteso e un punteggio pari o superiore al 98%. Un punteggio inferiore indica che uno o piu moduli hanno problemi strutturali (dimensioni dei tensori non corrispondenti, parametri mancanti, ecc.). Verificare in particolare che `METADATA_DIM=60` sia consistente in tutti i moduli (e il contratto universale dell'ecosistema).
+Il risultato atteso e un punteggio pari o superiore al 98%. Un punteggio inferiore indica che uno o piu moduli hanno problemi strutturali (dimensioni dei vettori non corrispondenti, parametri mancanti, ecc.). Verificare in particolare che `METADATA_DIM=60` sia consistente in tutti i moduli (e il contratto universale dell'ecosistema).
 
 ### 5.6 Step 5: Brain Verify
 
