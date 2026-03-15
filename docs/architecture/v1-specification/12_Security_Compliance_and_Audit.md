@@ -237,10 +237,10 @@ The attack surface of MONEYMAKER can be divided into four domains:
 
 **Data Attack Surface:**
 
-- PostgreSQL database (broker credentials, trade history, AI models)
+- PostgreSQL database (broker credentials, trade history, strategy configurations)
 - Redis cache (current positions, recent signals)
 - ZFS filesystems (VM disk images, backups)
-- Model artifacts (trained neural network weights)
+- Strategy artifacts (configuration files, calibration parameters)
 - Audit logs (system activity records)
 
 **Physical Attack Surface:**
@@ -255,9 +255,8 @@ The attack surface of MONEYMAKER can be divided into four domains:
 |---------|----------|-----------|-------------|-----------------|-----|-----------|
 | **Data Ingestion** | Fake data source sends malicious data | Modified market data in transit | Service denies sending bad data | Market data intercepted | Flood of fake data overwhelms ingestion | Compromised ingestion writes to unauthorized tables |
 | **Database** | Unauthorized client connects | Data modified at rest or in transit | Audit log entries deleted | Query results intercepted | Resource exhaustion via expensive queries | DB user escalates to superuser |
-| **Algo Engine** | Spoofed signals sent to MT5 Bridge | Model weights tampered | Brain denies generating a signal | Model weights or strategy logic leaked | CPU exhaustion prevents inference | Brain process gains root access |
+| **Algo Engine** | Spoofed signals sent to MT5 Bridge | Strategy parameters tampered | Engine denies generating a signal | Strategy logic leaked | CPU exhaustion prevents signal generation | Engine process gains root access |
 | **MT5 Bridge** | Fake signal causes unauthorized trade | Trade parameters modified in transit | Bridge denies executing a trade | Broker credentials leaked | Bridge overwhelmed, cannot execute | Bridge gains broker admin access |
-| **ML Training Lab** | Poisoned training data | Model backdoor inserted | Training results falsified | Training data or model IP leaked | GPU exhaustion prevents training | Lab process gains host access |
 | **Monitoring** | Fake metrics hide real problems | Alert rules tampered to suppress alerts | Dashboard shows false history | Performance data leaked to competitors | Dashboard overwhelmed, operator blind | Dashboard gains write access to trading systems |
 
 ### 2.8 Risk Assessment Matrix
@@ -300,8 +299,8 @@ The MONEYMAKER infrastructure is segmented into four VLANs, each serving a disti
 |   |    10.30.30.0/24         |    |    10.40.40.0/24         |             |
 |   |                          |    |                          |             |
 |   |  - PostgreSQL + Redis    |    |  - Read-Only Dashboard   |             |
-|   |  - AI Trading Brain      |    |  - Guest Monitoring      |             |
-|   |  - ML Training Lab       |    |  - No access to          |             |
+|   |  - Algo Engine           |    |  - Guest Monitoring      |             |
+|   |                          |    |  - No access to          |             |
 |   |  - Data Ingestion        |    |    TRADE or DATA VLANs   |             |
 |   |  - NO INTERNET ACCESS    |    |                          |             |
 |   +--------------------------+    +--------------------------+             |
@@ -313,7 +312,7 @@ The MONEYMAKER infrastructure is segmented into four VLANs, each serving a disti
 
 **VLAN 20 (TRADE) -- Trading Network.** This VLAN hosts the MT5 Bridge and its outbound connections to broker servers. The defining characteristic of this VLAN is that it allows outbound connections to the broker but allows no inbound connections from the internet. Internal traffic to this VLAN is restricted to gRPC signals from the Algo Engine (VLAN 30) and monitoring scrapes from Prometheus (VLAN 10). The MT5 Bridge is the only service with a legitimate need to communicate with external financial infrastructure, and this VLAN ensures that communication path is isolated.
 
-**VLAN 30 (DATA) -- Internal Data Network.** This VLAN hosts all internal services: PostgreSQL, Redis, the AI Trading Brain, the ML Training Lab, and the Data Ingestion Service. This VLAN has no direct internet access. Outbound internet connections for the Data Ingestion Service (to reach exchange APIs) are routed through a NAT gateway on the MGMT VLAN with strict destination whitelisting. All inter-service communication (database queries, cache operations, ZeroMQ data feeds, gRPC inference requests) occurs within this VLAN.
+**VLAN 30 (DATA) -- Internal Data Network.** This VLAN hosts all internal services: PostgreSQL, Redis, the Algo Engine, and the Data Ingestion Service. This VLAN has no direct internet access. Outbound internet connections for the Data Ingestion Service (to reach exchange APIs) are routed through a NAT gateway on the MGMT VLAN with strict destination whitelisting. All inter-service communication (database queries, cache operations, ZeroMQ data feeds, gRPC requests) occurs within this VLAN.
 
 **VLAN 40 (GUEST) -- Guest Monitoring Network.** This VLAN provides read-only access to monitoring dashboards for observers who do not need administrative access. The GUEST VLAN can reach Grafana and the Streamlit dashboard (via proxied connections from the MGMT VLAN) but cannot reach any service on the TRADE or DATA VLANs directly. This VLAN exists to provide visibility without granting access to sensitive systems.
 
@@ -424,8 +423,7 @@ Network segmentation is not merely a recommendation -- it is an enforced archite
 |----|---------|------|------------|-----------------|
 | proxmox-host | Proxmox VE | MGMT (10) | 10.10.10.1 | Yes (updates, VPN) |
 | vm-100 | Data Ingestion (Go) | DATA (30) | 10.30.30.100 | Restricted (whitelisted IPs only) |
-| vm-101 | AI Trading Brain | DATA (30) | 10.30.30.101 | No |
-| vm-102 | ML Training Lab | DATA (30) | 10.30.30.102 | No |
+| vm-101 | Algo Engine | DATA (30) | 10.30.30.101 | No |
 | vm-103 | PostgreSQL + Redis | DATA (30) | 10.30.30.103 | No |
 | vm-104 | MT5 Bridge | TRADE (20) | 10.20.20.104 | Restricted (broker servers only) |
 | vm-105 | Monitoring (Prometheus/Grafana) | MGMT (10) | 10.10.10.105 | No |
@@ -454,7 +452,6 @@ MONEYMAKER Root CA (offline, encrypted, AES-256)
             +-- data-ingestion.moneymaker.internal
             +-- algo-engine.moneymaker.internal
             +-- mt5-bridge.moneymaker.internal
-            +-- ml-training-lab.moneymaker.internal
             +-- postgresql.moneymaker.internal
             +-- redis.moneymaker.internal
             +-- prometheus.moneymaker.internal
@@ -1055,7 +1052,7 @@ govulncheck ./...
 
 - Weekly: Automated vulnerability scan. If CRITICAL vulnerabilities are found, update immediately.
 - Monthly: Review all available updates. Test in paper trading environment. Deploy if tests pass.
-- On-demand: If a zero-day vulnerability is disclosed in a critical dependency (e.g., PyTorch, gRPC, PostgreSQL driver), patch within 24 hours.
+- On-demand: If a zero-day vulnerability is disclosed in a critical dependency (e.g., gRPC, PostgreSQL driver), patch within 24 hours.
 
 **Minimal Dependencies.** Each service includes only the dependencies it strictly requires. No "utility" packages that provide broad functionality when only one function is needed. The attack surface of the supply chain is proportional to the number of dependencies, so minimizing dependencies directly reduces supply chain risk.
 
@@ -2053,8 +2050,7 @@ When hardware is retired or data storage is decommissioned:
 |  | [SSH jump host]      |  |   |                |  |   TLS 1.3+mTLS  |   |
 |  | [Grafana + 2FA]      |  |   | TLS to broker  |  | [Redis]          |   |
 |  | [Prometheus]         |  |   v                |  |   TLS 1.3        |   |
-|  | [Alertmanager]       |  | [Broker Servers]   |  | [Algo Engine]       |   |
-|  |                      |  |                    |  | [ML Lab]         |   |
+|  | [Alertmanager]       |  | [Broker Servers]   |  | [Algo Engine]    |   |
 |  +----------+-----------+  +---------+----------+  | [Data Ingestion] |   |
 |             |                        |             +--------+---------+   |
 |             |    INTER-VLAN FIREWALL RULES         |                     |
