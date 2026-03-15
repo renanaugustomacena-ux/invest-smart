@@ -15,7 +15,7 @@ Activate this skill whenever:
 ## Phased Approach
 1. **Phase 0 (Prereqs)**: Hardware, Proxmox, Git, Accounts.
 2. **Phase 1 (Foundation)**: Database, Data Ingestion, Normalization.
-3. **Phase 2 (Intelligence)**: ML Training, Feature Eng, Ensemble.
+3. **Phase 2 (Intelligence)**: Feature Eng, Rule-Based Strategies, Ensemble.
 4. **Phase 3 (Execution)**: MT5 Bridge, Risk Mgmt, Paper Trading.
 5. **Phase 4 (Observability)**: Dashboards, Alerts, Logs.
 6. **Phase 5 (Hardening)**: Security, E2E Tests, Failover.
