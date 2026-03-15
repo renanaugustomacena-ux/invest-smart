@@ -46,7 +46,7 @@ flowchart TB
         RAM["RAM: 8 GB minimo\n16 GB consigliato"]
         CPU["CPU: 4 core minimo\n8 core consigliato"]
         DISK["Disco: SSD 50 GB minimo\nNVMe consigliato"]
-        GPU["GPU: Opzionale\nAMD RX 9070 XT supportata\nNVIDIA con CUDA supportata"]
+        GPU["GPU: Opzionale\nPer elaborazione accelerata"]
         NET["Rete: Connessione stabile\nLatenza < 100ms verso exchange"]
     end
 
@@ -79,11 +79,11 @@ flowchart TB
 
 **RAM**: il minimo assoluto per far girare tutti i servizi MONEYMAKER e 8 GB, ma questa configurazione lascera poco margine per altre applicazioni. Con 8 GB, i container Docker utilizzeranno circa 4-5 GB (TimescaleDB 1 GB, Redis 512 MB, Data Ingestion 256 MB, Algo Engine 1-2 GB, MT5 Bridge 256 MB, Prometheus 512 MB, Grafana 256 MB), lasciando 3-4 GB per il sistema operativo, MetaTrader 5 e altri processi. La configurazione consigliata e 16 GB, che permette di eseguire contemporaneamente tutti i servizi, MetaTrader 5, un IDE e un browser per Grafana senza problemi di memoria.
 
-**CPU**: MONEYMAKER utilizza concorrenza significativa in tutti i servizi. Data Ingestion (Go) sfrutta le goroutine per gestire centinaia di connessioni WebSocket simultanee. Algo Engine (Python) utilizza multiprocessing per il calcolo degli indicatori tecnici e l'inferenza dei modelli. Il minimo e 4 core (fisici), consigliato 8 core. Processori moderni AMD Ryzen 7/9 o Intel i7/i9 sono ideali.
+**CPU**: MONEYMAKER utilizza concorrenza significativa in tutti i servizi. Data Ingestion (Go) sfrutta le goroutine per gestire centinaia di connessioni WebSocket simultanee. Algo Engine (Python) utilizza multiprocessing per il calcolo degli indicatori tecnici e l'elaborazione dei modelli statistici. Il minimo e 4 core (fisici), consigliato 8 core. Processori moderni AMD Ryzen 7/9 o Intel i7/i9 sono ideali.
 
 **Disco**: un SSD e fortemente consigliato per le performance di TimescaleDB. Il database puo crescere significativamente con il tempo: ogni giorno di trading attivo genera circa 100-500 MB di tick grezzi (dipende dal numero di simboli monitorati) e 10-50 MB di candele aggregate. Un disco NVMe da 256 GB e sufficiente per mesi di operativita. L'uso di dischi HDD tradizionali degradera significativamente le performance delle query sul database, rendendo lente le operazioni di backtesting e analisi storica.
 
-**GPU**: la GPU e opzionale e viene utilizzata solo per il training dei modelli ML (quando il servizio ML Training Lab e attivo). MONEYMAKER supporta sia GPU AMD (tramite ROCm / PyTorch standard) sia GPU NVIDIA (tramite CUDA). La GPU di riferimento per lo sviluppo e l'AMD RX 9070 XT. Per l'inferenza (predizione in tempo reale), la CPU e sufficiente: i modelli MONEYMAKER sono ottimizzati per inferenza CPU con latenze di 10-50 ms. La GPU accelera significativamente solo il training (ore -> minuti).
+**GPU**: la GPU e opzionale e puo essere utilizzata per accelerare elaborazioni computazionali intensive. Per le operazioni standard di analisi e generazione segnali, la CPU e sufficiente: i modelli statistici di MONEYMAKER sono ottimizzati per elaborazione CPU con latenze di 10-50 ms.
 
 **Rete**: una connessione internet stabile e essenziale per ricevere dati di mercato in tempo reale e eseguire ordini. La latenza verso gli exchange dovrebbe essere inferiore a 100 ms. Una connessione in fibra o cavo e consigliata; connessioni WiFi instabili possono causare disconnessioni frequenti che attivano i meccanismi di reconnect del Data Ingestion, introducendo gap nei dati.
 
@@ -442,7 +442,6 @@ flowchart TB
         RDS["Redis\nMONEYMAKER_REDIS_*"]
         MT["MetaTrader\nMT5_*"]
         API["API Keys\nPOLYGON_API_KEY\nMONEYMAKER_BINANCE_*"]
-        ML["Machine Learning\nBRAIN_ML_*"]
         SVC["Servizi\nBRAIN_ZMQ_*\nBRAIN_MT5_*"]
         MON["Monitoraggio\nGRAFANA_PASSWORD\nMONEYMAKER_ENV"]
     end
@@ -463,7 +462,6 @@ flowchart TB
     RDS --> MB
     MT --> MB
     API --> DI
-    ML --> AB
     SVC --> AB
     MON --> GF
 ```
@@ -510,16 +508,7 @@ Queste variabili configurano le credenziali per le sorgenti dati esterne.
 | `MONEYMAKER_BINANCE_API_KEY` | (nessuno) | Chiave API per Binance, utilizzata per dati di mercato crypto in tempo reale tramite WebSocket. Ottenibile dalla sezione API Management del proprio account Binance. Se non configurata, il Data Ingestion non aprirà connessioni WebSocket verso Binance. |
 | `MONEYMAKER_BINANCE_API_SECRET` | (nessuno) | Secret della chiave API Binance. Necessaria in coppia con `MONEYMAKER_BINANCE_API_KEY`. **CRITICO**: la API secret di Binance puo dare accesso al conto di trading. Assicurarsi di creare chiavi API con permessi minimi (solo lettura dati, nessun permesso di trading o prelievo). |
 
-### 4.6 Variabili Machine Learning
-
-Queste variabili controllano il comportamento del componente ML del Brain.
-
-| Variabile | Valore Default | Descrizione |
-|-----------|---------------|-------------|
-| `BRAIN_ML_ENABLED` | `false` | Abilita o disabilita il Tier 1 (ML Primary) nel sistema di fallback. Quando `false`, il Brain salta direttamente al Tier 2 (Technical Analysis). Impostare a `true` solo quando il servizio ML Training Lab e operativo e il modello ha superato le soglie di validazione. Un modello ML non validato puo essere peggiore delle strategie tecniche tradizionali. |
-| `BRAIN_ML_ENDPOINT` | `ml-training:50056` | Endpoint gRPC del servizio ML Training Lab. Il formato e `hostname:porta`. In Docker, il nome del servizio viene risolto automaticamente. Nel setup manuale, utilizzare `localhost:50056` se il servizio ML gira sullo stesso host. Questa variabile e rilevante solo quando `BRAIN_ML_ENABLED=true`. |
-
-### 4.7 Variabili di Servizio e Comunicazione
+### 4.6 Variabili di Servizio e Comunicazione
 
 Queste variabili configurano gli indirizzi di comunicazione inter-servizio.
 
@@ -532,7 +521,7 @@ Queste variabili configurano gli indirizzi di comunicazione inter-servizio.
 | `MONEYMAKER_LOG_LEVEL` | (auto da MONEYMAKER_ENV) | Override manuale del livello di logging. Valori possibili: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Se non specificato, viene determinato automaticamente da `MONEYMAKER_ENV`. |
 | `GRAFANA_PASSWORD` | `admin` | Password dell'utente amministratore di Grafana. **Cambiare in produzione.** L'utente di default e `admin`. Al primo accesso, Grafana chiede di cambiare la password; questa variabile imposta la password iniziale. |
 
-### 4.8 File .env di Esempio Completo
+### 4.7 File .env di Esempio Completo
 
 Il seguente file `.env` mostra tutte le variabili configurate per un ambiente di sviluppo locale tipico. Copiare questo contenuto nel file `program/infra/docker/.env` e modificare i valori secondo la propria configurazione:
 
@@ -562,10 +551,6 @@ MT5_SERVER=BrokerName-Demo
 POLYGON_API_KEY=your_polygon_key_here
 MONEYMAKER_BINANCE_API_KEY=your_binance_key_here
 MONEYMAKER_BINANCE_API_SECRET=your_binance_secret_here
-
-# === Machine Learning ===
-BRAIN_ML_ENABLED=false
-BRAIN_ML_ENDPOINT=ml-training:50056
 
 # === Monitoraggio ===
 GRAFANA_PASSWORD=admin
@@ -627,7 +612,7 @@ flowchart TB
 
     S5 --> S5R --> S5Q
     S5Q -->|Si| DONE(["Sistema Operativo!"])
-    S5Q -->|No| S5F["Controlla pipeline neurale\nVerifica MarketPerception/Memory/Strategy"]
+    S5Q -->|No| S5F["Controlla pipeline algoritmica\nVerifica MarketPerception/Memory/Strategy"]
 
     style START fill:#1a472a,color:#fff
     style DONE fill:#1a472a,color:#fff
@@ -712,13 +697,13 @@ Il risultato atteso e un punteggio pari o superiore al 98%. Un punteggio inferio
 
 ### 5.6 Step 5: Brain Verify
 
-Il quinto e ultimo controllo esegue una verifica completa della pipeline neurale dell'Algo Engine, includendo la propagazione forward di dati sintetici attraverso tutti gli stadi della pipeline.
+Il quinto e ultimo controllo esegue una verifica completa della pipeline algoritmica dell'Algo Engine, includendo la propagazione forward di dati sintetici attraverso tutti gli stadi della pipeline.
 
 ```bash
 python -m moneymaker.tools.brain_verify
 ```
 
-Il risultato atteso e un punteggio pari o superiore al 98%. Questo strumento verifica: MarketPerception (6 price + 34 indicator channels = 60 total), MarketMemory (input dim 188, sequential processing), RegimeClassifier (4 regimi), MarketStrategy (4 esperti, output dim 3), MarketPedagogy (calibrazione della confidenza), e MarketRAPCoach (decisione finale integrata). Se la verifica fallisce, il report indica quale modulo ha prodotto output inattesi e suggerisce la causa probabile.
+Il risultato atteso e un punteggio pari o superiore al 98%. Questo strumento verifica: MarketPerception (6 price + 34 indicator channels = 60 total), MarketMemory (input dim 188, sequential processing), RegimeClassifier (4 regimi), MarketStrategy (4 esperti, output dim 3), e MarketPedagogy (calibrazione della confidenza). Se la verifica fallisce, il report indica quale modulo ha prodotto output inattesi e suggerisce la causa probabile.
 
 ---
 
