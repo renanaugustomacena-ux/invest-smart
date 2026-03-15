@@ -18,7 +18,7 @@
 
 ## 1. Riepilogo Esecutivo
 
-MONEYMAKER V1 è un **sistema di trading algoritmico basato su microservizi** progettato per operare autonomamente sui mercati finanziari (Forex, CFD, Crypto). Il sistema combina tecniche di machine learning (JEPA, reti neurali), analisi tecnica classica (25+ indicatori), classificazione di regime di mercato e gestione del rischio multi-livello in una pipeline unificata che:
+MONEYMAKER V1 è un **sistema di trading algoritmico basato su microservizi** progettato per operare autonomamente sui mercati finanziari (Forex, CFD, Crypto). Il sistema combina analisi tecnica classica (25+ indicatori), classificazione di regime di mercato e gestione del rischio multi-livello in una pipeline unificata che:
 
 1. **Scandaglia** i mercati in tempo reale tramite WebSocket, normalizzando i dati da fonti multiple.
 2. **Assembla** i tick grezzi in candele OHLCV su timeframe multipli (M1, M5, M15, H1, H4, D1).
@@ -27,14 +27,13 @@ MONEYMAKER V1 è un **sistema di trading algoritmico basato su microservizi** pr
 5. **Valida** ogni segnale contro 11 controlli di rischio prima dell'esecuzione.
 6. **Esegue** gli ordini su MetaTrader 5 con gestione delle posizioni.
 
-Il sistema contiene **5 microservizi core** distribuiti su oltre 200 file sorgente:
+Il sistema contiene **4 microservizi core** distribuiti su oltre 200 file sorgente:
 
 | Servizio | Linguaggio | Responsabilità | Porta Principale |
 | --- | --- | --- | --- |
 | **Data Ingestion** | Go 1.22+ | Acquisizione e normalizzazione dati | 5555 (ZMQ) |
-| **Algo Engine** | Python 3.11+ | Analisi, ML, generazione segnali | 50054 (gRPC) |
+| **Algo Engine** | Python 3.11+ | Analisi, strategie, generazione segnali | 50054 (gRPC) |
 | **MT5 Bridge** | Python 3.11+ | Esecuzione ordini su broker | 50055 (gRPC) |
-| **ML Training Lab** | Python 3.11+ | Addestramento modelli (GPU) | 50056 (gRPC) |
 | **Monitoring** | Prometheus/Grafana | Osservabilità e alerting | 9090/3000 |
 
 > **Analogia:** Immagina MONEYMAKER come il **Centro di Comando di una Nave Militare** moderna. Il **Sonar** (Data Ingestion) scandaglia continuamente le profondità marine alla ricerca di segnali. La **Plancia di Comando** (Algo Engine) elabora queste informazioni e decide la rotta. Il **Capo Macchinista** (MT5 Bridge) traduce gli ordini della plancia in azioni concrete dei motori. Le **Vedette** (Monitoring) scrutano l'orizzonte per avvistare pericoli. La **Sala Radio** (ZeroMQ/gRPC) coordina le comunicazioni tra tutti i reparti. Il **Diario di Bordo** (TimescaleDB) registra ogni evento per l'analisi storica. E il **Pulsante Rosso d'Emergenza** (Kill Switch) ferma tutto in caso di pericolo critico.
@@ -252,7 +251,6 @@ graph LR
         TICKS["market_ticks<br/>Hypertable<br/>30d retention"]
         BARS["ohlcv_candles<br/>Hypertable<br/>permanent"]
         TRADES["trade_history<br/>Audit trail"]
-        MODELS["model_registry<br/>ML checkpoints"]
     end
 
     subgraph REDIS["Redis (Lavagna Plancia)"]
@@ -323,7 +321,7 @@ SELECT create_hypertable('ohlcv_candles', 'time');
 | `moneymaker:signals:active` | Hash | Segnali attualmente attivi |
 | `moneymaker:state:kill_switch` | String | `0` o `1` |
 | `moneymaker:state:regime` | String | Regime corrente |
-| `moneymaker:ml:retrain_request` | Pub/Sub | Trigger per retraining |
+| `moneymaker:events:config` | Pub/Sub | Trigger per aggiornamenti configurazione |
 
 ---
 
@@ -535,8 +533,8 @@ moneymaker_connection_status{exchange}
 # Algo Engine
 moneymaker_signals_generated_total{direction, regime}
 moneymaker_signal_confidence_histogram
-moneymaker_ml_prediction_latency_seconds
-moneymaker_ml_fallback_total{reason}
+moneymaker_strategy_evaluation_latency_seconds
+moneymaker_strategy_fallback_total{reason}
 
 # MT5 Bridge
 moneymaker_orders_executed_total{symbol, direction}
