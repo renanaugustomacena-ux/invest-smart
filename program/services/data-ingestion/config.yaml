@@ -8,7 +8,7 @@
 
 server:
   # ZeroMQ PUB socket address for broadcasting normalized market data.
-  # Downstream services (Algo Engine, ML Training) connect as SUB clients.
+  # Downstream services (Algo Engine) connect as SUB clients.
   zmq_pub_addr: "tcp://*:5555"
 
   # Prometheus metrics endpoint port.
