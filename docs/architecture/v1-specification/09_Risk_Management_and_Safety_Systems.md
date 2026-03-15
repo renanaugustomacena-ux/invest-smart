@@ -31,15 +31,15 @@
 
 There is a cardinal rule in the MONEYMAKER ecosystem that supersedes every other design principle, every optimization target, every performance metric, and every profit objective: **survival comes first**. A trading system that generates extraordinary returns for six months and then suffers a catastrophic drawdown that wipes out the account has not succeeded -- it has failed in the most absolute and irreversible way possible. Capital destroyed cannot compound. An account reduced to zero cannot recover. The mathematics of loss are brutally asymmetric: a 50% drawdown requires a 100% return just to break even. A 75% drawdown requires a 300% return. A 90% drawdown requires a 900% return. These are not theoretical abstractions. They are the mathematical reality that shapes every decision in MONEYMAKER's risk management framework.
 
-The first duty of the risk management system is to ensure that MONEYMAKER survives. It must survive bad trades. It must survive losing streaks. It must survive flash crashes, black swan events, liquidity droughts, and broker failures. It must survive bugs in the AI model, errors in the data pipeline, and network outages. It must survive the kind of market conditions that have destroyed professional trading firms with teams of quantitative analysts and decades of experience. Survival is not a feature of the risk system -- it is the purpose of the risk system.
+The first duty of the risk management system is to ensure that MONEYMAKER survives. It must survive bad trades. It must survive losing streaks. It must survive flash crashes, black swan events, liquidity droughts, and broker failures. It must survive bugs in the strategy logic, errors in the data pipeline, and network outages. It must survive the kind of market conditions that have destroyed professional trading firms with teams of quantitative analysts and decades of experience. Survival is not a feature of the risk system -- it is the purpose of the risk system.
 
-Every other objective -- maximizing returns, improving the Sharpe ratio, capturing alpha, outperforming benchmarks -- is subordinate to this prime directive. A risk management system that occasionally allows a large loss in pursuit of higher average returns has failed. A risk management system that can be overridden by the AI brain when the model is "confident" has failed. A risk management system that relaxes its constraints during a winning streak has failed. The risk system is the adult in the room: disciplined, conservative, and absolutely unwilling to negotiate on safety.
+Every other objective -- maximizing returns, improving the Sharpe ratio, capturing alpha, outperforming benchmarks -- is subordinate to this prime directive. A risk management system that occasionally allows a large loss in pursuit of higher average returns has failed. A risk management system that can be overridden by the Algo Engine when the model is "confident" has failed. A risk management system that relaxes its constraints during a winning streak has failed. The risk system is the adult in the room: disciplined, conservative, and absolutely unwilling to negotiate on safety.
 
 ### Risk Management as the Immune System
 
 Consider the human immune system. It operates continuously, monitoring every cell and every molecule that enters the body. It does not wait for symptoms to appear before acting. It maintains multiple layers of defense -- physical barriers, innate immunity, adaptive immunity -- each with different response speeds and specialization levels. It can escalate from a localized response to a systemic one when the threat level demands it. It has memory: it learns from past infections and responds more quickly to familiar threats. And critically, it operates independently of conscious thought. You do not decide to fight an infection. Your immune system fights it for you, whether you are awake or asleep, whether you are paying attention or not.
 
-MONEYMAKER's risk management system is designed as the immune system of the trading ecosystem. It runs as an independent service, separate from the AI brain, separate from the execution bridge, separate from the data pipeline. It monitors every aspect of the system's financial health in real time. It does not wait for a losing trade to trigger a response -- it evaluates risk before the trade is placed, while the trade is open, and after the trade is closed. It maintains multiple layers of defense: position sizing limits, stop-loss systems, circuit breakers, spiral protection, kill switches, and drawdown monitors. Each layer operates independently, so that if one layer fails or is bypassed, the others still protect the account. And it learns: the COPER experience bank records past risk events and their outcomes, allowing the system to respond more quickly and more appropriately to familiar danger patterns.
+MONEYMAKER's risk management system is designed as the immune system of the trading ecosystem. It runs as an independent service, separate from the Algo Engine, separate from the execution bridge, separate from the data pipeline. It monitors every aspect of the system's financial health in real time. It does not wait for a losing trade to trigger a response -- it evaluates risk before the trade is placed, while the trade is open, and after the trade is closed. It maintains multiple layers of defense: position sizing limits, stop-loss systems, circuit breakers, spiral protection, kill switches, and drawdown monitors. Each layer operates independently, so that if one layer fails or is bypassed, the others still protect the account. And it learns: the COPER experience bank records past risk events and their outcomes, allowing the system to respond more quickly and more appropriately to familiar danger patterns.
 
 ### Asymmetric Risk-Reward
 
@@ -47,7 +47,7 @@ Profitable trading over the long term does not require a high win rate. It requi
 
 MONEYMAKER's risk management framework is designed to enforce this asymmetry. Stop-losses are set at levels that limit the downside of any individual trade to a small, predetermined fraction of account equity. Take-profit targets are set at multiples of the stop-loss distance, ensuring that winners are given room to run. Trailing stops protect accumulated profits while allowing further upside. The overall portfolio is structured so that even the worst-case loss on any single trade is survivable and psychologically insignificant relative to the total equity.
 
-This philosophy manifests in a concrete mathematical relationship. If we risk 1% of equity per trade, and our average winner is 2.5 times our average loser, then we need only a 35% win rate to break even. At a 45% win rate, we generate a healthy positive expectancy. At a 55% win rate, returns compound powerfully. The risk management system does not attempt to predict winners -- that is the AI brain's job. The risk management system ensures that the inevitable losers are contained, controlled, and unable to inflict lasting damage.
+This philosophy manifests in a concrete mathematical relationship. If we risk 1% of equity per trade, and our average winner is 2.5 times our average loser, then we need only a 35% win rate to break even. At a 45% win rate, we generate a healthy positive expectancy. At a 55% win rate, returns compound powerfully. The risk management system does not attempt to predict winners -- that is the Algo Engine's job. The risk management system ensures that the inevitable losers are contained, controlled, and unable to inflict lasting damage.
 
 ### Capital Preservation and the Power of Compounding
 
@@ -55,13 +55,13 @@ The reason capital preservation is paramount is that trading profits compound. A
 
 Consider two hypothetical trading systems, both generating an average of 2% monthly return before risk events. System A has loose risk management and experiences a 40% drawdown once per year. System B has strict risk management and limits its worst annual drawdown to 15%. After five years, System A has compounded to approximately 1.3 times its starting capital. System B has compounded to approximately 2.4 times its starting capital. The difference is not in the gross returns -- they are identical. The difference is entirely in the capital preserved by avoiding large drawdowns. This is why MONEYMAKER's risk management system is not an optional add-on or a nice-to-have feature. It is the single most important determinant of long-term profitability.
 
-### Independence from AI Trading Decisions
+### Independence from Trading Decisions
 
-A critical architectural principle: the risk management system must be independent from the AI trading decisions. This means it runs as a separate service, with its own process, its own configuration, its own database, and its own decision logic. The AI brain cannot override the risk system. The AI brain cannot modify the risk system's parameters. The AI brain cannot bypass the risk system's gates.
+A critical architectural principle: the risk management system must be independent from the trading decisions. This means it runs as a separate service, with its own process, its own configuration, its own database, and its own decision logic. The Algo Engine cannot override the risk system. The Algo Engine cannot modify the risk system's parameters. The Algo Engine cannot bypass the risk system's gates.
 
-This independence is essential because the AI brain is optimized for a fundamentally different objective: identifying profitable trading opportunities. When the AI brain sees a high-probability setup, it wants to trade. It wants to take the largest position it can justify. It wants to hold the position as long as the signal remains valid. These impulses are correct from a signal-generation perspective, but they are dangerous from a risk-management perspective. The AI brain has no concept of portfolio heat, no awareness of correlated exposure, no memory of how many consecutive losses have occurred this week, and no understanding of the margin utilization levels that would make the next trade dangerous.
+This independence is essential because the Algo Engine is optimized for a fundamentally different objective: identifying profitable trading opportunities. When the Algo Engine sees a high-probability setup, it wants to trade. It wants to take the largest position it can justify. It wants to hold the position as long as the signal remains valid. These impulses are correct from a signal-generation perspective, but they are dangerous from a risk-management perspective. The Algo Engine has no concept of portfolio heat, no awareness of correlated exposure, no memory of how many consecutive losses have occurred this week, and no understanding of the margin utilization levels that would make the next trade dangerous.
 
-By running the risk system as an independent service that stands between the AI brain and the execution bridge, we create a mandatory checkpoint that every trade must pass through. The AI brain proposes. The risk system disposes. This separation of concerns ensures that trading intelligence and risk management can each be optimized for their respective objectives without compromise.
+By running the risk system as an independent service that stands between the Algo Engine and the execution bridge, we create a mandatory checkpoint that every trade must pass through. The Algo Engine proposes. The risk system disposes. This separation of concerns ensures that trading intelligence and risk management can each be optimized for their respective objectives without compromise.
 
 ### Defense in Depth
 
@@ -101,14 +101,14 @@ This layered approach means that a single bug, a single misconfiguration, or a s
 
 ### Standalone Service Design
 
-The Risk Management Service runs as an independent Python service within its own Docker container, hosted on a dedicated VM within the Proxmox infrastructure. It has its own Python environment, its own configuration files, its own logging, its own database tables, and its own health monitoring endpoints. It does not share a process with the AI brain. It does not share a process with the execution bridge. It is, by design, the most isolated and independently operated service in the entire MONEYMAKER ecosystem.
+The Risk Management Service runs as an independent Python service within its own Docker container, hosted on a dedicated VM within the Proxmox infrastructure. It has its own Python environment, its own configuration files, its own logging, its own database tables, and its own health monitoring endpoints. It does not share a process with the Algo Engine. It does not share a process with the execution bridge. It is, by design, the most isolated and independently operated service in the entire MONEYMAKER ecosystem.
 
-The service is designed to be the most reliable component in the system. If the data ingestion service goes down, MONEYMAKER cannot trade but does not lose money. If the AI brain crashes, no new signals are generated but existing positions are managed by the risk service. If the execution bridge fails, the risk service detects the disconnection and triggers a kill switch. But if the risk service itself goes down, there is no safety net. For this reason, the risk service has the highest availability requirements of any component:
+The service is designed to be the most reliable component in the system. If the data ingestion service goes down, MONEYMAKER cannot trade but does not lose money. If the Algo Engine crashes, no new signals are generated but existing positions are managed by the risk service. If the execution bridge fails, the risk service detects the disconnection and triggers a kill switch. But if the risk service itself goes down, there is no safety net. For this reason, the risk service has the highest availability requirements of any component:
 
 - **Startup time:** Less than 2 seconds to full operational state
 - **Health check interval:** Every 5 seconds
 - **Automatic restart on failure:** via Docker's restart policy and systemd watchdog
-- **Heartbeat monitoring:** Both the AI brain and execution bridge monitor the risk service's heartbeat. If the heartbeat is missed for 15 seconds, both services enter safe mode (no new trades, tighten existing stops)
+- **Heartbeat monitoring:** Both the Algo Engine and execution bridge monitor the risk service's heartbeat. If the heartbeat is missed for 15 seconds, both services enter safe mode (no new trades, tighten existing stops)
 
 ### Override Authority
 
@@ -142,19 +142,19 @@ The risk gate can take three actions on any incoming trade request:
 
 1. **APPROVE**: The trade passes all risk checks. It is forwarded to the execution bridge unchanged.
 2. **MODIFY**: The trade passes some checks but requires adjustment. Typical modifications include reducing position size, tightening stop-loss, widening take-profit targets, or adding mandatory trailing stop parameters. The modified trade is forwarded to the execution bridge.
-3. **REJECT**: The trade fails one or more critical risk checks. It is discarded entirely. The reason for rejection is logged, and the AI brain is notified so it can update its internal state.
+3. **REJECT**: The trade fails one or more critical risk checks. It is discarded entirely. The reason for rejection is logged, and the Algo Engine is notified so it can update its internal state.
 
 Every decision -- approve, modify, or reject -- is logged with full context: the original trade request, all risk metrics evaluated, the threshold values in effect, the final decision, and the reason for that decision. This audit trail is immutable and serves as the foundation for post-trade analysis and system improvement.
 
 ### Communication Protocol
 
-The Risk Management Service communicates with the AI brain and the execution bridge via gRPC (Google Remote Procedure Call). gRPC was chosen over REST or ZeroMQ for this specific communication path because of three properties that are critical for a risk gate:
+The Risk Management Service communicates with the Algo Engine and the execution bridge via gRPC (Google Remote Procedure Call). gRPC was chosen over REST or ZeroMQ for this specific communication path because of three properties that are critical for a risk gate:
 
 1. **Strong typing**: gRPC uses Protocol Buffers for message definition, which enforces strict type safety. A trade request cannot be malformed -- if it does not conform to the protobuf schema, it is rejected at the serialization layer before it ever reaches the risk evaluation logic. This eliminates an entire class of bugs where a mistyped field name or an incorrect data type could bypass a risk check.
 
-2. **Bidirectional streaming**: gRPC supports bidirectional streaming, which allows the risk service to maintain a persistent connection with the AI brain and the execution bridge. The AI brain can stream trade requests as they are generated, and the risk service can stream responses back without the overhead of establishing a new connection for each request. This keeps latency minimal -- typically under 5 milliseconds for the risk evaluation round trip.
+2. **Bidirectional streaming**: gRPC supports bidirectional streaming, which allows the risk service to maintain a persistent connection with the Algo Engine and the execution bridge. The Algo Engine can stream trade requests as they are generated, and the risk service can stream responses back without the overhead of establishing a new connection for each request. This keeps latency minimal -- typically under 5 milliseconds for the risk evaluation round trip.
 
-3. **Deadline propagation**: gRPC supports deadlines, which means the AI brain can specify how long it is willing to wait for a risk evaluation. If the risk service does not respond within the deadline (because it is overloaded or has crashed), the AI brain knows the request was not evaluated and can handle the timeout appropriately (default: do not trade).
+3. **Deadline propagation**: gRPC supports deadlines, which means the Algo Engine can specify how long it is willing to wait for a risk evaluation. If the risk service does not respond within the deadline (because it is overloaded or has crashed), the Algo Engine knows the request was not evaluated and can handle the timeout appropriately (default: do not trade).
 
 The protobuf schema for the core risk evaluation message:
 
@@ -330,9 +330,9 @@ When the Risk Management Service starts, it follows a strict initialization sequ
 2. **Connect to database**: Establish connection to the risk-specific PostgreSQL schema. If connection fails, the service will not start.
 3. **Load state**: Query the most recent equity snapshot, circuit breaker states, spiral counters, and kill switch status. The service resumes from its last known state, not from a blank slate.
 4. **Connect to execution bridge**: Establish gRPC connection to the MT5 bridge to receive real-time position and equity updates. If the bridge is unavailable, the service starts in degraded mode with cached data and will not approve any new trades until the connection is established.
-5. **Connect to AI brain**: Open gRPC server to receive trade evaluation requests from the AI brain.
+5. **Connect to Algo Engine**: Open gRPC server to receive trade evaluation requests from the Algo Engine.
 6. **Start monitoring loops**: Begin the continuous monitoring loops for equity tracking, drawdown calculation, circuit breaker evaluation, and heartbeat emission.
-7. **Signal readiness**: Publish a health check endpoint that returns HTTP 200 only after all initialization steps are complete. Upstream services (the AI brain) wait for this endpoint before sending trade requests.
+7. **Signal readiness**: Publish a health check endpoint that returns HTTP 200 only after all initialization steps are complete. Upstream services (the Algo Engine) wait for this endpoint before sending trade requests.
 
 ---
 
@@ -905,7 +905,7 @@ Each circuit breaker follows a state machine:
 
 ### The Revenge Trading Problem
 
-One of the most destructive patterns in trading -- for both humans and automated systems -- is the "loss spiral." After a series of losing trades, the natural impulse is to increase position size to recover losses faster. This is revenge trading, and it is the single most common cause of account blowups. An automated system can fall into the same trap if it is designed to "double down" after losses or if the AI model becomes increasingly confident in signals that are not working because market conditions have changed.
+One of the most destructive patterns in trading -- for both humans and automated systems -- is the "loss spiral." After a series of losing trades, the natural impulse is to increase position size to recover losses faster. This is revenge trading, and it is the single most common cause of account blowups. An automated system can fall into the same trap if it is designed to "double down" after losses or if the strategy becomes increasingly confident in signals that are not working because market conditions have changed.
 
 MONEYMAKER's spiral protection system detects consecutive losing trades and progressively reduces exposure, exactly opposite to the revenge trading impulse. The logic is simple but powerful: if the system is losing, something is wrong. Either the model is misjudging the market, the data is stale, the strategy is inappropriate for the current regime, or there is a systematic issue. The correct response is to reduce exposure until the problem is identified and resolved, not to increase it.
 
@@ -1185,7 +1185,7 @@ No single symbol can account for more than 5% of total equity in risk exposure:
 Maximum per-symbol exposure: 5% of equity
 ```
 
-This prevents the system from becoming overly concentrated in a single instrument, even if the AI brain is generating multiple signals on that instrument across different timeframes or strategies.
+This prevents the system from becoming overly concentrated in a single instrument, even if the Algo Engine is generating multiple signals on that instrument across different timeframes or strategies.
 
 ### Per-Sector Exposure Limits
 
@@ -1366,7 +1366,7 @@ If total weekend exposure exceeds 2%, the risk service will close the positions 
 
 ### Architecture
 
-The 4-Tier Fallback Decision Engine is a cascading decision-making framework that ensures MONEYMAKER always has a structured basis for every trading decision, even when the primary AI model is unavailable, untrained, or lacking confidence. The tiers are evaluated in order from most sophisticated to most conservative, with each tier serving as a fallback if the one above it cannot produce a reliable signal.
+The 4-Tier Fallback Decision Engine is a cascading decision-making framework that ensures MONEYMAKER always has a structured basis for every trading decision, even when higher-tier strategies are unavailable or lacking confidence. The tiers are evaluated in order from most sophisticated to most conservative, with each tier serving as a fallback if the one above it cannot produce a reliable signal.
 
 ```
 +-----------------------------------------------------------------------+
@@ -1383,9 +1383,9 @@ The 4-Tier Fallback Decision Engine is a cascading decision-making framework tha
 |  +------|---------------------+                                       |
 |         v                                                             |
 |  +----------------------------+                                       |
-|  | TIER 2: ML Model           |  Query the trained AI model for       |
+|  | TIER 2: Statistical Model  |  Query the statistical model for      |
 |  | Prediction                 |  a prediction on current data.        |
-|  | Confidence >= 60%? ------->|  YES --> Use ML prediction            |
+|  | Confidence >= 60%? ------->|  YES --> Use model prediction         |
 |  |            |               |                                       |
 |  |            NO              |                                       |
 |  +------|---------------------+                                       |
@@ -1418,9 +1418,9 @@ The matching process:
 
 COPER provides the most reliable signals because it is based on actual outcomes, not predictions. However, it can only provide signals for market states it has seen before. In novel conditions, it gracefully defers to Tier 2.
 
-### Tier 2 -- ML Model Prediction
+### Tier 2 -- Statistical Model Prediction
 
-If COPER cannot find a sufficiently confident match, the decision falls to the AI model. The model analyzes the current feature set and produces a prediction: BUY, SELL, or HOLD, along with a confidence score from 0 to 100.
+If COPER cannot find a sufficiently confident match, the decision falls to the statistical model. The model analyzes the current feature set and produces a prediction: BUY, SELL, or HOLD, along with a confidence score from 0 to 100.
 
 The confidence threshold for Tier 2 is 60% by default, adjustable based on market conditions and spiral protection state. During a losing streak (5+ consecutive losses), the confidence threshold increases to 70%. During extreme volatility, it increases to 75%.
 
@@ -1428,7 +1428,7 @@ If the model's confidence is below the threshold, the decision falls through to 
 
 ### Tier 3 -- Technical Signal Consensus
 
-When neither COPER nor the ML model provides a confident signal, MONEYMAKER falls back to classical technical analysis. This tier evaluates a set of well-established indicators and requires a consensus of at least 3 out of 5 agreeing on direction:
+When neither COPER nor the statistical model provides a confident signal, MONEYMAKER falls back to classical technical analysis. This tier evaluates a set of well-established indicators and requires a consensus of at least 3 out of 5 agreeing on direction:
 
 ```
 Indicators evaluated:
@@ -1444,7 +1444,7 @@ Consensus rule:
   Otherwise          --> NEUTRAL (fall through to Tier 4)
 ```
 
-Tier 3 trades are always sized at 50% of normal position size, reflecting the lower confidence level of pure technical analysis without AI or pattern-matching support.
+Tier 3 trades are always sized at 50% of normal position size, reflecting the lower confidence level of pure technical analysis without statistical model or pattern-matching support.
 
 ### Tier 4 -- Conservative / No-Trade
 
@@ -1526,7 +1526,7 @@ Step 2: CLOSE all open positions at market
         v
 Step 3: DISABLE all trading services
         |  - Set risk gate to REJECT ALL mode
-        |  - Send halt signal to AI brain
+        |  - Send halt signal to Algo Engine
         |  - Set execution bridge to read-only mode
         v
 Step 4: SEND emergency notifications
@@ -1703,21 +1703,21 @@ Trade Request
 
 ### Gate 1 -- Maturity Gate
 
-The Maturity Gate verifies that the AI model currently in production is sufficiently trained and validated before allowing its predictions to drive real trades. This prevents the situation where a freshly initialized or poorly trained model makes random or destructive decisions.
+The Maturity Gate verifies that the statistical model currently in production is sufficiently calibrated and validated before allowing its predictions to drive real trades. This prevents the situation where a freshly initialized or poorly calibrated model makes random or destructive decisions.
 
 **Checks performed:**
 
-1. **Minimum training epochs**: The model must have completed at least N training epochs (configurable, default 50). A model that has trained for only 5 epochs has not yet converged and its predictions are unreliable.
+1. **Minimum calibration cycles**: The model must have completed at least N calibration cycles (configurable, default 50). A model that has been calibrated for only 5 cycles has not yet converged and its predictions are unreliable.
 
 2. **Minimum backtest performance**: The model's backtest Sharpe ratio on the most recent validation set must exceed a minimum threshold (default 0.5). A model with a Sharpe below 0.5 is not demonstrating edge.
 
 3. **Minimum sample size**: The model must have been evaluated on at least 200 validation trades. A model evaluated on 20 trades has insufficient statistical power to demonstrate reliability.
 
-4. **Model age**: The model must have been trained within the last 30 days. A model older than 30 days is using stale data and may not reflect current market dynamics.
+4. **Model age**: The model must have been calibrated within the last 30 days. A model older than 30 days is using stale data and may not reflect current market dynamics.
 
 If any of these checks fail:
 
-- Confidence score for Tier 2 (ML model) is set to 0 (model bypassed entirely).
+- Confidence score for Tier 2 (statistical model) is set to 0 (model bypassed entirely).
 - The decision engine falls through to Tier 3 (technical signals).
 - Position sizing is reduced to 25% of normal (reflecting the loss of the primary decision-making tier).
 
@@ -1737,7 +1737,7 @@ If the drift gate triggers:
 
 - Position sizing reduced to 50% for Tier 2 decisions.
 - Alert sent: "Model drift detected. Consider retraining."
-- Flag set for the ML Training Lab to initiate emergency retraining.
+- Flag set to initiate emergency model recalibration.
 
 ### Gate 3 -- Silence Rule Gate
 
@@ -1815,12 +1815,12 @@ Each audit record contains the complete context of the risk decision:
 | request_id | UUID | Unique identifier linking to the original trade request |
 | symbol | VARCHAR | Trading instrument |
 | direction | VARCHAR | BUY or SELL |
-| requested_lots | DECIMAL | Position size requested by AI brain |
+| requested_lots | DECIMAL | Position size requested by Algo Engine |
 | approved_lots | DECIMAL | Position size approved by risk gate (0 if rejected) |
 | entry_price | DECIMAL | Intended entry price |
 | stop_loss | DECIMAL | Approved stop-loss level |
 | take_profit | DECIMAL | Approved take-profit level |
-| model_confidence | DECIMAL | AI model's confidence score |
+| model_confidence | DECIMAL | Strategy confidence score |
 | decision | VARCHAR | APPROVED, MODIFIED, or REJECTED |
 | reason | TEXT | Human-readable explanation of the decision |
 | risk_flags | TEXT[] | Array of all risk flags that were raised |
@@ -2181,13 +2181,13 @@ def test_spiral_protection_progressive_reduction():
 
 ### Integration Testing
 
-Integration tests verify that the risk management components work correctly when combined with the AI brain and execution bridge. These tests run against a simulated MT5 environment (paper trading mode):
+Integration tests verify that the risk management components work correctly when combined with the Algo Engine and execution bridge. These tests run against a simulated MT5 environment (paper trading mode):
 
 1. **Risk gate blocks bad trades**: Send a trade request that violates position sizing limits. Verify the risk gate returns REJECTED.
 2. **Risk gate modifies oversized trades**: Send a trade request with excessive lots. Verify the risk gate returns MODIFIED with reduced lots.
 3. **Circuit breaker halts trading**: Simulate a series of losing trades that trigger a circuit breaker. Verify that subsequent trade requests are rejected until the breaker resets.
 4. **Kill switch closes all positions**: Trigger a kill switch and verify that all open positions in the simulated MT5 are closed and all pending orders are cancelled.
-5. **End-to-end flow**: Run a complete trading session with the AI brain generating signals, the risk gate evaluating them, and the execution bridge placing trades. Verify all audit logs are correct and all risk metrics are accurate.
+5. **End-to-end flow**: Run a complete trading session with the Algo Engine generating signals, the risk gate evaluating them, and the execution bridge placing trades. Verify all audit logs are correct and all risk metrics are accurate.
 
 ### Paper Trading Validation
 
@@ -2357,9 +2357,9 @@ risk_management:
 
 The Risk Management and Safety Systems described in this document form the most critical layer of the MONEYMAKER V1 ecosystem. They embody the principle that in algorithmic trading, the first and most important job is not to make money -- it is to not lose money catastrophically. Every component described here -- from position sizing through circuit breakers, spiral protection, kill switches, confidence gates, and monitoring dashboards -- works together as an integrated defense system that protects capital under all market conditions.
 
-The risk management service operates independently, has absolute veto authority over all trading decisions, and cannot be overridden by the AI brain or any other component. It implements defense in depth through multiple overlapping layers, each designed to catch failures that pass through the layers above. It monitors the system in real time, logs every decision immutably, and provides the operator with full visibility into the system's risk state.
+The risk management service operates independently, has absolute veto authority over all trading decisions, and cannot be overridden by the Algo Engine or any other component. It implements defense in depth through multiple overlapping layers, each designed to catch failures that pass through the layers above. It monitors the system in real time, logs every decision immutably, and provides the operator with full visibility into the system's risk state.
 
-No amount of alpha generation, no sophistication of AI modeling, and no elegance of execution can compensate for inadequate risk management. This is the immune system of MONEYMAKER, and it must be the strongest, most reliable, and most rigorously tested component in the entire ecosystem.
+No amount of alpha generation, no sophistication of algorithmic modeling, and no elegance of execution can compensate for inadequate risk management. This is the immune system of MONEYMAKER, and it must be the strongest, most reliable, and most rigorously tested component in the entire ecosystem.
 
 The cardinal rule stands: **survival first, profits second**. Everything in this document exists to enforce that rule.
 
