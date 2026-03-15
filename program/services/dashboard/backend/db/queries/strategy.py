@@ -8,16 +8,14 @@ import asyncpg
 async def get_strategy_daily_summary(pool: asyncpg.Pool) -> list[dict]:
     """Fetch strategy daily summary from materialized view."""
     try:
-        rows = await pool.fetch(
-            """
+        rows = await pool.fetch("""
             SELECT strategy_name, symbol, day,
                    total_signals, wins, losses, total_profit,
                    avg_confidence, last_signal_at
             FROM strategy_daily_summary
             ORDER BY day DESC, total_profit DESC
             LIMIT 200
-            """
-        )
+            """)
         return [dict(r) for r in rows]
     except Exception:
         return []

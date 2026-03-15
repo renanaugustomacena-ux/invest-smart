@@ -43,6 +43,9 @@ async def strategy_names() -> dict:
 
 def _serialize_list(rows: list[dict]) -> list[dict]:
     return [
-        {k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None for k, v in r.items()}
+        {
+            k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None
+            for k, v in r.items()
+        }
         for r in rows
     ]

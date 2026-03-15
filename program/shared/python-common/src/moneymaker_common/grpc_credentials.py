@@ -66,9 +66,7 @@ def load_credentials_from_files(
 
     # Valida che cert e key siano forniti insieme
     if bool(client_cert_path) != bool(client_key_path):
-        raise ValueError(
-            "client_cert_path e client_key_path devono essere forniti insieme"
-        )
+        raise ValueError("client_cert_path e client_key_path devono essere forniti insieme")
 
     # Leggi CA certificate
     ca_cert_file = Path(ca_cert_path)
@@ -228,9 +226,7 @@ def create_client_channel(
                 error=str(e),
             )
     elif tls_enabled and strict_tls:
-        raise ValueError(
-            f"TLS abilitato ma CA cert non disponibile (ca_cert={ca_cert!r})"
-        )
+        raise ValueError(f"TLS abilitato ma CA cert non disponibile (ca_cert={ca_cert!r})")
 
     if tls_enabled:
         logger.warning("gRPC TLS richiesto ma non stabilito, fallback insecure", target=target)
@@ -284,12 +280,12 @@ def create_async_client_channel(
                 error=str(e),
             )
     elif tls_enabled and strict_tls:
-        raise ValueError(
-            f"TLS abilitato ma CA cert non disponibile (ca_cert={ca_cert!r})"
-        )
+        raise ValueError(f"TLS abilitato ma CA cert non disponibile (ca_cert={ca_cert!r})")
 
     if tls_enabled:
-        logger.warning("gRPC async TLS richiesto ma non stabilito, fallback insecure", target=target)
+        logger.warning(
+            "gRPC async TLS richiesto ma non stabilito, fallback insecure", target=target
+        )
     else:
         logger.debug("Canale gRPC asincrono insecure", target=target)
     return grpc.aio.insecure_channel(target, options=options)

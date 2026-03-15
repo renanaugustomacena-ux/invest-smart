@@ -188,8 +188,17 @@ class TestMaintRegister:
         reg = CommandRegistry()
         register(reg)
         assert "maint" in reg.categories
-        expected = ["vacuum", "reindex", "clear-cache", "retention",
-                    "backup", "restore", "table-sizes", "chunk-stats",
-                    "compress", "integrity"]
+        expected = [
+            "vacuum",
+            "reindex",
+            "clear-cache",
+            "retention",
+            "backup",
+            "restore",
+            "table-sizes",
+            "chunk-stats",
+            "compress",
+            "integrity",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["maint"]

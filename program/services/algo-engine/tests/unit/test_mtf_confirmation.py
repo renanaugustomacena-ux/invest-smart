@@ -77,9 +77,9 @@ class TestTrendAlignment:
     def test_all_bullish_buy(self):
         mtf = MTFConfirmation()
         result = mtf.compute(_fully_aligned_bullish(), "BUY")
-        assert result.trend_agreement == Decimal("1"), (
-            f"All bullish for BUY should be 1.0, got {result.trend_agreement}"
-        )
+        assert result.trend_agreement == Decimal(
+            "1"
+        ), f"All bullish for BUY should be 1.0, got {result.trend_agreement}"
 
     def test_all_bearish_sell(self):
         mtf = MTFConfirmation()
@@ -185,12 +185,16 @@ class TestCompositeRatio:
     def test_bounded_zero_to_one(self):
         mtf = MTFConfirmation()
         for direction in ("BUY", "SELL"):
-            for features_fn in (_fully_aligned_bullish, _fully_aligned_bearish,
-                                _conflicting_features, _minimal_features):
+            for features_fn in (
+                _fully_aligned_bullish,
+                _fully_aligned_bearish,
+                _conflicting_features,
+                _minimal_features,
+            ):
                 result = mtf.compute(features_fn(), direction)
-                assert Decimal("0") <= result.confirmation_ratio <= Decimal("1"), (
-                    f"Ratio out of bounds: {result.confirmation_ratio}"
-                )
+                assert (
+                    Decimal("0") <= result.confirmation_ratio <= Decimal("1")
+                ), f"Ratio out of bounds: {result.confirmation_ratio}"
 
     def test_result_is_frozen_dataclass(self):
         mtf = MTFConfirmation()

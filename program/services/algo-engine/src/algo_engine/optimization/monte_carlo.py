@@ -118,9 +118,7 @@ class MonteCarloValidator:
                     p_min, p_max = param_ranges[name]
                     low = max(low, float(p_min))
                     high = min(high, float(p_max))
-                perturbed[name] = Decimal(
-                    str(round(self._rng.uniform(low, high), 6))
-                )
+                perturbed[name] = Decimal(str(round(self._rng.uniform(low, high), 6)))
             sharpe = evaluate_fn(perturbed)
             sharpes.append(float(sharpe))
 
@@ -141,11 +139,7 @@ class MonteCarloValidator:
         raw_sharpe = Decimal(str(round(self._sharpe(arr), 6)))
         gross_profit = sum(r for r in returns if r > ZERO)
         gross_loss = abs(sum(r for r in returns if r < ZERO))
-        profit_factor = (
-            gross_profit / gross_loss
-            if gross_loss != ZERO
-            else Decimal("999")
-        )
+        profit_factor = gross_profit / gross_loss if gross_loss != ZERO else Decimal("999")
 
         return {
             "shuffle": shuffle_result,

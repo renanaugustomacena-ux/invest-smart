@@ -86,8 +86,7 @@ class OUMeanReversionStrategy(TradingStrategy):
         history = self._price_history[symbol]
         if len(history) < self._lookback:
             return self._hold(
-                f"Insufficient data for {symbol}: "
-                f"{len(history)}/{self._lookback} observations"
+                f"Insufficient data for {symbol}: " f"{len(history)}/{self._lookback} observations"
             )
 
         # Fit OU process on price history
@@ -101,9 +100,7 @@ class OUMeanReversionStrategy(TradingStrategy):
 
         # Validate fitted parameters
         if not params.is_valid or params.theta <= ZERO:
-            return self._hold(
-                f"No mean reversion detected for {symbol}: theta={params.theta}"
-            )
+            return self._hold(f"No mean reversion detected for {symbol}: theta={params.theta}")
 
         half_life_f = float(params.half_life)
         if half_life_f < self._min_half_life:
@@ -119,9 +116,7 @@ class OUMeanReversionStrategy(TradingStrategy):
 
         # Compute s-score
         if params.sigma_eq <= ZERO:
-            return self._hold(
-                f"Degenerate sigma_eq for {symbol}: {params.sigma_eq}"
-            )
+            return self._hold(f"Degenerate sigma_eq for {symbol}: {params.sigma_eq}")
         s_score = self._ou.s_score(latest_close, params.mu, params.sigma_eq)
 
         # Optional Hurst exponent filter

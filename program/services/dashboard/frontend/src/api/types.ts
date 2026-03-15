@@ -20,7 +20,7 @@ export interface OverviewKPIs {
 export interface OverviewResponse {
   kpis: OverviewKPIs;
   services: ServiceHealth[];
-  recent_signals: Record<string, unknown>[];
+  recent_signals: TradingSignal[];
   timestamp: string;
 }
 

@@ -21,7 +21,6 @@ import asyncio
 import json
 import signal
 import sys
-from datetime import datetime, timezone
 from typing import Any
 
 import asyncpg
@@ -225,12 +224,15 @@ class ExternalDataService:
             return
 
         # Save to Redis for real-time access
-        await self._save_to_redis("macro:vix", {
-            "spot": float(vix_data.vix_spot),
-            "regime": vix_data.regime,
-            "contango": vix_data.is_contango,
-            "updated_at": vix_data.time.isoformat(),
-        })
+        await self._save_to_redis(
+            "macro:vix",
+            {
+                "spot": float(vix_data.vix_spot),
+                "regime": vix_data.regime,
+                "contango": vix_data.is_contango,
+                "updated_at": vix_data.time.isoformat(),
+            },
+        )
 
         # Save to DB for history
         await self._save_vix_to_db(vix_data)
@@ -255,13 +257,18 @@ class ExternalDataService:
 
         # Handle yield curve
         if yield_data and not isinstance(yield_data, Exception):
-            await self._save_to_redis("macro:yield_curve", {
-                "rate_2y": float(yield_data.rate_2y) if yield_data.rate_2y else None,
-                "rate_10y": float(yield_data.rate_10y),
-                "spread_2s10s": float(yield_data.spread_2s10s) if yield_data.spread_2s10s else None,
-                "inverted": yield_data.is_inverted,
-                "updated_at": yield_data.time.isoformat(),
-            })
+            await self._save_to_redis(
+                "macro:yield_curve",
+                {
+                    "rate_2y": float(yield_data.rate_2y) if yield_data.rate_2y else None,
+                    "rate_10y": float(yield_data.rate_10y),
+                    "spread_2s10s": (
+                        float(yield_data.spread_2s10s) if yield_data.spread_2s10s else None
+                    ),
+                    "inverted": yield_data.is_inverted,
+                    "updated_at": yield_data.time.isoformat(),
+                },
+            )
             await self._save_yield_to_db(yield_data)
             logger.info(
                 "Yield curve updated",
@@ -271,12 +278,15 @@ class ExternalDataService:
 
         # Handle real rates
         if rates_data and not isinstance(rates_data, Exception):
-            await self._save_to_redis("macro:real_rates", {
-                "real_rate_10y": float(rates_data.real_rate_10y),
-                "nominal_10y": float(rates_data.nominal_10y),
-                "breakeven_10y": float(rates_data.breakeven_10y),
-                "updated_at": rates_data.time.isoformat(),
-            })
+            await self._save_to_redis(
+                "macro:real_rates",
+                {
+                    "real_rate_10y": float(rates_data.real_rate_10y),
+                    "nominal_10y": float(rates_data.nominal_10y),
+                    "breakeven_10y": float(rates_data.breakeven_10y),
+                    "updated_at": rates_data.time.isoformat(),
+                },
+            )
             await self._save_real_rates_to_db(rates_data)
             logger.info(
                 "Real rates updated",
@@ -285,11 +295,14 @@ class ExternalDataService:
 
         # Handle recession probability
         if recession and not isinstance(recession, Exception):
-            await self._save_to_redis("macro:recession", {
-                "probability_12m": float(recession.probability_12m),
-                "signal_level": recession.signal_level,
-                "updated_at": recession.time.isoformat(),
-            })
+            await self._save_to_redis(
+                "macro:recession",
+                {
+                    "probability_12m": float(recession.probability_12m),
+                    "signal_level": recession.signal_level,
+                    "updated_at": recession.time.isoformat(),
+                },
+            )
             logger.info(
                 "Recession probability updated",
                 prob=float(recession.probability_12m),
@@ -307,13 +320,16 @@ class ExternalDataService:
 
         # Save each report
         for report in reports:
-            await self._save_to_redis(f"macro:cot:{report.market.lower()}", {
-                "sentiment": report.cot_sentiment,
-                "asset_mgr_pct_oi": float(report.asset_mgr_pct_oi),
-                "lev_funds_net": report.lev_funds_net,
-                "extreme_reading": report.extreme_reading,
-                "report_date": report.time.isoformat(),
-            })
+            await self._save_to_redis(
+                f"macro:cot:{report.market.lower()}",
+                {
+                    "sentiment": report.cot_sentiment,
+                    "asset_mgr_pct_oi": float(report.asset_mgr_pct_oi),
+                    "lev_funds_net": report.lev_funds_net,
+                    "extreme_reading": report.extreme_reading,
+                    "report_date": report.time.isoformat(),
+                },
+            )
             await self._save_cot_to_db(report)
 
         logger.info("COT reports updated", count=len(reports))

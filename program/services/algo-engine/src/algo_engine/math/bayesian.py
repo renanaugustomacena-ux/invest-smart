@@ -86,8 +86,7 @@ class BayesianRegimeDetector:
 
         self._observation_count = 0
         self._posteriors: dict[str, Decimal] = {
-            name: ONE / Decimal(str(self._n_regimes))
-            for name in self._regime_names
+            name: ONE / Decimal(str(self._n_regimes)) for name in self._regime_names
         }
 
     def update(self, observation: Decimal) -> dict[str, Decimal]:
@@ -119,9 +118,7 @@ class BayesianRegimeDetector:
         # --- Step 2: compute growth probabilities (no changepoint) ---
         growth_probs: list[Decimal] = []
         for i in range(n_rl):
-            growth_probs.append(
-                self._run_length_probs[i] * pred_probs[i] * (ONE - self._hazard)
-            )
+            growth_probs.append(self._run_length_probs[i] * pred_probs[i] * (ONE - self._hazard))
 
         # --- Step 3: compute changepoint probability (run length = 0) ---
         cp_prob = ZERO
@@ -164,9 +161,7 @@ class BayesianRegimeDetector:
         divides run lengths into equal-sized bins corresponding to regimes.
         """
         n_rl = len(self._run_length_probs)
-        regime_probs: dict[str, Decimal] = {
-            name: ZERO for name in self._regime_names
-        }
+        regime_probs: dict[str, Decimal] = {name: ZERO for name in self._regime_names}
 
         if n_rl == 0:
             uniform = ONE / Decimal(str(self._n_regimes))
@@ -261,10 +256,7 @@ class ThompsonSamplingSelector:
             ValueError: If *strategy* is not a known arm.
         """
         if strategy not in self._alpha:
-            raise ValueError(
-                f"Unknown strategy '{strategy}'. "
-                f"Known: {self._strategies}"
-            )
+            raise ValueError(f"Unknown strategy '{strategy}'. " f"Known: {self._strategies}")
 
         self._samples[strategy] += 1
 
@@ -342,10 +334,7 @@ class BayesianParameterEstimator:
         self._kappa = old_kappa + ONE
         self._mu = (old_kappa * old_mu + observation) / self._kappa
         self._alpha = self._alpha + _HALF
-        self._beta = (
-            self._beta
-            + (old_kappa * (observation - old_mu) ** 2) / (TWO * self._kappa)
-        )
+        self._beta = self._beta + (old_kappa * (observation - old_mu) ** 2) / (TWO * self._kappa)
 
     def posterior_mean(self) -> Decimal:
         """Return the posterior estimate of the data-generating mean."""
@@ -363,7 +352,8 @@ class BayesianParameterEstimator:
         return self._beta / (self._alpha - ONE)
 
     def credible_interval(
-        self, alpha: Decimal = Decimal("0.05"),
+        self,
+        alpha: Decimal = Decimal("0.05"),
     ) -> tuple[Decimal, Decimal]:
         """Compute a symmetric credible interval for the mean.
 
@@ -387,7 +377,6 @@ class BayesianParameterEstimator:
 
         # z-score for the credible level via the normal approximation.
         # For alpha=0.05, z ~ 1.96.
-        from decimal import Decimal as D
 
         half_alpha = float(alpha) / 2.0
         # Use scipy-free inverse normal CDF approximation via math.
@@ -419,7 +408,5 @@ class BayesianParameterEstimator:
         # Coefficients for the rational approximation.
         c0, c1, c2 = 2.515517, 0.802853, 0.010328
         d1, d2, d3 = 1.432788, 0.189269, 0.001308
-        result = t - (c0 + c1 * t + c2 * t * t) / (
-            1.0 + d1 * t + d2 * t * t + d3 * t * t * t
-        )
+        result = t - (c0 + c1 * t + c2 * t * t) / (1.0 + d1 * t + d2 * t * t + d3 * t * t * t)
         return -result

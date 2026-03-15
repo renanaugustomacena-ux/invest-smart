@@ -13,10 +13,10 @@ from pathlib import Path
 # Path constants (resolved at import time from the console package location)
 # ---------------------------------------------------------------------------
 
-_PACKAGE_DIR = Path(__file__).resolve().parent                    # src/moneymaker_console/
-_CONSOLE_DIR = _PACKAGE_DIR.parent.parent                        # services/console/
-_SERVICES_DIR = _CONSOLE_DIR.parent                              # services/
-_PROJECT_ROOT = _SERVICES_DIR.parent                             # program/
+_PACKAGE_DIR = Path(__file__).resolve().parent  # src/moneymaker_console/
+_CONSOLE_DIR = _PACKAGE_DIR.parent.parent  # services/console/
+_SERVICES_DIR = _CONSOLE_DIR.parent  # services/
+_PROJECT_ROOT = _SERVICES_DIR.parent  # program/
 _ALGO_ENGINE_DIR = _SERVICES_DIR / "algo-engine"
 _ALGO_ENGINE_TESTS = _ALGO_ENGINE_DIR / "tests"
 _DATA_INGESTION_DIR = _SERVICES_DIR / "data-ingestion"

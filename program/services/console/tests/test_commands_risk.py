@@ -191,9 +191,20 @@ class TestRiskRegister:
         reg = CommandRegistry()
         register(reg)
         assert "risk" in reg.categories
-        expected = ["status", "limits", "set-max-dd", "set-max-pos",
-                    "set-max-lot", "set-daily-loss", "exposure",
-                    "correlation", "kill-switch", "circuit-breaker",
-                    "validation", "history", "spiral"]
+        expected = [
+            "status",
+            "limits",
+            "set-max-dd",
+            "set-max-pos",
+            "set-max-lot",
+            "set-daily-loss",
+            "exposure",
+            "correlation",
+            "kill-switch",
+            "circuit-breaker",
+            "validation",
+            "history",
+            "spiral",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["risk"]

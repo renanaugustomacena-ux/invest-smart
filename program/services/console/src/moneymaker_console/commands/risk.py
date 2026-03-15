@@ -24,8 +24,7 @@ def _risk_status(*args: str) -> str:
 
     # Daily P&L
     row = db.query_one(
-        "SELECT COALESCE(sum(pnl), 0) FROM trade_executions "
-        "WHERE closed_at >= CURRENT_DATE"
+        "SELECT COALESCE(sum(pnl), 0) FROM trade_executions " "WHERE closed_at >= CURRENT_DATE"
     )
     daily_pnl = Decimal(str(row[0])) if row else Decimal("0")
     lines.append(f"  Day P&L:     ${daily_pnl:.2f}")
@@ -167,6 +166,7 @@ def _risk_correlation(*args: str) -> str:
 def _risk_kill_switch(*args: str) -> str:
     """Activate the global kill switch (alias for kill activate)."""
     from moneymaker_console.commands.kill import _kill_activate
+
     return _kill_activate(*args)
 
 
@@ -238,32 +238,30 @@ def _risk_history(*args: str) -> str:
 def _risk_spiral(*args: str) -> str:
     """Display spiral protection status."""
     from moneymaker_console.commands.brain import _brain_spiral
+
     return _brain_spiral(*args)
 
 
 def register(registry: CommandRegistry) -> None:
     registry.register("risk", "status", _risk_status, "Risk dashboard")
     registry.register("risk", "limits", _risk_limits, "Current risk limits")
-    registry.register("risk", "set-max-dd", _risk_set_max_dd,
-                       "Set max drawdown %")
-    registry.register("risk", "set-max-pos", _risk_set_max_pos,
-                       "Set max concurrent positions")
-    registry.register("risk", "set-max-lot", _risk_set_max_lot,
-                       "Set max lot size per trade")
-    registry.register("risk", "set-daily-loss", _risk_set_daily_loss,
-                       "Set max daily loss %")
-    registry.register("risk", "exposure", _risk_exposure,
-                       "Exposure by symbol/direction")
-    registry.register("risk", "correlation", _risk_correlation,
-                       "Cross-symbol correlation matrix")
-    registry.register("risk", "kill-switch", _risk_kill_switch,
-                       "Activate global kill switch",
-                       requires_confirmation=True, dangerous=True)
-    registry.register("risk", "circuit-breaker", _risk_circuit_breaker,
-                       "Circuit breaker [arm|disarm|status]")
-    registry.register("risk", "validation", _risk_validation,
-                       "11-point validation checklist")
-    registry.register("risk", "history", _risk_history,
-                       "Rejected signals history [--days N]")
-    registry.register("risk", "spiral", _risk_spiral,
-                       "Spiral protection status")
+    registry.register("risk", "set-max-dd", _risk_set_max_dd, "Set max drawdown %")
+    registry.register("risk", "set-max-pos", _risk_set_max_pos, "Set max concurrent positions")
+    registry.register("risk", "set-max-lot", _risk_set_max_lot, "Set max lot size per trade")
+    registry.register("risk", "set-daily-loss", _risk_set_daily_loss, "Set max daily loss %")
+    registry.register("risk", "exposure", _risk_exposure, "Exposure by symbol/direction")
+    registry.register("risk", "correlation", _risk_correlation, "Cross-symbol correlation matrix")
+    registry.register(
+        "risk",
+        "kill-switch",
+        _risk_kill_switch,
+        "Activate global kill switch",
+        requires_confirmation=True,
+        dangerous=True,
+    )
+    registry.register(
+        "risk", "circuit-breaker", _risk_circuit_breaker, "Circuit breaker [arm|disarm|status]"
+    )
+    registry.register("risk", "validation", _risk_validation, "11-point validation checklist")
+    registry.register("risk", "history", _risk_history, "Rejected signals history [--days N]")
+    registry.register("risk", "spiral", _risk_spiral, "Spiral protection status")

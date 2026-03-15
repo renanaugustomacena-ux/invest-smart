@@ -32,9 +32,7 @@ CURRENCY_PAIRS: dict[str, tuple[str, str]] = {
 }
 
 
-def _decompose_exposure(
-    symbol: str, direction: str
-) -> dict[str, float]:
+def _decompose_exposure(symbol: str, direction: str) -> dict[str, float]:
     """Decompone una posizione nelle valute componenti.
 
     BUY EURUSD = +1 EUR, -1 USD
@@ -88,9 +86,7 @@ class CorrelationChecker:
         net_exposure: dict[str, float] = {}
 
         for pos in open_positions:
-            decomp = _decompose_exposure(
-                pos.get("symbol", ""), pos.get("direction", "")
-            )
+            decomp = _decompose_exposure(pos.get("symbol", ""), pos.get("direction", ""))
             for currency, amount in decomp.items():
                 net_exposure[currency] = net_exposure.get(currency, 0.0) + amount
 

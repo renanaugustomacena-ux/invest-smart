@@ -13,7 +13,8 @@ from pathlib import Path
 _LOG_DIR: Path | None = None
 
 _SECRET_PATTERN = re.compile(
-    r"(KEY|SECRET|PASSWORD|TOKEN|DSN|CREDENTIAL)", re.IGNORECASE,
+    r"(KEY|SECRET|PASSWORD|TOKEN|DSN|CREDENTIAL)",
+    re.IGNORECASE,
 )
 
 

@@ -40,12 +40,17 @@ class TestFetchSeries:
     @respx.mock
     async def test_success(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [
-                {"date": "2024-01-15", "value": "4.25"},
-                {"date": "2024-01-14", "value": "4.20"},
-            ]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "observations": [
+                        {"date": "2024-01-15", "value": "4.25"},
+                        {"date": "2024-01-14", "value": "4.20"},
+                    ]
+                },
+            )
+        )
 
         result = await fred._fetch_series("DGS10", limit=2)
         assert len(result) == 2
@@ -55,13 +60,18 @@ class TestFetchSeries:
     @respx.mock
     async def test_filters_missing_values(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [
-                {"date": "2024-01-15", "value": "."},
-                {"date": "2024-01-14", "value": "4.20"},
-                {"date": "2024-01-13", "value": ""},
-            ]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "observations": [
+                        {"date": "2024-01-15", "value": "."},
+                        {"date": "2024-01-14", "value": "4.20"},
+                        {"date": "2024-01-13", "value": ""},
+                    ]
+                },
+            )
+        )
 
         result = await fred._fetch_series("DGS10")
         assert len(result) == 1
@@ -89,9 +99,11 @@ class TestFetchSeries:
     @respx.mock
     async def test_with_api_key(self, fred):
         url = "https://fred.test.com/series/observations"
-        route = respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [{"date": "2024-01-15", "value": "4.25"}]
-        }))
+        route = respx.get(url).mock(
+            return_value=httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "4.25"}]}
+            )
+        )
 
         await fred._fetch_series("DGS10")
         # Verify API key was passed
@@ -102,9 +114,7 @@ class TestFetchSeries:
     async def test_without_api_key(self):
         provider = FREDProvider(api_key="", base_url="https://fred.test.com")
         url = "https://fred.test.com/series/observations"
-        route = respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": []
-        }))
+        route = respx.get(url).mock(return_value=httpx.Response(200, json={"observations": []}))
 
         await provider._fetch_series("DGS10")
         assert "api_key" not in str(route.calls[0].request.url)
@@ -115,9 +125,11 @@ class TestFetchYieldCurve:
     @respx.mock
     async def test_success(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [{"date": "2024-01-15", "value": "4.25"}]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "4.25"}]}
+            )
+        )
 
         result = await fred.fetch_yield_curve()
         assert result is not None
@@ -137,16 +149,16 @@ class TestFetchYieldCurve:
             series_id = str(request.url.params.get("series_id", ""))
 
             if series_id == "DGS2":
-                return httpx.Response(200, json={
-                    "observations": [{"date": "2024-01-15", "value": "5.00"}]
-                })
+                return httpx.Response(
+                    200, json={"observations": [{"date": "2024-01-15", "value": "5.00"}]}
+                )
             elif series_id == "DGS10":
-                return httpx.Response(200, json={
-                    "observations": [{"date": "2024-01-15", "value": "4.00"}]
-                })
-            return httpx.Response(200, json={
-                "observations": [{"date": "2024-01-15", "value": "4.50"}]
-            })
+                return httpx.Response(
+                    200, json={"observations": [{"date": "2024-01-15", "value": "4.00"}]}
+                )
+            return httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "4.50"}]}
+            )
 
         respx.get(url).mock(side_effect=respond)
 
@@ -159,9 +171,7 @@ class TestFetchYieldCurve:
     @respx.mock
     async def test_missing_10y(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": []
-        }))
+        respx.get(url).mock(return_value=httpx.Response(200, json={"observations": []}))
 
         result = await fred.fetch_yield_curve()
         assert result is None
@@ -181,9 +191,12 @@ class TestFetchRealRates:
                 "DGS5": "4.00",
                 "T5YIE": "2.20",
             }
-            return httpx.Response(200, json={
-                "observations": [{"date": "2024-01-15", "value": values.get(series_id, "3.00")}]
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "observations": [{"date": "2024-01-15", "value": values.get(series_id, "3.00")}]
+                },
+            )
 
         respx.get(url).mock(side_effect=respond)
 
@@ -198,9 +211,7 @@ class TestFetchRealRates:
     @respx.mock
     async def test_missing_data(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": []
-        }))
+        respx.get(url).mock(return_value=httpx.Response(200, json={"observations": []}))
 
         result = await fred.fetch_real_rates()
         assert result is None
@@ -211,9 +222,11 @@ class TestFetchRecessionProbability:
     @respx.mock
     async def test_high_risk(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [{"date": "2024-01-15", "value": "45.0"}]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "45.0"}]}
+            )
+        )
 
         result = await fred.fetch_recession_probability()
         assert result is not None
@@ -225,9 +238,11 @@ class TestFetchRecessionProbability:
     @respx.mock
     async def test_elevated_risk(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [{"date": "2024-01-15", "value": "25.0"}]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "25.0"}]}
+            )
+        )
 
         result = await fred.fetch_recession_probability()
         assert result is not None
@@ -237,9 +252,11 @@ class TestFetchRecessionProbability:
     @respx.mock
     async def test_low_risk(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": [{"date": "2024-01-15", "value": "10.0"}]
-        }))
+        respx.get(url).mock(
+            return_value=httpx.Response(
+                200, json={"observations": [{"date": "2024-01-15", "value": "10.0"}]}
+            )
+        )
 
         result = await fred.fetch_recession_probability()
         assert result is not None
@@ -249,9 +266,7 @@ class TestFetchRecessionProbability:
     @respx.mock
     async def test_no_data(self, fred):
         url = "https://fred.test.com/series/observations"
-        respx.get(url).mock(return_value=httpx.Response(200, json={
-            "observations": []
-        }))
+        respx.get(url).mock(return_value=httpx.Response(200, json={"observations": []}))
 
         result = await fred.fetch_recession_probability()
         assert result is None

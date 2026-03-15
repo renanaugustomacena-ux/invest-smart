@@ -23,9 +23,7 @@ from moneymaker_common.logging import get_logger
 from moneymaker_common.metrics import EXECUTION_LATENCY, TRADES_EXECUTED
 from moneymaker_common.ratelimit import (
     InMemoryRateLimiter,
-    RateLimitConfig,
     RateLimitExceededError,
-    RateLimitPresets,
     RedisRateLimiter,
 )
 
@@ -78,8 +76,11 @@ class ExecutionServicer:
                 signal["suggested_lots"] = "0.01"
 
             import asyncio
+
             result = await asyncio.get_event_loop().run_in_executor(
-                None, self._order_manager.execute_signal, signal,
+                None,
+                self._order_manager.execute_signal,
+                signal,
             )
 
             elapsed = time.monotonic() - start_time
@@ -142,7 +143,7 @@ class ExecutionServicer:
 # Mappatura enum direzione proto → stringa — la "tabella di conversione"
 _PROTO_DIRECTION_TO_STR: dict[int, str] = {
     0: "HOLD",  # DIRECTION_UNSPECIFIED
-    1: "BUY",   # DIRECTION_BUY
+    1: "BUY",  # DIRECTION_BUY
     2: "SELL",  # DIRECTION_SELL
     3: "HOLD",  # DIRECTION_HOLD
 }
@@ -155,7 +156,7 @@ _STATUS_STR_TO_PROTO: dict[str, int] = {
     "REJECTED": 4,
     "CANCELLED": 5,
     "EXPIRED": 6,
-    "ERROR": 7,     # STATUS_ERROR, distinct from REJECTED (4)
+    "ERROR": 7,  # STATUS_ERROR, distinct from REJECTED (4)
     "UNKNOWN": 0,
 }
 
@@ -317,11 +318,7 @@ class ExecutionServer:
             # Verifica se TLS è abilitato
             tls_config = get_tls_config_from_env()
 
-            if (
-                tls_config["enabled"]
-                and tls_config["server_cert"]
-                and tls_config["server_key"]
-            ):
+            if tls_config["enabled"] and tls_config["server_cert"] and tls_config["server_key"]:
                 try:
                     credentials = load_server_credentials(
                         ca_cert_path=tls_config["ca_cert"],

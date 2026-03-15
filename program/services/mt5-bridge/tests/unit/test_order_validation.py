@@ -81,15 +81,17 @@ class TestValidateSignal:
             manager._validate_signal(sig)
 
     def test_rejects_position_limit(self, manager, connector):
-        connector.get_open_positions.return_value = [
-            {"ticket": i} for i in range(5)
-        ]
+        connector.get_open_positions.return_value = [{"ticket": i} for i in range(5)]
         sig = _make_signal()
         with pytest.raises(SignalRejectedError, match="limite posizioni"):
             manager._validate_signal(sig)
 
     def test_rejects_excessive_spread(self, manager, connector):
-        connector.get_symbol_info.return_value = {"spread": 50, "volume_min": Decimal("0.01"), "volume_step": Decimal("0.01")}
+        connector.get_symbol_info.return_value = {
+            "spread": 50,
+            "volume_min": Decimal("0.01"),
+            "volume_step": Decimal("0.01"),
+        }
         sig = _make_signal()
         with pytest.raises(SignalRejectedError, match="spread"):
             manager._validate_signal(sig)
@@ -100,7 +102,9 @@ class TestValidateSignal:
             manager._validate_signal(sig)
 
     def test_rejects_buy_tp_below_entry(self, manager):
-        sig = _make_signal(direction="BUY", entry_price="1.0900", stop_loss="1.0800", take_profit="1.0850")
+        sig = _make_signal(
+            direction="BUY", entry_price="1.0900", stop_loss="1.0800", take_profit="1.0850"
+        )
         with pytest.raises(SignalRejectedError, match="take profit.*sopra entry"):
             manager._validate_signal(sig)
 
@@ -110,7 +114,9 @@ class TestValidateSignal:
             manager._validate_signal(sig)
 
     def test_rejects_sell_tp_above_entry(self, manager):
-        sig = _make_signal(direction="SELL", entry_price="1.0900", stop_loss="1.1000", take_profit="1.0950")
+        sig = _make_signal(
+            direction="SELL", entry_price="1.0900", stop_loss="1.1000", take_profit="1.0950"
+        )
         with pytest.raises(SignalRejectedError, match="take profit.*sotto entry"):
             manager._validate_signal(sig)
 
@@ -152,6 +158,7 @@ class TestClampLotSize:
 class TestCleanupOldSignals:
     def test_removes_expired_signals(self, manager):
         import time
+
         manager._recent_signals = {
             "old": time.time() - 600,
             "fresh": time.time(),
@@ -164,7 +171,9 @@ class TestCleanupOldSignals:
 class TestDeduplication:
     def test_rejects_duplicate_signal(self, manager):
         sig = _make_signal()
-        with patch.object(manager, "_submit_order", return_value={"retcode": 10009, "status": "FILLED"}):
+        with patch.object(
+            manager, "_submit_order", return_value={"retcode": 10009, "status": "FILLED"}
+        ):
             manager.execute_signal(sig)
         with pytest.raises(SignalRejectedError, match="duplicato"):
             manager.execute_signal(sig)

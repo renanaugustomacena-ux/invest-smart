@@ -53,13 +53,9 @@ class MoneyMakerBaseSettings(BaseSettings):
         """Valida che le password siano impostate in produzione."""
         if self.moneymaker_env == "production":
             if not self.moneymaker_db_password:
-                raise ValueError(
-                    "MONEYMAKER_DB_PASSWORD è obbligatorio in produzione"
-                )
+                raise ValueError("MONEYMAKER_DB_PASSWORD è obbligatorio in produzione")
             if not self.moneymaker_redis_password:
-                raise ValueError(
-                    "MONEYMAKER_REDIS_PASSWORD è obbligatorio in produzione"
-                )
+                raise ValueError("MONEYMAKER_REDIS_PASSWORD è obbligatorio in produzione")
         elif self.moneymaker_env in ("staging", "development"):
             if not self.moneymaker_db_password:
                 _config_logger.warning(
@@ -105,7 +101,11 @@ class MoneyMakerBaseSettings(BaseSettings):
         Quando TLS è abilitato, usa lo schema 'rediss://' (con doppia 's')
         che indica una connessione Redis over TLS.
         """
-        auth = f":{quote_plus(self.moneymaker_redis_password)}@" if self.moneymaker_redis_password else ""
+        auth = (
+            f":{quote_plus(self.moneymaker_redis_password)}@"
+            if self.moneymaker_redis_password
+            else ""
+        )
         scheme = "rediss" if self.moneymaker_tls_enabled else "redis"
         return f"{scheme}://{auth}{self.moneymaker_redis_host}:{self.moneymaker_redis_port}/0"
 

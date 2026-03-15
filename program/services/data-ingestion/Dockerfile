@@ -41,9 +41,8 @@ RUN apk add --no-cache \
     curl \
     && rm -rf /var/cache/apk/*
 
-RUN addgroup -S moneymaker && adduser -S moneymaker -G moneymaker
-
-RUN mkdir -p /app/config /app/data && chown -R moneymaker:moneymaker /app
+RUN addgroup -S moneymaker && adduser -S moneymaker -G moneymaker && \
+    mkdir -p /app/config /app/data && chown -R moneymaker:moneymaker /app
 
 WORKDIR /app
 

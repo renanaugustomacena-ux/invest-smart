@@ -17,6 +17,7 @@ D = Decimal
 # _quantize
 # ===========================================================================
 
+
 class TestQuantize:
     def test_default_precision(self):
         assert _quantize(D("1.23456")) == D("1.2346")
@@ -29,6 +30,7 @@ class TestQuantize:
 # BacktestResult defaults
 # ===========================================================================
 
+
 class TestBacktestResult:
     def test_defaults_zero(self):
         r = BacktestResult()
@@ -40,6 +42,7 @@ class TestBacktestResult:
 # ===========================================================================
 # BacktestMetrics._compute_returns
 # ===========================================================================
+
 
 class TestComputeReturns:
     def test_simple_returns(self):
@@ -66,6 +69,7 @@ class TestComputeReturns:
 # BacktestMetrics._total_return_pct
 # ===========================================================================
 
+
 class TestTotalReturn:
     def test_positive_return(self):
         r = BacktestMetrics._total_return_pct(D("10000"), D("12000"))
@@ -82,6 +86,7 @@ class TestTotalReturn:
 # ===========================================================================
 # BacktestMetrics._max_drawdown
 # ===========================================================================
+
 
 class TestMaxDrawdown:
     def test_no_drawdown(self):
@@ -106,6 +111,7 @@ class TestMaxDrawdown:
 # BacktestMetrics._sharpe_ratio
 # ===========================================================================
 
+
 class TestSharpeRatio:
     def test_single_return_zero(self):
         m = BacktestMetrics()
@@ -118,8 +124,18 @@ class TestSharpeRatio:
 
     def test_positive_returns_positive_sharpe(self):
         m = BacktestMetrics(risk_free_rate=D("0"))
-        ret = [D("0.005"), D("0.003"), D("0.007"), D("0.002"), D("0.004"),
-               D("0.006"), D("0.001"), D("0.008"), D("0.005"), D("0.004")]
+        ret = [
+            D("0.005"),
+            D("0.003"),
+            D("0.007"),
+            D("0.002"),
+            D("0.004"),
+            D("0.006"),
+            D("0.001"),
+            D("0.008"),
+            D("0.005"),
+            D("0.004"),
+        ]
         sharpe = m._sharpe_ratio(ret)
         assert sharpe > D("0")
 
@@ -127,6 +143,7 @@ class TestSharpeRatio:
 # ===========================================================================
 # BacktestMetrics._sortino_ratio
 # ===========================================================================
+
 
 class TestSortinoRatio:
     def test_no_negative_returns_zero(self):
@@ -136,8 +153,16 @@ class TestSortinoRatio:
 
     def test_mixed_returns(self):
         m = BacktestMetrics(risk_free_rate=D("0"))
-        ret = [D("0.01"), D("-0.005"), D("0.02"), D("-0.01"),
-               D("0.015"), D("-0.003"), D("0.005"), D("-0.008")]
+        ret = [
+            D("0.01"),
+            D("-0.005"),
+            D("0.02"),
+            D("-0.01"),
+            D("0.015"),
+            D("-0.003"),
+            D("0.005"),
+            D("-0.008"),
+        ]
         sortino = m._sortino_ratio(ret)
         assert sortino > D("0")
 
@@ -146,12 +171,16 @@ class TestSortinoRatio:
 # BacktestMetrics._compute_trade_metrics
 # ===========================================================================
 
+
 class TestTradeMetrics:
     def test_win_rate(self):
         m = BacktestMetrics()
         trades = [
-            {"pnl": "100"}, {"pnl": "50"}, {"pnl": "-30"},
-            {"pnl": "80"}, {"pnl": "-20"},
+            {"pnl": "100"},
+            {"pnl": "50"},
+            {"pnl": "-30"},
+            {"pnl": "80"},
+            {"pnl": "-20"},
         ]
         result = BacktestResult(total_trades=5, trade_log=trades)
         m._compute_trade_metrics(trades, result)
@@ -185,6 +214,7 @@ class TestTradeMetrics:
 # BacktestMetrics.compute (full integration)
 # ===========================================================================
 
+
 class TestComputeFull:
     def test_minimal_curve(self):
         m = BacktestMetrics()
@@ -208,6 +238,7 @@ class TestComputeFull:
 # ===========================================================================
 # TradeSimulator
 # ===========================================================================
+
 
 def _make_bar(ts=1700000000000, o="1.10000", h="1.10200", l="1.09800", c="1.10100", v="1000"):
     return OHLCVBar(timestamp=ts, open=D(o), high=D(h), low=D(l), close=D(c), volume=D(v))
@@ -261,7 +292,12 @@ class TestTradeSimulatorOpenPosition:
 
 class TestTradeSimulatorProcessBar:
     def test_buy_sl_hit(self):
-        sim = TradeSimulator(initial_equity=D("10000"), spread_pips=D("0"), slippage_pips=D("0"), commission_per_lot=D("0"))
+        sim = TradeSimulator(
+            initial_equity=D("10000"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+        )
         signal = {
             "direction": "BUY",
             "entry_price": "1.10000",
@@ -277,7 +313,12 @@ class TestTradeSimulatorProcessBar:
         assert sim.trade_log[0]["exit_reason"] == "stop_loss"
 
     def test_buy_tp_hit(self):
-        sim = TradeSimulator(initial_equity=D("10000"), spread_pips=D("0"), slippage_pips=D("0"), commission_per_lot=D("0"))
+        sim = TradeSimulator(
+            initial_equity=D("10000"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+        )
         signal = {
             "direction": "BUY",
             "entry_price": "1.10000",
@@ -291,7 +332,12 @@ class TestTradeSimulatorProcessBar:
         assert sim.trade_log[0]["exit_reason"] == "take_profit"
 
     def test_sell_sl_hit(self):
-        sim = TradeSimulator(initial_equity=D("10000"), spread_pips=D("0"), slippage_pips=D("0"), commission_per_lot=D("0"))
+        sim = TradeSimulator(
+            initial_equity=D("10000"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+        )
         signal = {
             "direction": "SELL",
             "entry_price": "1.10000",
@@ -304,7 +350,12 @@ class TestTradeSimulatorProcessBar:
         assert sim.trade_log[0]["exit_reason"] == "stop_loss"
 
     def test_no_hit_stays_open(self):
-        sim = TradeSimulator(initial_equity=D("10000"), spread_pips=D("0"), slippage_pips=D("0"), commission_per_lot=D("0"))
+        sim = TradeSimulator(
+            initial_equity=D("10000"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+        )
         signal = {
             "direction": "BUY",
             "entry_price": "1.10000",
@@ -319,7 +370,12 @@ class TestTradeSimulatorProcessBar:
 
 class TestTradeSimulatorCloseAll:
     def test_close_all_at_end(self):
-        sim = TradeSimulator(initial_equity=D("10000"), spread_pips=D("0"), slippage_pips=D("0"), commission_per_lot=D("0"))
+        sim = TradeSimulator(
+            initial_equity=D("10000"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+        )
         signal = {
             "direction": "BUY",
             "entry_price": "1.10000",
@@ -338,8 +394,10 @@ class TestTradeSimulatorPnL:
     def test_buy_profit(self):
         sim = TradeSimulator(
             initial_equity=D("10000"),
-            spread_pips=D("0"), slippage_pips=D("0"),
-            commission_per_lot=D("0"), pip_value=D("0.0001"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+            pip_value=D("0.0001"),
         )
         signal = {
             "direction": "BUY",
@@ -356,8 +414,10 @@ class TestTradeSimulatorPnL:
     def test_sell_profit(self):
         sim = TradeSimulator(
             initial_equity=D("10000"),
-            spread_pips=D("0"), slippage_pips=D("0"),
-            commission_per_lot=D("0"), pip_value=D("0.0001"),
+            spread_pips=D("0"),
+            slippage_pips=D("0"),
+            commission_per_lot=D("0"),
+            pip_value=D("0.0001"),
         )
         signal = {
             "direction": "SELL",

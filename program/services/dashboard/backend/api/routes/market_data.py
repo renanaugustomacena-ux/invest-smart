@@ -26,14 +26,16 @@ async def get_bars(
     bars = await get_ohlcv_bars(pool, symbol, timeframe, limit)
     serialized = []
     for b in bars:
-        serialized.append({
-            "time": b["time"].isoformat(),
-            "open": str(b["open"]),
-            "high": str(b["high"]),
-            "low": str(b["low"]),
-            "close": str(b["close"]),
-            "volume": str(b["volume"]),
-        })
+        serialized.append(
+            {
+                "time": b["time"].isoformat(),
+                "open": str(b["open"]),
+                "high": str(b["high"]),
+                "low": str(b["low"]),
+                "close": str(b["close"]),
+                "volume": str(b["volume"]),
+            }
+        )
     return {"symbol": symbol, "timeframe": timeframe, "bars": serialized, "total": len(serialized)}
 
 

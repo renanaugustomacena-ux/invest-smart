@@ -13,10 +13,10 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-
 # ---------------------------------------------------------------------------
 # Mock DB pool — mimics asyncpg.Pool interface used by query functions
 # ---------------------------------------------------------------------------
+
 
 class MockPool:
     """In-memory asyncpg.Pool substitute."""
@@ -64,6 +64,7 @@ def _reset_redis_store():
 # All patch targets — applied via patch.start()/stop() to avoid nesting limit
 # ---------------------------------------------------------------------------
 
+
 def _build_patches(mock_pool: MockPool) -> list[Any]:
     """Return a list of patch objects for DB + Redis mocking."""
     pool_mock = AsyncMock(return_value=mock_pool)
@@ -99,6 +100,7 @@ def _build_patches(mock_pool: MockPool) -> list[Any]:
 # ---------------------------------------------------------------------------
 # Patched FastAPI app — replaces DB + Redis with mocks
 # ---------------------------------------------------------------------------
+
 
 @pytest_asyncio.fixture()
 async def client(mock_pool: MockPool):

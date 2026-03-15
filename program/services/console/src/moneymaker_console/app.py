@@ -31,6 +31,7 @@ def _load_dotenv() -> None:
     """Load program/.env if python-dotenv is available."""
     try:
         from dotenv import load_dotenv
+
         env_file = _CONSOLE_DIR.parent.parent / ".env"  # program/.env
         if env_file.exists():
             load_dotenv(env_file)
@@ -41,6 +42,7 @@ def _load_dotenv() -> None:
 # ---------------------------------------------------------------------------
 # Boot sequence
 # ---------------------------------------------------------------------------
+
 
 def _boot() -> CommandRegistry:
     """Execute the console boot sequence and return a ready registry."""
@@ -66,6 +68,7 @@ def _boot() -> CommandRegistry:
 # ---------------------------------------------------------------------------
 # TUI Mode
 # ---------------------------------------------------------------------------
+
 
 def _run_tui(registry: CommandRegistry) -> None:
     """Launch the full Rich Live TUI dashboard."""
@@ -193,6 +196,7 @@ def _run_tui(registry: CommandRegistry) -> None:
 # CLI Interactive Fallback
 # ---------------------------------------------------------------------------
 
+
 def _run_cli_interactive(registry: CommandRegistry) -> None:
     """Simple readline-based interactive mode (no Rich)."""
     print(f"MONEYMAKER Trading Console v{__version__} (CLI fallback)")
@@ -220,12 +224,14 @@ def _run_cli_interactive(registry: CommandRegistry) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     """MONEYMAKER Console entry point — mode selection."""
     registry = _boot()
 
     if len(sys.argv) > 1:
         from moneymaker_console.cli.dispatch import run_cli
+
         sys.exit(run_cli(registry, sys.argv[1:]))
     else:
         if HAS_RICH:

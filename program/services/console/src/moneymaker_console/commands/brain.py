@@ -27,6 +27,7 @@ def _brain_stop(*args: str) -> str:
     docker = ClientFactory.get_docker()
     if force:
         from moneymaker_console.runner import run_tool, _PROJECT_ROOT, _DOCKER_COMPOSE
+
         return run_tool(
             ["docker", "compose", "-f", str(_DOCKER_COMPOSE), "kill", "algo-engine"],
             cwd=_PROJECT_ROOT,
@@ -169,11 +170,7 @@ def _brain_spiral(*args: str) -> str:
             f"  Cooldown Timer:  {data.get('cooldown_remaining', 0)}s\n"
             f"  Lot Reduction:   {data.get('lot_reduction_factor', 1.0)}x"
         )
-    return (
-        "Spiral Protection\n"
-        f"{'=' * 40}\n"
-        "  Status:  INACTIVE (no data in Redis)"
-    )
+    return "Spiral Protection\n" f"{'=' * 40}\n" "  Status:  INACTIVE (no data in Redis)"
 
 
 def _brain_confidence(*args: str) -> str:
@@ -229,6 +226,7 @@ def _brain_features(*args: str) -> str:
 def _brain_sentry(*args: str) -> str:
     """Display Sentry error tracking status."""
     import os
+
     dsn = os.environ.get("SENTRY_DSN", "")
     if not dsn:
         return "[info] Sentry DSN not configured."
@@ -251,29 +249,16 @@ def _brain_checkpoint(*args: str) -> str:
 
 
 def register(registry: CommandRegistry) -> None:
-    registry.register("brain", "start", _brain_start,
-                       "Start Algo Engine [--mode MODE]")
-    registry.register("brain", "stop", _brain_stop,
-                       "Graceful stop [--force]")
-    registry.register("brain", "pause", _brain_pause,
-                       "Pause signal generation")
-    registry.register("brain", "resume", _brain_resume,
-                       "Resume signal generation")
-    registry.register("brain", "status", _brain_status,
-                       "Comprehensive status")
-    registry.register("brain", "checkpoint", _brain_checkpoint,
-                       "Force checkpoint save")
-    registry.register("brain", "regime", _brain_regime,
-                       "Market regime classification")
-    registry.register("brain", "drift", _brain_drift,
-                       "Drift monitor Z-scores")
-    registry.register("brain", "maturity", _brain_maturity,
-                       "Maturity gating status")
-    registry.register("brain", "spiral", _brain_spiral,
-                       "Spiral protection status")
-    registry.register("brain", "confidence", _brain_confidence,
-                       "Confidence distribution [SYMBOL]")
-    registry.register("brain", "features", _brain_features,
-                       "Feature vector for SYMBOL")
-    registry.register("brain", "sentry", _brain_sentry,
-                       "Sentry error tracking status")
+    registry.register("brain", "start", _brain_start, "Start Algo Engine [--mode MODE]")
+    registry.register("brain", "stop", _brain_stop, "Graceful stop [--force]")
+    registry.register("brain", "pause", _brain_pause, "Pause signal generation")
+    registry.register("brain", "resume", _brain_resume, "Resume signal generation")
+    registry.register("brain", "status", _brain_status, "Comprehensive status")
+    registry.register("brain", "checkpoint", _brain_checkpoint, "Force checkpoint save")
+    registry.register("brain", "regime", _brain_regime, "Market regime classification")
+    registry.register("brain", "drift", _brain_drift, "Drift monitor Z-scores")
+    registry.register("brain", "maturity", _brain_maturity, "Maturity gating status")
+    registry.register("brain", "spiral", _brain_spiral, "Spiral protection status")
+    registry.register("brain", "confidence", _brain_confidence, "Confidence distribution [SYMBOL]")
+    registry.register("brain", "features", _brain_features, "Feature vector for SYMBOL")
+    registry.register("brain", "sentry", _brain_sentry, "Sentry error tracking status")

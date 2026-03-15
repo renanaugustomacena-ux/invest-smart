@@ -8,7 +8,6 @@ from decimal import Decimal
 from moneymaker_console.clients import ClientFactory
 from moneymaker_console.registry import CommandRegistry
 
-
 _MAGIC_DEFAULT = 123456
 
 
@@ -24,8 +23,8 @@ def _mt5_connect(*args: str) -> str:
 
 def _mt5_disconnect(*args: str) -> str:
     """Gracefully disconnect from MT5."""
-    docker = ClientFactory.get_docker()
     from moneymaker_console.runner import run_tool, _PROJECT_ROOT, _DOCKER_COMPOSE
+
     return run_tool(
         ["docker", "compose", "-f", str(_DOCKER_COMPOSE), "stop", "mt5-bridge"],
         cwd=_PROJECT_ROOT,
@@ -50,10 +49,7 @@ def _mt5_status(*args: str) -> str:
     if not db.ping():
         return _unavail()
 
-    row = db.query_one(
-        "SELECT count(*) FROM trade_executions "
-        "WHERE closed_at IS NULL"
-    )
+    row = db.query_one("SELECT count(*) FROM trade_executions " "WHERE closed_at IS NULL")
     open_count = row[0] if row else 0
     return (
         f"MT5 Bridge Status (from DB — gRPC unreachable)\n"
@@ -180,14 +176,14 @@ def _mt5_account(*args: str) -> str:
         f"  Server:    {os.environ.get('MT5_SERVER', 'NOT SET')}",
         f"  Magic:     {os.environ.get('MT5_MAGIC_NUMBER', str(_MAGIC_DEFAULT))}",
     ]
-    # Get equity from DB
-    db = ClientFactory.get_postgres()
     equity = os.environ.get("BRAIN_DEFAULT_EQUITY", "1000")
     leverage = os.environ.get("BRAIN_DEFAULT_LEVERAGE", "100")
-    lines.extend([
-        f"  Equity:    ${equity}",
-        f"  Leverage:  1:{leverage}",
-    ])
+    lines.extend(
+        [
+            f"  Equity:    ${equity}",
+            f"  Leverage:  1:{leverage}",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -284,25 +280,24 @@ def register(registry: CommandRegistry) -> None:
     registry.register("mt5", "connect", _mt5_connect, "Connect to MT5 terminal")
     registry.register("mt5", "disconnect", _mt5_disconnect, "Disconnect from MT5")
     registry.register("mt5", "status", _mt5_status, "MT5 connection status")
-    registry.register("mt5", "positions", _mt5_positions,
-                       "Open positions [--symbol S]")
-    registry.register("mt5", "history", _mt5_history,
-                       "Trade history [--days N] [--symbol S]")
-    registry.register("mt5", "close", _mt5_close, "Close position by ticket",
-                       requires_confirmation=True)
-    registry.register("mt5", "close-all", _mt5_close_all,
-                       "Close ALL positions",
-                       requires_confirmation=True, dangerous=True)
-    registry.register("mt5", "modify", _mt5_modify, "Modify SL/TP",
-                       requires_confirmation=True)
+    registry.register("mt5", "positions", _mt5_positions, "Open positions [--symbol S]")
+    registry.register("mt5", "history", _mt5_history, "Trade history [--days N] [--symbol S]")
+    registry.register(
+        "mt5", "close", _mt5_close, "Close position by ticket", requires_confirmation=True
+    )
+    registry.register(
+        "mt5",
+        "close-all",
+        _mt5_close_all,
+        "Close ALL positions",
+        requires_confirmation=True,
+        dangerous=True,
+    )
+    registry.register("mt5", "modify", _mt5_modify, "Modify SL/TP", requires_confirmation=True)
     registry.register("mt5", "account", _mt5_account, "Account information")
     registry.register("mt5", "sync", _mt5_sync, "Force database sync")
     registry.register("mt5", "orders", _mt5_orders, "Pending orders")
-    registry.register("mt5", "autotrading", _mt5_autotrading,
-                       "Autotrading [on|off|status]")
-    registry.register("mt5", "trailing", _mt5_trailing,
-                       "Trailing stop [on|off|status]")
-    registry.register("mt5", "trailing-config", _mt5_trailing_config,
-                       "Trailing stop parameters")
-    registry.register("mt5", "rate-limit", _mt5_rate_limit,
-                       "Rate limiting [view|set]")
+    registry.register("mt5", "autotrading", _mt5_autotrading, "Autotrading [on|off|status]")
+    registry.register("mt5", "trailing", _mt5_trailing, "Trailing stop [on|off|status]")
+    registry.register("mt5", "trailing-config", _mt5_trailing_config, "Trailing stop parameters")
+    registry.register("mt5", "rate-limit", _mt5_rate_limit, "Rate limiting [view|set]")

@@ -18,9 +18,11 @@ D = Decimal
 # Helper: generate synthetic return series
 # ---------------------------------------------------------------------------
 
+
 def _synthetic_returns(n: int = 100, drift: float = 0.001, vol: float = 0.02) -> list[Decimal]:
     """Deterministic pseudo-random returns for reproducibility."""
     import random
+
     rng = random.Random(42)
     return [D(str(round(drift + vol * rng.gauss(0, 1), 8))) for _ in range(n)]
 
@@ -28,6 +30,7 @@ def _synthetic_returns(n: int = 100, drift: float = 0.001, vol: float = 0.02) ->
 def _synthetic_prices(n: int = 100, start: float = 100.0, vol: float = 0.5) -> list[Decimal]:
     """Deterministic price series with mean-reverting flavor."""
     import random
+
     rng = random.Random(42)
     prices = [D(str(start))]
     for _ in range(n - 1):
@@ -69,8 +72,13 @@ class TestGBM:
         mu, sigma = GeometricBrownianMotion.fit(returns)
         if sigma > D("0"):
             paths = GeometricBrownianMotion.simulate_paths(
-                s0=100.0, mu=float(mu), sigma=float(sigma),
-                t=1.0, dt=0.01, n_paths=5, seed=42,
+                s0=100.0,
+                mu=float(mu),
+                sigma=float(sigma),
+                t=1.0,
+                dt=0.01,
+                n_paths=5,
+                seed=42,
             )
             assert paths.shape[1] == 5  # n_paths columns
 
@@ -144,6 +152,7 @@ class TestMutualInformation:
     def test_independent_series_low_mi(self):
         x = _synthetic_returns(100)
         import random
+
         rng = random.Random(99)
         y = [D(str(round(rng.gauss(0, 0.02), 8))) for _ in range(100)]
         mi = mutual_information(x, y)
@@ -189,6 +198,7 @@ class TestGPD:
     def test_fit_positive_exceedances(self):
         # Exponentially distributed exceedances (GPD with xi~0)
         import random
+
         rng = random.Random(42)
         exc = [D(str(round(rng.expovariate(2.0), 6))) for _ in range(100)]
         exc = sorted([e for e in exc if e > D("0")])[:30]
@@ -298,6 +308,7 @@ from algo_engine.math.spectral import (
 class TestFourierCycleDetector:
     def test_detects_dominant_cycle(self):
         import math as m
+
         series = [D(str(round(m.sin(2 * m.pi * i / 20) + 100, 6))) for i in range(200)]
         det = FourierCycleDetector()
         cycles = det.detect_cycles(series)
@@ -306,6 +317,7 @@ class TestFourierCycleDetector:
 
     def test_dominant_cycle(self):
         import math as m
+
         series = [D(str(round(m.sin(2 * m.pi * i / 20) + 100, 6))) for i in range(200)]
         det = FourierCycleDetector()
         period = det.dominant_cycle(series)
@@ -434,9 +446,13 @@ class TestOUFit:
 class TestOUParams:
     def test_frozen(self):
         p = OUParams(
-            theta=D("0.1"), mu=D("100"), sigma=D("0.5"),
-            half_life=D("7"), sigma_eq=D("1.1"),
-            r_squared=D("0.5"), is_valid=True,
+            theta=D("0.1"),
+            mu=D("100"),
+            sigma=D("0.5"),
+            half_life=D("7"),
+            sigma_eq=D("1.1"),
+            r_squared=D("0.5"),
+            is_valid=True,
         )
         with pytest.raises(AttributeError):
             p.theta = D("0.2")  # type: ignore[misc]

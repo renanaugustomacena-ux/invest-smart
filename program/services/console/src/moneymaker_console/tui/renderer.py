@@ -10,8 +10,6 @@ from moneymaker_console import __version__
 try:
     from rich.layout import Layout
     from rich.panel import Panel
-    from rich.table import Table
-    from rich.text import Text
 except ImportError:
     pass
 
@@ -104,23 +102,42 @@ class TUIRenderer:
         layout["header"].update(Panel(header_text, style="bold cyan"))
 
         # Panels
-        layout["market"].update(Panel(
-            self._market_panel(), title="MARKET DATA", style="market",
-        ))
-        layout["brain"].update(Panel(
-            self._brain_panel(), title="ALGO ENGINE", style="brain",
-        ))
-        layout["risk"].update(Panel(
-            self._risk_panel(), title="RISK & POSITIONS", style="risk",
-        ))
-        layout["system"].update(Panel(
-            self._system_panel(), title="SYSTEM", style="system",
-        ))
+        layout["market"].update(
+            Panel(
+                self._market_panel(),
+                title="MARKET DATA",
+                style="market",
+            )
+        )
+        layout["brain"].update(
+            Panel(
+                self._brain_panel(),
+                title="ALGO ENGINE",
+                style="brain",
+            )
+        )
+        layout["risk"].update(
+            Panel(
+                self._risk_panel(),
+                title="RISK & POSITIONS",
+                style="risk",
+            )
+        )
+        layout["system"].update(
+            Panel(
+                self._system_panel(),
+                title="SYSTEM",
+                style="system",
+            )
+        )
 
         # Footer — command interface
-        layout["footer"].update(Panel(
-            self._footer_panel(), title="Command",
-        ))
+        layout["footer"].update(
+            Panel(
+                self._footer_panel(),
+                title="Command",
+            )
+        )
 
         return layout
 
@@ -191,8 +208,4 @@ class TUIRenderer:
                 last_line = last_line[:67] + "..."
 
         cmd_ref = self._get_help() if self._get_help else ""
-        return (
-            f"> Last: {last_line}\n"
-            f"MONEYMAKER> {self._cmd_buffer}_\n\n"
-            f"{cmd_ref}"
-        )
+        return f"> Last: {last_line}\n" f"MONEYMAKER> {self._cmd_buffer}_\n\n" f"{cmd_ref}"

@@ -147,7 +147,6 @@ class TestLogRegister:
         reg = CommandRegistry()
         register(reg)
         assert "log" in reg.categories
-        expected = ["view", "console", "search", "errors", "export",
-                    "rotate", "level", "metrics"]
+        expected = ["view", "console", "search", "errors", "export", "rotate", "level", "metrics"]
         for cmd in expected:
             assert cmd in reg._commands["log"]

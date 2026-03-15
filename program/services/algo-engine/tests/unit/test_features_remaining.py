@@ -19,6 +19,7 @@ D = Decimal
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_bar(
     ts: int = 1700000000000,
     o: str = "1900.00",
@@ -357,8 +358,10 @@ class TestEdgeStats:
 
     def test_expected_value(self):
         es = EdgeStats(
-            wins=2, losses=1,
-            total_profit=D("100"), total_loss=D("30"),
+            wins=2,
+            losses=1,
+            total_profit=D("100"),
+            total_loss=D("30"),
         )
         ev = es.expected_value
         assert isinstance(ev, Decimal)

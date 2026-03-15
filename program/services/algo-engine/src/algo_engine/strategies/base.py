@@ -37,9 +37,7 @@ class SignalSuggestion:
 
     def __post_init__(self) -> None:
         # Converte stringhe grezze nell'enum Direction per sicurezza dei tipi
-        if isinstance(self.direction, str) and not isinstance(
-            self.direction, Direction
-        ):
+        if isinstance(self.direction, str) and not isinstance(self.direction, Direction):
             try:
                 self.direction = Direction(self.direction)
             except ValueError as err:
@@ -48,9 +46,7 @@ class SignalSuggestion:
                     f"deve essere una di {[d.value for d in Direction]}"
                 ) from err
         if not (Decimal("0") <= self.confidence <= Decimal("1")):
-            raise ValueError(
-                f"La confidenza deve essere tra 0 e 1, ricevuto {self.confidence}"
-            )
+            raise ValueError(f"La confidenza deve essere tra 0 e 1, ricevuto {self.confidence}")
 
 
 class TradingStrategy(ABC):

@@ -8,7 +8,7 @@ and trade log for post-run analysis.
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Any
 

@@ -16,7 +16,6 @@ import time
 from decimal import Decimal
 
 from moneymaker_common.audit_pg import PostgresAuditTrail
-from moneymaker_common.enums import Direction, SourceTier
 from moneymaker_common.health import HealthChecker
 from moneymaker_common.logging import get_logger, setup_logging
 from moneymaker_common.metrics import (
@@ -108,9 +107,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
     try:
         import redis.asyncio as aioredis
 
-        redis_client = aioredis.from_url(
-            settings.algo_redis_url, decode_responses=True
-        )
+        redis_client = aioredis.from_url(settings.algo_redis_url, decode_responses=True)
         await redis_client.ping()
         logger.info("Redis connected for portfolio persistence (async)")
         health.register_check(
@@ -178,9 +175,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             blackout_before_min=settings.algo_calendar_blackout_before_min,
             blackout_after_min=settings.algo_calendar_blackout_after_min,
         )
-        logger.info(
-            "Economic calendar loaded", file=settings.algo_calendar_file
-        )
+        logger.info("Economic calendar loaded", file=settings.algo_calendar_file)
 
     validator = SignalValidator(
         max_open_positions=settings.algo_max_open_positions,
@@ -194,9 +189,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
     logger.info("Signal validator initialized (11 checks)")
 
     # --- 14. Rate limiter (algo-engine line 306) ---
-    rate_limiter = SignalRateLimiter(
-        max_per_hour=settings.algo_max_signals_per_hour
-    )
+    rate_limiter = SignalRateLimiter(max_per_hour=settings.algo_max_signals_per_hour)
     logger.info(
         "Rate limiter initialized",
         max_per_hour=settings.algo_max_signals_per_hour,
@@ -244,9 +237,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         zmq_sub.setsockopt(zmq.RCVHWM, 1000)
         zmq_sub.connect(settings.algo_zmq_data_feed)
         zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "bar.")
-        logger.info(
-            "ZMQ subscriber connected", address=settings.algo_zmq_data_feed
-        )
+        logger.info("ZMQ subscriber connected", address=settings.algo_zmq_data_feed)
         health.register_check("zmq", lambda: True)
     except ImportError:
         logger.warning("ZMQ unavailable, running in standalone mode")
@@ -340,9 +331,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             await kill_switch.auto_check(
                 daily_loss_pct=portfolio_manager.get_state()["daily_loss_pct"],
                 max_daily_loss_pct=settings.algo_max_daily_loss_pct,
-                drawdown_pct=portfolio_manager.get_state()[
-                    "current_drawdown_pct"
-                ],
+                drawdown_pct=portfolio_manager.get_state()["current_drawdown_pct"],
                 max_drawdown_pct=settings.algo_max_drawdown_pct,
             )
             _ks_active, _ks_reason = await kill_switch.is_active()
@@ -374,9 +363,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
                     "signal_id": trading_signal["signal_id"],
                     "symbol": symbol,
                     "direction": trading_signal.get("direction", ""),
-                    "confidence": str(
-                        trading_signal.get("confidence", "")
-                    ),
+                    "confidence": str(trading_signal.get("confidence", "")),
                     "source_tier": trading_signal.get("source_tier", ""),
                 },
                 entity_type="signal",
@@ -407,11 +394,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
                     if status == "FILLED":
                         portfolio_manager.record_fill(
                             symbol=symbol,
-                            lots=Decimal(
-                                str(
-                                    trading_signal.get("suggested_lots", "0")
-                                )
-                            ),
+                            lots=Decimal(str(trading_signal.get("suggested_lots", "0"))),
                             direction=trading_signal.get("direction", ""),
                         )
                         await portfolio_manager.persist_to_redis()
@@ -445,25 +428,17 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
                 )
 
             # Periodic: closed trade polling (algo-engine lines 1100-1116)
-            if (
-                bar_counter % 10 == 0
-                and bridge_client is not None
-                and bridge_client.available
-            ):
+            if bar_counter % 10 == 0 and bridge_client is not None and bridge_client.available:
                 try:
                     closed_trades = await bridge_client.get_closed_trades()
                     for trade in closed_trades:
                         pnl = Decimal(str(trade.get("profit", "0")))
                         portfolio_manager.record_close(
                             symbol=trade.get("symbol", ""),
-                            lots=Decimal(
-                                str(trade.get("quantity", "0"))
-                            ),
+                            lots=Decimal(str(trade.get("quantity", "0"))),
                             profit=pnl,
                         )
-                        spiral_protection.record_trade_result(
-                            is_win=(pnl > Decimal("0"))
-                        )
+                        spiral_protection.record_trade_result(is_win=(pnl > Decimal("0")))
                         await portfolio_manager.persist_to_redis()
                 except Exception as exc:
                     logger.debug("Closed trade check error: %s", exc)
@@ -472,12 +447,8 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             portfolio_state = portfolio_manager.get_state()
             try:
                 await drawdown_enforcer.check(
-                    current_equity=portfolio_state.get(
-                        "equity", Decimal("1000")
-                    ),
-                    peak_equity=portfolio_state.get(
-                        "peak_equity", Decimal("1000")
-                    ),
+                    current_equity=portfolio_state.get("equity", Decimal("1000")),
+                    peak_equity=portfolio_state.get("peak_equity", Decimal("1000")),
                 )
             except (ValueError, Exception) as exc:
                 logger.debug("Drawdown enforcer error: %s", exc)

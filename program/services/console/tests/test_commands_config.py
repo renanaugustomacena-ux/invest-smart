@@ -69,7 +69,7 @@ class TestReadEnvFile:
 
     def test_quoted_values(self, tmp_path):
         env_file = tmp_path / ".env"
-        env_file.write_text('KEY="hello world"\nOTHER=\'test\'\n')
+        env_file.write_text("KEY=\"hello world\"\nOTHER='test'\n")
         result = _read_env_file(env_file)
         assert result["KEY"] == "hello world"
         assert result["OTHER"] == "test"
@@ -118,8 +118,10 @@ class TestConfigValidate:
         example.write_text("KEY=default\n")
         env = tmp_path / ".env"
         env.write_text("KEY=value\n")
-        with patch("moneymaker_console.commands.config._ENV_EXAMPLE", example), \
-             patch("moneymaker_console.commands.config._ENV_FILE", env):
+        with (
+            patch("moneymaker_console.commands.config._ENV_EXAMPLE", example),
+            patch("moneymaker_console.commands.config._ENV_FILE", env),
+        ):
             result = _config_validate()
             assert "[OK]" in result
             assert "All required" in result
@@ -129,8 +131,10 @@ class TestConfigValidate:
         example.write_text("KEY=default\nMISSING_KEY=required\n")
         env = tmp_path / ".env"
         env.write_text("KEY=value\n")
-        with patch("moneymaker_console.commands.config._ENV_EXAMPLE", example), \
-             patch("moneymaker_console.commands.config._ENV_FILE", env):
+        with (
+            patch("moneymaker_console.commands.config._ENV_EXAMPLE", example),
+            patch("moneymaker_console.commands.config._ENV_FILE", env),
+        ):
             result = _config_validate()
             assert "[MISSING]" in result
 
@@ -139,8 +143,10 @@ class TestConfigValidate:
         example.write_text("KEY=default\n")
         env = tmp_path / ".env"
         env.write_text("KEY=\n")
-        with patch("moneymaker_console.commands.config._ENV_EXAMPLE", example), \
-             patch("moneymaker_console.commands.config._ENV_FILE", env):
+        with (
+            patch("moneymaker_console.commands.config._ENV_EXAMPLE", example),
+            patch("moneymaker_console.commands.config._ENV_FILE", env),
+        ):
             result = _config_validate()
             assert "[EMPTY]" in result
 
@@ -218,8 +224,10 @@ class TestConfigDiff:
         example.write_text("KEY=default\n")
         env = tmp_path / ".env"
         env.write_text("KEY=value\n")
-        with patch("moneymaker_console.commands.config._ENV_EXAMPLE", example), \
-             patch("moneymaker_console.commands.config._ENV_FILE", env):
+        with (
+            patch("moneymaker_console.commands.config._ENV_EXAMPLE", example),
+            patch("moneymaker_console.commands.config._ENV_FILE", env),
+        ):
             result = _config_diff()
             assert "same keys" in result
 
@@ -228,8 +236,10 @@ class TestConfigDiff:
         example.write_text("REQUIRED=val\n")
         env = tmp_path / ".env"
         env.write_text("EXTRA=val\n")
-        with patch("moneymaker_console.commands.config._ENV_EXAMPLE", example), \
-             patch("moneymaker_console.commands.config._ENV_FILE", env):
+        with (
+            patch("moneymaker_console.commands.config._ENV_EXAMPLE", example),
+            patch("moneymaker_console.commands.config._ENV_FILE", env),
+        ):
             result = _config_diff()
             assert "Missing" in result
             assert "Extra" in result
@@ -302,8 +312,20 @@ class TestConfigRegister:
         reg = CommandRegistry()
         register(reg)
         assert "config" in reg.categories
-        expected = ["view", "validate", "set", "get", "diff", "broker",
-                    "risk", "reload", "export", "import", "template",
-                    "encrypt", "decrypt"]
+        expected = [
+            "view",
+            "validate",
+            "set",
+            "get",
+            "diff",
+            "broker",
+            "risk",
+            "reload",
+            "export",
+            "import",
+            "template",
+            "encrypt",
+            "decrypt",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["config"]

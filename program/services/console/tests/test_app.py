@@ -46,12 +46,15 @@ class TestMain:
         registry = MagicMock()
         mock_boot.return_value = registry
 
-        with patch("moneymaker_console.cli.dispatch.run_cli") as mock_run_cli, \
-             patch("moneymaker_console.app.sys") as mock_sys:
+        with (
+            patch("moneymaker_console.cli.dispatch.run_cli") as mock_run_cli,
+            patch("moneymaker_console.app.sys") as mock_sys,
+        ):
             mock_sys.argv = ["moneymaker", "svc", "status"]
             mock_sys.exit = MagicMock()
             mock_run_cli.return_value = 0
             from moneymaker_console.app import main
+
             main()
             mock_run_cli.assert_called_once()
 
@@ -61,9 +64,12 @@ class TestMain:
         registry = MagicMock()
         mock_boot.return_value = registry
 
-        with patch("moneymaker_console.app._run_cli_interactive") as mock_interactive, \
-             patch("moneymaker_console.app.sys") as mock_sys:
+        with (
+            patch("moneymaker_console.app._run_cli_interactive") as mock_interactive,
+            patch("moneymaker_console.app.sys") as mock_sys,
+        ):
             mock_sys.argv = ["moneymaker"]
             from moneymaker_console.app import main
+
             main()
             mock_interactive.assert_called_once_with(registry)

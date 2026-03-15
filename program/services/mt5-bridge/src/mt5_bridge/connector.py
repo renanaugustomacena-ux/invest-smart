@@ -20,9 +20,7 @@ logger = get_logger(__name__)
 class MT5Connector:
     """Gestisce la connessione al terminale MetaTrader 5 — il "telefono con la banca"."""
 
-    def __init__(
-        self, account: str, password: str, server: str, timeout_ms: int = 10000
-    ) -> None:
+    def __init__(self, account: str, password: str, server: str, timeout_ms: int = 10000) -> None:
         self._account = account
         self._password = password
         self._server = server
@@ -36,6 +34,7 @@ class MT5Connector:
             return False
         try:
             import MetaTrader5 as mt5
+
             info = mt5.terminal_info()
             if info is None:
                 self._connected = False
@@ -258,7 +257,10 @@ class MT5Connector:
         if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
             code = result.retcode if result else "None"
             logger.warning(
-                "Modifica SL fallita", ticket=ticket, new_sl=new_sl, retcode=code,
+                "Modifica SL fallita",
+                ticket=ticket,
+                new_sl=new_sl,
+                retcode=code,
             )
             return False
 

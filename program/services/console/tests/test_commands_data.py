@@ -133,9 +133,7 @@ class TestDataWithClients:
         assert "14" in result
 
     def test_providers_available(self, mock_cf, mock_data_client):
-        mock_data_client.get_health.return_value = {
-            "providers": {"binance": "ok", "mt5": "ok"}
-        }
+        mock_data_client.get_health.return_value = {"providers": {"binance": "ok", "mt5": "ok"}}
         mock_cf.get_data.return_value = mock_data_client
         result = _data_providers()
         assert "binance" in result
@@ -187,7 +185,19 @@ class TestDataRegister:
         register(reg)
         assert "data" in reg.categories
         cmds = reg._commands["data"]
-        expected = ["start", "stop", "status", "symbols", "add", "remove",
-                    "backfill", "gaps", "providers", "reconnect", "buffer", "latency"]
+        expected = [
+            "start",
+            "stop",
+            "status",
+            "symbols",
+            "add",
+            "remove",
+            "backfill",
+            "gaps",
+            "providers",
+            "reconnect",
+            "buffer",
+            "latency",
+        ]
         for cmd in expected:
             assert cmd in cmds

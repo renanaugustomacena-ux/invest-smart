@@ -32,6 +32,7 @@ def validate_decimal_inputs(func: Callable[..., Any]) -> Callable[..., Any]:
 
     Returns ZERO (or tuple of ZEROs matching return type) if invalid data found.
     """
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         for arg in args:
@@ -46,6 +47,7 @@ def validate_decimal_inputs(func: Callable[..., Any]) -> Callable[..., Any]:
             return func(*args, **kwargs)
         except (InvalidOperation, ZeroDivisionError):
             return ZERO
+
     return wrapper
 
 
@@ -393,12 +395,8 @@ def calculate_adx(
     dx_values: list[Decimal] = []
 
     for i in range(period, len(plus_dm_list)):
-        smoothed_plus_dm = (
-            smoothed_plus_dm - (smoothed_plus_dm / period_d) + plus_dm_list[i]
-        )
-        smoothed_minus_dm = (
-            smoothed_minus_dm - (smoothed_minus_dm / period_d) + minus_dm_list[i]
-        )
+        smoothed_plus_dm = smoothed_plus_dm - (smoothed_plus_dm / period_d) + plus_dm_list[i]
+        smoothed_minus_dm = smoothed_minus_dm - (smoothed_minus_dm / period_d) + minus_dm_list[i]
         smoothed_tr = smoothed_tr - (smoothed_tr / period_d) + tr_list[i]
 
         if smoothed_tr == ZERO:
@@ -705,6 +703,7 @@ def _decimal_sqrt(value: Decimal, precision: int = 28) -> Decimal:
 # ---------------------------------------------------------------------------
 # Logaritmo naturale puro Decimal — Phase D helper
 # ---------------------------------------------------------------------------
+
 
 def _decimal_ln(value: Decimal, iterations: int = 50) -> Decimal:
     """Logaritmo naturale di un Decimal positivo via serie di Taylor arctanh.
@@ -1108,7 +1107,7 @@ def calculate_stochastic_rsi(
     # Calcola StochRSI grezzo per ogni posizione
     raw_stoch: list[Decimal] = []
     for i in range(stoch_period - 1, len(rsi_series)):
-        window = rsi_series[i - stoch_period + 1: i + 1]
+        window = rsi_series[i - stoch_period + 1 : i + 1]
         rsi_min = min(window)
         rsi_max = max(window)
         rsi_range = rsi_max - rsi_min
@@ -1123,7 +1122,7 @@ def calculate_stochastic_rsi(
     # %K = SMA di raw_stoch
     k_series: list[Decimal] = []
     for i in range(smooth_k - 1, len(raw_stoch)):
-        window = raw_stoch[i - smooth_k + 1: i + 1]
+        window = raw_stoch[i - smooth_k + 1 : i + 1]
         k_series.append(sum(window, ZERO) / Decimal(str(smooth_k)))
 
     if not k_series:

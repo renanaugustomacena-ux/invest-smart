@@ -82,6 +82,7 @@ def _decimal_std(values: list[Decimal], mean: Decimal) -> Decimal:
 # Geometric Brownian Motion
 # ---------------------------------------------------------------------------
 
+
 class GeometricBrownianMotion:
     """Geometric Brownian Motion (GBM) price model.
 
@@ -199,6 +200,7 @@ class GeometricBrownianMotion:
 # Merton Jump-Diffusion
 # ---------------------------------------------------------------------------
 
+
 class MertonJumpDiffusion:
     """Merton (1976) jump-diffusion price model.
 
@@ -270,8 +272,8 @@ class MertonJumpDiffusion:
             skew = ZERO
             excess_kurt = ZERO
         else:
-            skew = m3 / (std_r ** 3)
-            kurt = m4 / (std_r ** 4)
+            skew = m3 / (std_r**3)
+            kurt = m4 / (std_r**4)
             excess_kurt = kurt - Decimal("3")
 
         # Clamp excess kurtosis to non-negative: negative excess
@@ -321,7 +323,11 @@ class MertonJumpDiffusion:
         diffusion_var = var_r * (Decimal("1") - jump_var_fraction)
 
         sigma_j = to_decimal(math.sqrt(float(jump_var))) if jump_var > ZERO else ZERO
-        sigma = to_decimal(math.sqrt(float(diffusion_var))) * sqrt_scale if diffusion_var > ZERO else ZERO
+        sigma = (
+            to_decimal(math.sqrt(float(diffusion_var))) * sqrt_scale
+            if diffusion_var > ZERO
+            else ZERO
+        )
 
         # Jump mean: derived from skewness
         # skew ~ lam * mu_j * (3*sigma_j^2 + mu_j^2) / var^(3/2)
@@ -423,7 +429,7 @@ class MertonJumpDiffusion:
         sigma_j = max(params.get("sigma_j", 0.0), 0.0)
 
         # Jump compensator
-        k = math.exp(mu_j + 0.5 * sigma_j ** 2) - 1.0
+        k = math.exp(mu_j + 0.5 * sigma_j**2) - 1.0
 
         n_steps = int(round(t / dt))
         if n_steps == 0:
@@ -433,7 +439,7 @@ class MertonJumpDiffusion:
 
         # Diffusion component
         z = rng.standard_normal((n_steps, n_paths))
-        drift = (mu - 0.5 * sigma ** 2 - lam * k) * dt
+        drift = (mu - 0.5 * sigma**2 - lam * k) * dt
         diffusion = sigma * math.sqrt(dt) * z
 
         # Jump component
@@ -459,6 +465,7 @@ class MertonJumpDiffusion:
 # ---------------------------------------------------------------------------
 # Heston Stochastic Volatility
 # ---------------------------------------------------------------------------
+
 
 class HestonStochasticVolatility:
     """Heston (1993) stochastic volatility model.
@@ -542,7 +549,6 @@ class HestonStochasticVolatility:
         variance_series = [v * v for v in realized_vol_series]
 
         scale = to_decimal(periods_per_year)
-        dt_dec = Decimal("1") / scale
 
         # --- theta: long-run variance (annualised) ---
         theta = _decimal_mean(variance_series) * scale
@@ -578,19 +584,14 @@ class HestonStochasticVolatility:
 
         # --- xi: vol of vol ---
         # Standard deviation of variance changes, annualised
-        var_changes = [
-            variance_series[i] - variance_series[i - 1]
-            for i in range(1, n)
-        ]
+        var_changes = [variance_series[i] - variance_series[i - 1] for i in range(1, n)]
         mean_dv = _decimal_mean(var_changes)
         std_dv = _decimal_std(var_changes, mean_dv)
         # xi relates to std of dV: xi = std(dV) / sqrt(mean(V) * dt)
         mean_v_f = float(mean_v)
         dt_f = 1.0 / periods_per_year
         if mean_v_f > 0 and dt_f > 0:
-            xi = to_decimal(
-                float(std_dv) / math.sqrt(mean_v_f * dt_f)
-            )
+            xi = to_decimal(float(std_dv) / math.sqrt(mean_v_f * dt_f))
         else:
             xi = ZERO
 
@@ -629,7 +630,6 @@ class HestonStochasticVolatility:
 
         # --- mu: drift ---
         mean_r = _decimal_mean(returns)
-        sigma_ann = to_decimal(math.sqrt(float(theta)))
         mu = mean_r * scale + Decimal("0.5") * theta if theta > ZERO else mean_r * scale
 
         return {
@@ -734,9 +734,7 @@ class HestonStochasticVolatility:
 
             # Variance update (Euler-Maruyama with full truncation)
             vol_paths[step + 1] = (
-                v_current
-                + kappa * (theta - v_plus) * dt
-                + xi * sqrt_v_plus * sqrt_dt * z2
+                v_current + kappa * (theta - v_plus) * dt + xi * sqrt_v_plus * sqrt_dt * z2
             )
 
         return price_paths, vol_paths

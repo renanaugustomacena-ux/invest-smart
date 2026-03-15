@@ -7,14 +7,14 @@ import os
 import subprocess
 
 from moneymaker_console.clients import ClientFactory
-from moneymaker_console.console_logging import log_event, mask_secrets
+from moneymaker_console.console_logging import mask_secrets
 from moneymaker_console.registry import CommandRegistry
 from moneymaker_console.runner import _PROJECT_ROOT
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _service_unavailable(name: str) -> str:
     return f"[warning] Service '{name}' not available. Start with: svc up"
@@ -23,6 +23,7 @@ def _service_unavailable(name: str) -> str:
 # ---------------------------------------------------------------------------
 # Sub-commands
 # ---------------------------------------------------------------------------
+
 
 def _sys_status(*args: str) -> str:
     """Full system status dashboard."""
@@ -52,7 +53,9 @@ def _sys_status(*args: str) -> str:
     try:
         result = subprocess.run(
             ["docker", "info", "--format", "{{.Containers}} containers"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             lines.append(f"  Docker:      OK ({result.stdout.strip()})")
@@ -90,7 +93,9 @@ def _sys_resources(*args: str) -> str:
     try:
         result = subprocess.run(
             ["rocm-smi", "--showtemp", "--showuse"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             for line in result.stdout.strip().splitlines()[:5]:
@@ -119,7 +124,9 @@ def _sys_health(*args: str) -> str:
     def _check_docker():
         try:
             r = subprocess.run(
-                ["docker", "info"], capture_output=True, timeout=5,
+                ["docker", "info"],
+                capture_output=True,
+                timeout=5,
             )
             return "OK" if r.returncode == 0 else "ERROR"
         except Exception:
@@ -129,9 +136,7 @@ def _sys_health(*args: str) -> str:
 
     results: dict[str, str] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-        futures = {
-            executor.submit(fn): name for name, fn in checks.items()
-        }
+        futures = {executor.submit(fn): name for name, fn in checks.items()}
         for future in concurrent.futures.as_completed(futures, timeout=15):
             name = futures[future]
             try:
@@ -163,9 +168,7 @@ def _sys_db(*args: str) -> str:
         lines.append(f"  Version:     {ver}")
 
     # Database size
-    row = db.query_one(
-        "SELECT pg_size_pretty(pg_database_size(current_database()))"
-    )
+    row = db.query_one("SELECT pg_size_pretty(pg_database_size(current_database()))")
     if row:
         lines.append(f"  DB Size:     {row[0]}")
 
@@ -241,8 +244,16 @@ def _sys_network(*args: str) -> str:
 
     endpoints = [
         ("Algo Engine Metrics", "localhost", int(os.environ.get("BRAIN_METRICS_PORT", "9092"))),
-        ("Data Ingestion Health", "localhost", int(os.environ.get("DATA_INGESTION_HEALTH_PORT", "8081"))),
-        ("MT5 Bridge gRPC", "localhost", int(os.environ.get("MONEYMAKER_MT5_BRIDGE_GRPC_PORT", "50055"))),
+        (
+            "Data Ingestion Health",
+            "localhost",
+            int(os.environ.get("DATA_INGESTION_HEALTH_PORT", "8081")),
+        ),
+        (
+            "MT5 Bridge gRPC",
+            "localhost",
+            int(os.environ.get("MONEYMAKER_MT5_BRIDGE_GRPC_PORT", "50055")),
+        ),
         ("PostgreSQL", "localhost", int(os.environ.get("MONEYMAKER_DB_PORT", "5432"))),
         ("Redis", "localhost", int(os.environ.get("MONEYMAKER_REDIS_PORT", "6379"))),
         ("Prometheus", "localhost", 9091),
@@ -251,6 +262,7 @@ def _sys_network(*args: str) -> str:
     ]
 
     import socket
+
     for name, host, port in endpoints:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -271,9 +283,18 @@ def _sys_env(*args: str) -> str:
     show_secrets = "--show-secrets" in args
 
     prefix_filter = (
-        "MONEYMAKER_", "BRAIN_", "MT5_", "MAX_", "POLYGON_",
-        "REDIS_", "GRAFANA_", "DI_DB_", "ADMIN_DB_",
-        "TRAILING_", "SIGNAL_", "FRED_",
+        "MONEYMAKER_",
+        "BRAIN_",
+        "MT5_",
+        "MAX_",
+        "POLYGON_",
+        "REDIS_",
+        "GRAFANA_",
+        "DI_DB_",
+        "ADMIN_DB_",
+        "TRAILING_",
+        "SIGNAL_",
+        "FRED_",
     )
     secret_words = ("KEY", "SECRET", "PASSWORD", "TOKEN", "DSN", "CREDENTIAL")
 
@@ -305,7 +326,8 @@ def _sys_ports(*args: str) -> str:
         ("MT5 Bridge gRPC", int(os.environ.get("MONEYMAKER_MT5_BRIDGE_GRPC_PORT", "50055"))),
         ("MT5 Bridge Metrics", 9094),
         ("Dashboard", int(os.environ.get("DASHBOARD_PORT", "8888"))),
-        ("Prometheus", 9091), ("Grafana", 3000),
+        ("Prometheus", 9091),
+        ("Grafana", 3000),
     ]
 
     lines = ["Port Allocation", "=" * 40]
@@ -319,14 +341,24 @@ def _sys_uptime(*args: str) -> str:
     """Display service uptime from Docker inspect."""
     try:
         result = subprocess.run(
-            ["docker", "compose", "-f", str(_PROJECT_ROOT / "infra" / "docker" / "docker-compose.yml"),
-             "ps", "--format", "json"],
-            capture_output=True, text=True, timeout=10,
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(_PROJECT_ROOT / "infra" / "docker" / "docker-compose.yml"),
+                "ps",
+                "--format",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode != 0:
             return "[warning] Docker not available."
 
         import json
+
         lines = ["Service Uptime", "=" * 40]
         for line in result.stdout.strip().splitlines():
             try:
@@ -347,7 +379,9 @@ def _sys_gpu(*args: str) -> str:
     try:
         result = subprocess.run(
             ["rocm-smi"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             return f"GPU Status (AMD ROCm)\n{'=' * 40}\n{result.stdout.strip()}"
@@ -362,6 +396,7 @@ def _sys_disk(*args: str) -> str:
     """Display detailed disk usage by service directory."""
     try:
         import psutil
+
         disk = psutil.disk_usage("/")
         lines = [
             "Disk Usage",
@@ -387,7 +422,9 @@ def _sys_disk(*args: str) -> str:
             try:
                 result = subprocess.run(
                     ["du", "-sh", str(path)],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 size = result.stdout.split()[0] if result.returncode == 0 else "?"
             except Exception:

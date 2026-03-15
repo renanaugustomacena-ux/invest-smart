@@ -24,9 +24,8 @@ Principi di design:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from moneymaker_common.logging import get_logger

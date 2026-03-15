@@ -23,6 +23,7 @@ class DataIngestionClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(f"{self._health_url}/healthz", timeout=5)
             resp.raise_for_status()
             return resp.json()
@@ -34,6 +35,7 @@ class DataIngestionClient:
             # Try /health as fallback
             try:
                 import httpx
+
                 resp = httpx.get(f"{self._health_url}/health", timeout=5)
                 resp.raise_for_status()
                 return resp.json()
@@ -47,6 +49,7 @@ class DataIngestionClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(f"{self._health_url}/readyz", timeout=5)
             resp.raise_for_status()
             return resp.json()
@@ -60,6 +63,7 @@ class DataIngestionClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(f"{self._metrics_url}/metrics", timeout=5)
             return resp.text
         except Exception as exc:

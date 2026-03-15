@@ -30,7 +30,6 @@ from prometheus_client import Counter, Histogram
 
 from moneymaker_common.exceptions import RateLimitExceededError
 
-
 # ============================================================
 # Metriche
 # ============================================================
@@ -174,9 +173,7 @@ class RedisRateLimiter:
     async def _ensure_script(self) -> str:
         """Carica lo script Lua in Redis se non già caricato."""
         if self._script_sha is None:
-            self._script_sha = await self._redis.script_load(
-                self._TOKEN_BUCKET_SCRIPT
-            )
+            self._script_sha = await self._redis.script_load(self._TOKEN_BUCKET_SCRIPT)
         return self._script_sha
 
     async def check(
@@ -231,7 +228,7 @@ class RedisRateLimiter:
 
             return allowed, retry_after, tokens_remaining
 
-        except Exception as e:
+        except Exception:
             # In caso di errore Redis, permetti la richiesta (fail-open)
             # ma logga l'errore
             return True, 0, self._config.max_tokens
@@ -465,10 +462,14 @@ def create_aiohttp_middleware(
             return await handler(request)
 
         # Estrai IP (supporta proxy)
-        identifier = request.headers.get(
-            "X-Forwarded-For",
-            request.remote or "unknown",
-        ).split(",")[0].strip()
+        identifier = (
+            request.headers.get(
+                "X-Forwarded-For",
+                request.remote or "unknown",
+            )
+            .split(",")[0]
+            .strip()
+        )
 
         endpoint = request.path
 

@@ -112,12 +112,9 @@ class WalkForwardOptimizer:
 
         param_names = list(param_grid.keys())
         param_combos = [
-            dict(zip(param_names, combo))
-            for combo in itertools.product(*param_grid.values())
+            dict(zip(param_names, combo)) for combo in itertools.product(*param_grid.values())
         ]
-        logger.info(
-            "Grid search: %d parameter combinations", len(param_combos)
-        )
+        logger.info("Grid search: %d parameter combinations", len(param_combos))
 
         windows: list[WFOWindow] = []
         best_params_per_window: list[dict[str, Any]] = []

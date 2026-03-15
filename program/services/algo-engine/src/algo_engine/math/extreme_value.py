@@ -5,7 +5,7 @@ moments and tail risk metrics (VaR, CVaR/Expected Shortfall) without
 scipy dependencies.
 """
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
@@ -39,8 +39,7 @@ class GeneralizedParetoDistribution:
         n = len(exceedances)
         if n < _MIN_EXCEEDANCES:
             raise ValueError(
-                f"Need at least {_MIN_EXCEEDANCES} exceedances for reliable "
-                f"GPD fit, got {n}"
+                f"Need at least {_MIN_EXCEEDANCES} exceedances for reliable " f"GPD fit, got {n}"
             )
 
         sorted_exc = sorted(exceedances)
@@ -61,9 +60,7 @@ class GeneralizedParetoDistribution:
 
         denominator = b0 - TWO * b1
         if abs(denominator) < Decimal("1e-30"):
-            raise ValueError(
-                "PWM denominator is near zero; GPD fit is degenerate"
-            )
+            raise ValueError("PWM denominator is near zero; GPD fit is degenerate")
 
         sigma = TWO * b0 * b1 / denominator
         xi = TWO - b0 / denominator
@@ -74,9 +71,7 @@ class GeneralizedParetoDistribution:
                 f"data may not follow a GPD"
             )
 
-        logger.debug(
-            "gpd_fit_complete", xi=str(xi), sigma=str(sigma), n=n
-        )
+        logger.debug("gpd_fit_complete", xi=str(xi), sigma=str(sigma), n=n)
         return xi, sigma
 
     @staticmethod
@@ -105,6 +100,7 @@ class GeneralizedParetoDistribution:
             # Exponential case: CDF = 1 - exp(-x/sigma)
             ratio = float(-x / sigma)
             import math
+
             survival = Decimal(str(math.exp(ratio)))
             return ONE - survival
 
@@ -115,7 +111,7 @@ class GeneralizedParetoDistribution:
 
         exponent = float(-ONE / xi)
         base = float(inner)
-        survival = Decimal(str(base ** exponent))
+        survival = Decimal(str(base**exponent))
         return ONE - survival
 
     @staticmethod
@@ -161,7 +157,7 @@ class GeneralizedParetoDistribution:
 
         base = float(ratio)
         exponent = float(-xi)
-        powered = Decimal(str(base ** exponent))
+        powered = Decimal(str(base**exponent))
         result = (sigma / xi) * (powered - ONE)
         return result
 
@@ -198,9 +194,7 @@ class GeneralizedParetoDistribution:
                 f"the distribution has infinite mean"
             )
 
-        var_value = GeneralizedParetoDistribution.var(
-            alpha, xi, sigma, n_total, n_exceed
-        )
+        var_value = GeneralizedParetoDistribution.var(alpha, xi, sigma, n_total, n_exceed)
 
         one_minus_xi = ONE - xi
         cvar_value = var_value / one_minus_xi + (sigma - xi * threshold) / one_minus_xi
@@ -223,13 +217,9 @@ class TailRiskAnalyzer:
                 means exceedances are the worst 5% of returns).
         """
         if not (ZERO < confidence < ONE):
-            raise ValueError(
-                f"confidence must be in (0, 1), got {confidence}"
-            )
+            raise ValueError(f"confidence must be in (0, 1), got {confidence}")
         if not (ZERO < threshold_percentile < ONE):
-            raise ValueError(
-                f"threshold_percentile must be in (0, 1), got {threshold_percentile}"
-            )
+            raise ValueError(f"threshold_percentile must be in (0, 1), got {threshold_percentile}")
 
         self._confidence = confidence
         self._threshold_pct = threshold_percentile
@@ -255,9 +245,7 @@ class TailRiskAnalyzer:
             ValueError: If not enough data or exceedances for a reliable fit.
         """
         if len(returns) < _MIN_EXCEEDANCES:
-            raise ValueError(
-                f"Need at least {_MIN_EXCEEDANCES} returns, got {len(returns)}"
-            )
+            raise ValueError(f"Need at least {_MIN_EXCEEDANCES} returns, got {len(returns)}")
 
         # Work with losses (negate returns so losses are positive)
         losses = sorted([-r for r in returns])
@@ -280,12 +268,8 @@ class TailRiskAnalyzer:
 
         xi, sigma = self._gpd.fit(exceedances)
 
-        var_value = self._gpd.var(
-            self._confidence, xi, sigma, n_total, n_exceed
-        )
-        cvar_value = self._gpd.cvar(
-            self._confidence, xi, sigma, threshold, n_total, n_exceed
-        )
+        var_value = self._gpd.var(self._confidence, xi, sigma, n_total, n_exceed)
+        cvar_value = self._gpd.cvar(self._confidence, xi, sigma, threshold, n_total, n_exceed)
 
         result = {
             "var": var_value,

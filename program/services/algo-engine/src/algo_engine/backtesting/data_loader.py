@@ -81,9 +81,7 @@ def load_bars_from_csv(
             raise ValueError(f"CSV file has no header row: {path}")
 
         missing = [
-            canonical
-            for canonical, actual in col_map.items()
-            if actual not in reader.fieldnames
+            canonical for canonical, actual in col_map.items() if actual not in reader.fieldnames
         ]
         if missing:
             raise ValueError(
@@ -133,8 +131,7 @@ def load_bars_from_parquet(
         import pyarrow.parquet as pq
     except ImportError as exc:
         raise ImportError(
-            "pyarrow is required to load Parquet files. "
-            "Install it with: pip install pyarrow"
+            "pyarrow is required to load Parquet files. " "Install it with: pip install pyarrow"
         ) from exc
 
     path = Path(file_path)

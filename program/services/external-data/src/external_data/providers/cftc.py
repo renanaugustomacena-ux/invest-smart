@@ -24,7 +24,6 @@ import io
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 import httpx
 
@@ -36,6 +35,7 @@ logger = get_logger(__name__)
 @dataclass
 class COTReport:
     """Single COT report for a market."""
+
     time: datetime
     market: str  # e.g., "GOLD", "SILVER", "EUR"
     # Asset Managers
@@ -167,40 +167,53 @@ class CFTCProvider:
             return None
 
         try:
-            report_date = datetime.strptime(date_str, "%Y-%m-%d").replace(
-                tzinfo=timezone.utc
-            )
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
             return None
 
         # Asset Manager positions (Disaggregated format)
         # Column names vary, try multiple patterns
-        asset_mgr_long = self._safe_int(row, [
-            "Asset_Mgr_Positions_Long_All",
-            "AssetMgr_Positions_Long_All",
-            "M_Money_Positions_Long_All",
-        ])
-        asset_mgr_short = self._safe_int(row, [
-            "Asset_Mgr_Positions_Short_All",
-            "AssetMgr_Positions_Short_All",
-            "M_Money_Positions_Short_All",
-        ])
+        asset_mgr_long = self._safe_int(
+            row,
+            [
+                "Asset_Mgr_Positions_Long_All",
+                "AssetMgr_Positions_Long_All",
+                "M_Money_Positions_Long_All",
+            ],
+        )
+        asset_mgr_short = self._safe_int(
+            row,
+            [
+                "Asset_Mgr_Positions_Short_All",
+                "AssetMgr_Positions_Short_All",
+                "M_Money_Positions_Short_All",
+            ],
+        )
 
         # Leveraged Funds
-        lev_funds_long = self._safe_int(row, [
-            "Lev_Money_Positions_Long_All",
-            "LevMoney_Positions_Long_All",
-        ])
-        lev_funds_short = self._safe_int(row, [
-            "Lev_Money_Positions_Short_All",
-            "LevMoney_Positions_Short_All",
-        ])
+        lev_funds_long = self._safe_int(
+            row,
+            [
+                "Lev_Money_Positions_Long_All",
+                "LevMoney_Positions_Long_All",
+            ],
+        )
+        lev_funds_short = self._safe_int(
+            row,
+            [
+                "Lev_Money_Positions_Short_All",
+                "LevMoney_Positions_Short_All",
+            ],
+        )
 
         # Total Open Interest
-        total_oi = self._safe_int(row, [
-            "Open_Interest_All",
-            "OI_All",
-        ])
+        total_oi = self._safe_int(
+            row,
+            [
+                "Open_Interest_All",
+                "OI_All",
+            ],
+        )
 
         if total_oi == 0:
             return None
@@ -210,8 +223,12 @@ class CFTCProvider:
         lev_funds_net = lev_funds_long - lev_funds_short
 
         # Calculate % of OI
-        asset_mgr_pct = Decimal(str(abs(asset_mgr_net) / total_oi * 100)) if total_oi > 0 else Decimal("0")
-        lev_funds_pct = Decimal(str(abs(lev_funds_net) / total_oi * 100)) if total_oi > 0 else Decimal("0")
+        asset_mgr_pct = (
+            Decimal(str(abs(asset_mgr_net) / total_oi * 100)) if total_oi > 0 else Decimal("0")
+        )
+        lev_funds_pct = (
+            Decimal(str(abs(lev_funds_net) / total_oi * 100)) if total_oi > 0 else Decimal("0")
+        )
 
         # Determine sentiment from net positions
         # Positive net = bullish, negative = bearish

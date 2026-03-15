@@ -45,7 +45,5 @@ class TestDefensiveStrategy:
     def test_reasoning_mentions_defensive(self):
         """Reasoning should identify as defensive."""
         s = DefensiveStrategy()
-        result = s.analyze(
-            {"adx": Decimal("30"), "atr": Decimal("15"), "rsi": Decimal("45")}
-        )
+        result = s.analyze({"adx": Decimal("30"), "atr": Decimal("15"), "rsi": Decimal("45")})
         assert "Difensiva" in result.reasoning

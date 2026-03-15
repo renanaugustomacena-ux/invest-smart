@@ -153,7 +153,9 @@ class TestSvcRunTool:
 class TestSvcLaunch:
     def test_launch_no_script(self, mock_run):
         with patch("moneymaker_console.commands.svc._PROJECT_ROOT") as mock_root:
-            mock_root.__truediv__ = MagicMock(return_value=MagicMock(exists=MagicMock(return_value=False)))
+            mock_root.__truediv__ = MagicMock(
+                return_value=MagicMock(exists=MagicMock(return_value=False))
+            )
             # The launch function checks script.exists()
             result = _svc_launch()
             assert "[error]" in result or mock_run.called

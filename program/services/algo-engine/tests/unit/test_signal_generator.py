@@ -12,10 +12,10 @@ from algo_engine.signals.generator import SignalGenerator
 from algo_engine.signals.rate_limiter import SignalRateLimiter
 from algo_engine.strategies.base import SignalSuggestion
 
-
 # ===========================================================================
 # SignalGenerator tests
 # ===========================================================================
+
 
 class TestSignalGeneratorBuySignal:
     def test_buy_signal_structure(self):
@@ -26,7 +26,8 @@ class TestSignalGeneratorBuySignal:
             reasoning="Trend confirmed",
         )
         signal = gen.generate_signal(
-            "XAUUSD", suggestion,
+            "XAUUSD",
+            suggestion,
             current_price=Decimal("2000.00"),
             atr=Decimal("10.00"),
         )
@@ -45,7 +46,8 @@ class TestSignalGeneratorBuySignal:
         )
         suggestion = SignalSuggestion(direction="BUY", confidence=Decimal("0.70"), reasoning="test")
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0.00100"),
         )
@@ -59,7 +61,8 @@ class TestSignalGeneratorBuySignal:
         )
         suggestion = SignalSuggestion(direction="BUY", confidence=Decimal("0.70"), reasoning="test")
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0.00100"),
         )
@@ -73,9 +76,12 @@ class TestSignalGeneratorSellSignal:
             default_sl_atr_multiplier=Decimal("1.5"),
             default_tp_atr_multiplier=Decimal("2.5"),
         )
-        suggestion = SignalSuggestion(direction="SELL", confidence=Decimal("0.70"), reasoning="test")
+        suggestion = SignalSuggestion(
+            direction="SELL", confidence=Decimal("0.70"), reasoning="test"
+        )
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0.00100"),
         )
@@ -88,7 +94,8 @@ class TestSignalGeneratorEdgeCases:
         gen = SignalGenerator()
         suggestion = SignalSuggestion(direction="BUY", confidence=Decimal("0.80"), reasoning="test")
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0"),
         )
@@ -98,7 +105,8 @@ class TestSignalGeneratorEdgeCases:
         gen = SignalGenerator()
         suggestion = SignalSuggestion(direction="BUY", confidence=Decimal("0.80"), reasoning="test")
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("-1.0"),
         )
@@ -106,9 +114,12 @@ class TestSignalGeneratorEdgeCases:
 
     def test_hold_signal_passes_with_zero_atr(self):
         gen = SignalGenerator()
-        suggestion = SignalSuggestion(direction="HOLD", confidence=Decimal("0.30"), reasoning="test")
+        suggestion = SignalSuggestion(
+            direction="HOLD", confidence=Decimal("0.30"), reasoning="test"
+        )
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0"),
         )
@@ -126,7 +137,8 @@ class TestSignalGeneratorEdgeCases:
             metadata={"order_type": "LIMIT"},
         )
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0.00100"),
         )
@@ -136,7 +148,8 @@ class TestSignalGeneratorEdgeCases:
         gen = SignalGenerator()
         suggestion = SignalSuggestion(direction="BUY", confidence=Decimal("0.75"), reasoning="test")
         signal = gen.generate_signal(
-            "EURUSD", suggestion,
+            "EURUSD",
+            suggestion,
             current_price=Decimal("1.10000"),
             atr=Decimal("0.00100"),
         )
@@ -148,7 +161,8 @@ class TestSignalGeneratorEdgeCases:
         ids = set()
         for _ in range(10):
             signal = gen.generate_signal(
-                "EURUSD", suggestion,
+                "EURUSD",
+                suggestion,
                 current_price=Decimal("1.10000"),
                 atr=Decimal("0.001"),
             )
@@ -159,6 +173,7 @@ class TestSignalGeneratorEdgeCases:
 # ===========================================================================
 # SignalRateLimiter tests
 # ===========================================================================
+
 
 class TestRateLimiter:
     def test_allows_within_limit(self):

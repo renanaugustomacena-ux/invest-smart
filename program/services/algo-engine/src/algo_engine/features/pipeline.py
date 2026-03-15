@@ -49,6 +49,7 @@ from algo_engine.features.technical import (
 # Import opzionale per macro features (può fallire se Redis non disponibile)
 try:
     from algo_engine.features.macro_features import MacroFeatureProvider, MacroFeatures
+
     MACRO_FEATURES_AVAILABLE = True
 except ImportError:
     MACRO_FEATURES_AVAILABLE = False
@@ -162,9 +163,7 @@ class FeaturePipeline:
             Restituisce un dict vuoto se i dati sono insufficienti.
         """
         if not ohlcv_bars:
-            logger.warning(
-                "Nessuna candela OHLCV fornita per il calcolo", symbol=symbol
-            )
+            logger.warning("Nessuna candela OHLCV fornita per il calcolo", symbol=symbol)
             return {}
 
         closes = [bar.close for bar in ohlcv_bars]
@@ -296,7 +295,9 @@ class FeaturePipeline:
 
         # Keltner Channels — canali basati su volatilità ATR
         kelt_upper, kelt_middle, kelt_lower = calculate_keltner_channels(
-            highs, lows, closes,
+            highs,
+            lows,
+            closes,
             ema_period=self.keltner_ema_period,
             atr_period=self.keltner_atr_period,
             multiplier=self.keltner_multiplier,
@@ -315,19 +316,27 @@ class FeaturePipeline:
 
         # CMF — Chaikin Money Flow
         features["cmf"] = calculate_cmf(
-            highs, lows, closes, volumes, period=self.cmf_period,
+            highs,
+            lows,
+            closes,
+            volumes,
+            period=self.cmf_period,
         )
 
         # Stochastic RSI — oscillatore stocastico applicato all'RSI
         stoch_rsi_k, stoch_rsi_d = calculate_stochastic_rsi(
-            closes, rsi_period=self.rsi_period, stoch_period=self.stoch_rsi_period,
+            closes,
+            rsi_period=self.rsi_period,
+            stoch_period=self.stoch_rsi_period,
         )
         features["stoch_rsi_k"] = stoch_rsi_k
         features["stoch_rsi_d"] = stoch_rsi_d
 
         # Ultimate Oscillator — pressione di acquisto multi-periodo
         features["ultimate_osc"] = calculate_ultimate_oscillator(
-            highs, lows, closes,
+            highs,
+            lows,
+            closes,
             period1=self.uo_period1,
             period2=self.uo_period2,
             period3=self.uo_period3,
@@ -335,17 +344,22 @@ class FeaturePipeline:
 
         # Volatilità storica close-to-close
         features["hist_vol"] = calculate_historical_volatility(
-            closes, period=self.hist_vol_period,
+            closes,
+            period=self.hist_vol_period,
         )
 
         # Volatilità di Parkinson (range high-low)
         features["parkinson_vol"] = calculate_parkinson_volatility(
-            highs, lows, period=self.parkinson_vol_period,
+            highs,
+            lows,
+            period=self.parkinson_vol_period,
         )
 
         # Force Index — forza del movimento ponderata per volume
         features["force_index"] = calculate_force_index(
-            closes, volumes, period=self.force_index_period,
+            closes,
+            volumes,
+            period=self.force_index_period,
         )
 
         # SMA 200 — il "faro" del trend di lungo periodo
@@ -421,7 +435,9 @@ class FeaturePipeline:
                 features["macro_vector"] = macro.to_vector()
 
                 # Valutazioni ambiente
-                features["macro_gold_bullish"] = self._macro_provider.is_gold_bullish_environment(macro)
+                features["macro_gold_bullish"] = self._macro_provider.is_gold_bullish_environment(
+                    macro
+                )
                 features["macro_high_risk"] = self._macro_provider.is_high_risk_environment(macro)
 
                 logger.debug(

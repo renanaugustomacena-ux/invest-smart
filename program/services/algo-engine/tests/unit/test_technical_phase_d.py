@@ -26,6 +26,7 @@ ZERO = Decimal("0")
 
 # ---- Helper fixtures ----
 
+
 @pytest.fixture
 def uptrend_closes() -> list[Decimal]:
     """50 bars with clear uptrend + oscillation."""
@@ -64,6 +65,7 @@ def downtrend_lows(downtrend_closes: list[Decimal]) -> list[Decimal]:
 
 # ---- _decimal_ln ----
 
+
 class TestDecimalLn:
     def test_ln_one_is_zero(self):
         result = _decimal_ln(Decimal("1"))
@@ -97,6 +99,7 @@ class TestDecimalLn:
 
 # ---- _calculate_rsi_series ----
 
+
 class TestRSISeries:
     def test_insufficient_data(self):
         assert _calculate_rsi_series([Decimal("100")] * 10, 14) == []
@@ -119,6 +122,7 @@ class TestRSISeries:
 
 # ---- DEMA ----
 
+
 class TestDEMA:
     def test_insufficient_data(self):
         vals = [Decimal("100")] * 10
@@ -136,6 +140,7 @@ class TestDEMA:
 
     def test_more_reactive_than_ema(self, uptrend_closes):
         from algo_engine.features.technical import calculate_ema
+
         dema = calculate_dema(uptrend_closes, 20)
         ema = calculate_ema(uptrend_closes, 20)
         # In uptrend, DEMA should be closer to (or above) current price than EMA
@@ -144,6 +149,7 @@ class TestDEMA:
 
 
 # ---- Keltner Channels ----
+
 
 class TestKeltnerChannels:
     def test_insufficient_data(self):
@@ -166,6 +172,7 @@ class TestKeltnerChannels:
 
 
 # ---- Parabolic SAR ----
+
 
 class TestParabolicSAR:
     def test_insufficient_data(self):
@@ -190,6 +197,7 @@ class TestParabolicSAR:
 
 # ---- VWAP ----
 
+
 class TestVWAP:
     def test_empty_data(self):
         assert calculate_vwap([], [], [], []) == ZERO
@@ -209,12 +217,15 @@ class TestVWAP:
         v = [Decimal("1000")] * n
         assert calculate_vwap(h, l, c, v) == Decimal("100")
 
-    def test_within_price_range(self, uptrend_highs, uptrend_lows, uptrend_closes, constant_volumes):
+    def test_within_price_range(
+        self, uptrend_highs, uptrend_lows, uptrend_closes, constant_volumes
+    ):
         vwap = calculate_vwap(uptrend_highs, uptrend_lows, uptrend_closes, constant_volumes)
         assert min(uptrend_lows) <= vwap <= max(uptrend_highs)
 
 
 # ---- CMF ----
+
 
 class TestCMF:
     def test_insufficient_data(self):
@@ -248,6 +259,7 @@ class TestCMF:
 
 # ---- Stochastic RSI ----
 
+
 class TestStochasticRSI:
     def test_insufficient_data(self):
         assert calculate_stochastic_rsi([Decimal("100")] * 10) == (ZERO, ZERO)
@@ -270,6 +282,7 @@ class TestStochasticRSI:
 
 
 # ---- Ultimate Oscillator ----
+
 
 class TestUltimateOscillator:
     def test_insufficient_data(self):
@@ -295,6 +308,7 @@ class TestUltimateOscillator:
 
 # ---- Historical Volatility ----
 
+
 class TestHistoricalVolatility:
     def test_insufficient_data(self):
         assert calculate_historical_volatility([Decimal("100")] * 10, 20) == ZERO
@@ -314,6 +328,7 @@ class TestHistoricalVolatility:
 
 
 # ---- Parkinson Volatility ----
+
 
 class TestParkinsonVolatility:
     def test_insufficient_data(self):
@@ -337,6 +352,7 @@ class TestParkinsonVolatility:
 
 # ---- Force Index ----
 
+
 class TestForceIndex:
     def test_insufficient_data(self):
         short = [Decimal("100")] * 5
@@ -357,21 +373,30 @@ class TestForceIndex:
 
 # ---- Pipeline integration ----
 
+
 class TestPipelineNewKeys:
     """Verify pipeline produces all new Phase D feature keys."""
 
     def test_new_keys_present(self, sample_ohlcv_bars):
         from algo_engine.features.pipeline import FeaturePipeline
+
         pipeline = FeaturePipeline()
         features = pipeline.compute_features("XAUUSD", sample_ohlcv_bars)
 
         new_keys = [
-            "dema", "keltner_upper", "keltner_middle", "keltner_lower",
-            "parabolic_sar", "parabolic_sar_trend",
-            "vwap", "cmf",
-            "stoch_rsi_k", "stoch_rsi_d",
+            "dema",
+            "keltner_upper",
+            "keltner_middle",
+            "keltner_lower",
+            "parabolic_sar",
+            "parabolic_sar_trend",
+            "vwap",
+            "cmf",
+            "stoch_rsi_k",
+            "stoch_rsi_d",
             "ultimate_osc",
-            "hist_vol", "parkinson_vol",
+            "hist_vol",
+            "parkinson_vol",
             "force_index",
         ]
         for key in new_keys:
@@ -379,16 +404,26 @@ class TestPipelineNewKeys:
 
     def test_numeric_keys_are_decimal(self, sample_ohlcv_bars):
         from algo_engine.features.pipeline import FeaturePipeline
+
         pipeline = FeaturePipeline()
         features = pipeline.compute_features("XAUUSD", sample_ohlcv_bars)
 
         decimal_keys = [
-            "dema", "keltner_upper", "keltner_middle", "keltner_lower",
-            "parabolic_sar", "vwap", "cmf",
-            "stoch_rsi_k", "stoch_rsi_d",
-            "ultimate_osc", "hist_vol", "parkinson_vol", "force_index",
+            "dema",
+            "keltner_upper",
+            "keltner_middle",
+            "keltner_lower",
+            "parabolic_sar",
+            "vwap",
+            "cmf",
+            "stoch_rsi_k",
+            "stoch_rsi_d",
+            "ultimate_osc",
+            "hist_vol",
+            "parkinson_vol",
+            "force_index",
         ]
         for key in decimal_keys:
-            assert isinstance(features[key], Decimal), (
-                f"{key} should be Decimal, got {type(features[key])}"
-            )
+            assert isinstance(
+                features[key], Decimal
+            ), f"{key} should be Decimal, got {type(features[key])}"

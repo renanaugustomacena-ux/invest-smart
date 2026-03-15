@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re as _re
 from pathlib import Path
 
 from moneymaker_console.console_logging import mask_secrets
@@ -91,8 +92,6 @@ def _config_validate(*args: str) -> str:
     return "\n".join(lines)
 
 
-import re as _re
-
 # Keys that config set/risk are allowed to modify.
 _ALLOWED_KEY_RE = _re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -102,10 +101,17 @@ _FORBIDDEN_VALUE_CHARS = _re.compile(r"[\n\r\x00]")
 
 # Known numeric keys — validated as int/float when set.
 _NUMERIC_KEYS: set[str] = {
-    "MONEYMAKER_DB_PORT", "MONEYMAKER_REDIS_PORT", "DASHBOARD_PORT",
-    "EXTERNAL_DATA_PORT", "BRAIN_PORT", "MT5_GRPC_PORT",
-    "MAX_LOT_SIZE", "RISK_PER_TRADE", "MAX_DRAWDOWN_PCT",
-    "TICK_RETENTION_DAYS", "BAR_RETENTION_DAYS",
+    "MONEYMAKER_DB_PORT",
+    "MONEYMAKER_REDIS_PORT",
+    "DASHBOARD_PORT",
+    "EXTERNAL_DATA_PORT",
+    "BRAIN_PORT",
+    "MT5_GRPC_PORT",
+    "MAX_LOT_SIZE",
+    "RISK_PER_TRADE",
+    "MAX_DRAWDOWN_PCT",
+    "TICK_RETENTION_DAYS",
+    "BAR_RETENTION_DAYS",
 }
 
 
@@ -208,6 +214,7 @@ def _config_reload(*args: str) -> str:
     """Reload configuration from .env."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv(_ENV_FILE, override=True)
         return "[success] Configuration reloaded from .env"
     except ImportError:
@@ -217,6 +224,7 @@ def _config_reload(*args: str) -> str:
 def _config_export(*args: str) -> str:
     """Export configuration as JSON or YAML."""
     import json
+
     env = _read_env_file(_ENV_FILE)
     masked = {}
     for k, v in sorted(env.items()):
@@ -252,17 +260,23 @@ def _config_template(*args: str) -> str:
 
 def _config_encrypt(*args: str) -> str:
     """Encrypt the .env file."""
-    return "[info] Encryption requires a master passphrase in the system keyring. Not yet implemented."
+    return (
+        "[info] Encryption requires a master passphrase in the system keyring. Not yet implemented."
+    )
 
 
 def _config_decrypt(*args: str) -> str:
     """Decrypt .env.enc."""
-    return "[info] Decryption requires a master passphrase in the system keyring. Not yet implemented."
+    return (
+        "[info] Decryption requires a master passphrase in the system keyring. Not yet implemented."
+    )
 
 
 def register(registry: CommandRegistry) -> None:
     registry.register("config", "view", _config_view, "Display configuration (secrets masked)")
-    registry.register("config", "validate", _config_validate, "Validate config against .env.example")
+    registry.register(
+        "config", "validate", _config_validate, "Validate config against .env.example"
+    )
     registry.register("config", "set", _config_set, "Set a configuration value")
     registry.register("config", "get", _config_get, "Get a configuration value")
     registry.register("config", "diff", _config_diff, "Compare .env with .env.example")

@@ -69,9 +69,7 @@ class VolScaledMomentumStrategy(TradingStrategy):
         Returns:
             SignalSuggestion with direction, confidence and reasoning.
         """
-        latest_close = features.get("latest_close", ZERO)
         roc = features.get("roc", ZERO)
-        atr = features.get("atr", ZERO)
         atr_pct = features.get("atr_pct", ZERO)
         adx = features.get("adx", ZERO)
 
@@ -88,8 +86,7 @@ class VolScaledMomentumStrategy(TradingStrategy):
                 direction=Direction.HOLD,
                 confidence=Decimal("0.20"),
                 reasoning=(
-                    "No momentum signal: "
-                    f"roc={roc}, adx={adx} (threshold={_ADX_HOLD_THRESHOLD})"
+                    "No momentum signal: " f"roc={roc}, adx={adx} (threshold={_ADX_HOLD_THRESHOLD})"
                 ),
                 metadata={
                     "strategy": self.name,
@@ -106,9 +103,7 @@ class VolScaledMomentumStrategy(TradingStrategy):
             return SignalSuggestion(
                 direction=Direction.HOLD,
                 confidence=Decimal("0.25"),
-                reasoning=(
-                    f"Weak trend: adx={adx} below {_ADX_TREND_THRESHOLD}"
-                ),
+                reasoning=(f"Weak trend: adx={adx} below {_ADX_TREND_THRESHOLD}"),
                 metadata={
                     "strategy": self.name,
                     "vol_scalar": str(vol_scalar),

@@ -81,15 +81,9 @@ class CompositeConfidence:
         edge = self._historical_edge(belief_edge, win_rate)
         quality = self._signal_quality(features, direction)
 
-        composite = (
-            self._w_agreement * agreement
-            + self._w_edge * edge
-            + self._w_quality * quality
-        )
+        composite = self._w_agreement * agreement + self._w_edge * edge + self._w_quality * quality
 
-        result = _clamp_01(composite).quantize(
-            Decimal("0.0001"), rounding=ROUND_HALF_EVEN
-        )
+        result = _clamp_01(composite).quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN)
 
         logger.debug(
             "Composite confidence computed",
@@ -101,9 +95,7 @@ class CompositeConfidence:
 
         return result
 
-    def _indicator_agreement(
-        self, features: dict[str, Any], direction: str
-    ) -> Decimal:
+    def _indicator_agreement(self, features: dict[str, Any], direction: str) -> Decimal:
         """Fraction of indicators agreeing with the proposed direction.
 
         Checks: EMA cross, RSI bias, MACD histogram, Stochastic, ADX trend.
@@ -151,9 +143,7 @@ class CompositeConfidence:
 
         return Decimal(str(votes)) / Decimal(str(total))
 
-    def _historical_edge(
-        self, belief_edge: Decimal, win_rate: Decimal | None
-    ) -> Decimal:
+    def _historical_edge(self, belief_edge: Decimal, win_rate: Decimal | None) -> Decimal:
         """Convert edge evidence into a [0, 1] score.
 
         If explicit win_rate is provided, use it directly.
@@ -165,9 +155,7 @@ class CompositeConfidence:
         # Transform [-1, +1] → [0, 1]
         return _clamp_01((belief_edge + ONE) / Decimal("2"))
 
-    def _signal_quality(
-        self, features: dict[str, Any], direction: str
-    ) -> Decimal:
+    def _signal_quality(self, features: dict[str, Any], direction: str) -> Decimal:
         """How decisive is the signal? Distance from decision thresholds.
 
         A signal where RSI is at 80 (strong overbought for SELL) is higher

@@ -74,9 +74,7 @@ def hurst_exponent(series: list[Decimal], max_lag: int = 100) -> Decimal:
         tau *= 2
 
     if not lags:
-        raise ValueError(
-            f"No valid lag sizes: effective_max_lag={effective_max_lag} is < 2"
-        )
+        raise ValueError(f"No valid lag sizes: effective_max_lag={effective_max_lag} is < 2")
 
     log_lags: list[float] = []
     log_rs: list[float] = []
@@ -268,9 +266,7 @@ def optimal_d(
 
         d_candidate += step
 
-    raise ValueError(
-        f"No d in [0, {max_d}] with step {step} achieved stationarity"
-    )
+    raise ValueError(f"No d in [0, {max_d}] with step {step} achieved stationarity")
 
 
 def detrended_fluctuation_analysis(
@@ -329,8 +325,7 @@ def detrended_fluctuation_analysis(
 
     if len(box_sizes) < 2:
         raise ValueError(
-            f"Not enough box sizes in [{min_box}, {effective_max_box}] "
-            "for regression"
+            f"Not enough box sizes in [{min_box}, {effective_max_box}] " "for regression"
         )
 
     log_boxes: list[float] = []
@@ -353,7 +348,7 @@ def detrended_fluctuation_analysis(
 
             # Step 3: RMS of residuals.
             residuals = segment - trend
-            rms = float(np.sqrt(np.mean(residuals ** 2)))
+            rms = float(np.sqrt(np.mean(residuals**2)))
             rms_values.append(rms)
 
         if rms_values:
@@ -363,9 +358,7 @@ def detrended_fluctuation_analysis(
                 log_fluct.append(math.log(avg_fluct))
 
     if len(log_boxes) < 2:
-        raise ValueError(
-            "Not enough valid box sizes for DFA regression"
-        )
+        raise ValueError("Not enough valid box sizes for DFA regression")
 
     # Step 4: regress log(F) on log(box_size) to obtain scaling exponent.
     alpha, _ = np.polyfit(log_boxes, log_fluct, 1)

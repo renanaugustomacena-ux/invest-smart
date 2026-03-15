@@ -101,9 +101,13 @@ class TestSysRedis:
     def test_redis_connected(self, mock_cf):
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
-        mock_redis.info.return_value = {"redis_version": "7.2", "uptime_in_days": 10,
-                                         "used_memory_human": "10M", "used_memory_peak_human": "15M",
-                                         "connected_clients": 5}
+        mock_redis.info.return_value = {
+            "redis_version": "7.2",
+            "uptime_in_days": 10,
+            "used_memory_human": "10M",
+            "used_memory_peak_human": "15M",
+            "connected_clients": 5,
+        }
         mock_redis.get_json.return_value = None
         mock_cf.get_redis.return_value = mock_redis
         result = _sys_redis()
@@ -130,9 +134,7 @@ class TestSysDocker:
 class TestSysResources:
     @patch("moneymaker_console.commands.sys_ops.subprocess")
     def test_resources(self, mock_sub):
-        mock_sub.run.return_value = MagicMock(
-            returncode=0, stdout="cpu info\n"
-        )
+        mock_sub.run.return_value = MagicMock(returncode=0, stdout="cpu info\n")
         result = _sys_resources()
         assert "Resource" in result or "CPU" in result or "System" in result or "psutil" in result
 
@@ -197,7 +199,16 @@ class TestSysRegister:
         reg = CommandRegistry()
         register(reg)
         assert "sys" in reg.categories
-        expected = ["status", "resources", "health", "db", "redis",
-                    "docker", "network", "env", "ports"]
+        expected = [
+            "status",
+            "resources",
+            "health",
+            "db",
+            "redis",
+            "docker",
+            "network",
+            "env",
+            "ports",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["sys"]

@@ -46,6 +46,7 @@ class TestBrainCommands:
         mock_cf.get_docker.return_value = mock_docker
         with patch("moneymaker_console.runner.subprocess.run") as mock_run:
             import subprocess
+
             mock_run.return_value = subprocess.CompletedProcess(
                 args=["docker"], returncode=0, stdout="killed\n", stderr=""
             )
@@ -248,8 +249,20 @@ class TestBrainRegister:
         register(reg)
         assert "brain" in reg.categories
         cmds = reg._commands["brain"]
-        expected = ["start", "stop", "pause", "resume", "status",
-                    "checkpoint", "regime", "drift", "maturity",
-                    "spiral", "confidence", "features", "sentry"]
+        expected = [
+            "start",
+            "stop",
+            "pause",
+            "resume",
+            "status",
+            "checkpoint",
+            "regime",
+            "drift",
+            "maturity",
+            "spiral",
+            "confidence",
+            "features",
+            "sentry",
+        ]
         for cmd in expected:
             assert cmd in cmds

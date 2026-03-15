@@ -27,11 +27,14 @@ class TestAlertStatus:
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_cf.get_redis.return_value = mock_redis
-        with patch.dict(os.environ, {
-            "TELEGRAM_BOT_TOKEN": "tok",
-            "TELEGRAM_CHAT_ID": "123",
-            "SENTRY_DSN": "https://abc@sentry.io/1",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "tok",
+                "TELEGRAM_CHAT_ID": "123",
+                "SENTRY_DSN": "https://abc@sentry.io/1",
+            },
+        ):
             result = _alert_status()
             assert "CONFIGURED" in result
             assert "CONNECTED" in result
@@ -173,7 +176,16 @@ class TestAlertRegister:
         reg = CommandRegistry()
         register(reg)
         assert "alert" in reg.categories
-        expected = ["status", "channels", "test", "rules",
-                    "add-rule", "remove-rule", "history", "mute", "unmute"]
+        expected = [
+            "status",
+            "channels",
+            "test",
+            "rules",
+            "add-rule",
+            "remove-rule",
+            "history",
+            "mute",
+            "unmute",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["alert"]

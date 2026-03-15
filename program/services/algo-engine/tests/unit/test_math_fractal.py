@@ -122,12 +122,8 @@ class TestFractionalDifference:
     def test_threshold_affects_output_length(self) -> None:
         series = [Decimal(str(i)) for i in range(100)]
         # Higher threshold -> fewer weights -> longer output
-        result_high = fractional_difference(
-            series, Decimal("0.5"), threshold=Decimal("0.01")
-        )
-        result_low = fractional_difference(
-            series, Decimal("0.5"), threshold=Decimal("1e-8")
-        )
+        result_high = fractional_difference(series, Decimal("0.5"), threshold=Decimal("0.01"))
+        result_low = fractional_difference(series, Decimal("0.5"), threshold=Decimal("1e-8"))
         assert len(result_high) >= len(result_low)
 
 

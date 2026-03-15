@@ -27,8 +27,10 @@ D = Decimal
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _synthetic_returns(n: int = 300, drift: float = 0.001, vol: float = 0.02) -> list[Decimal]:
     import random
+
     rng = random.Random(42)
     return [D(str(round(drift + vol * rng.gauss(0, 1), 8))) for _ in range(n)]
 
@@ -45,6 +47,7 @@ def _simple_evaluate(bars: list, params: dict) -> Decimal:
 # WFOWindow dataclass
 # ===========================================================================
 
+
 class TestWFOWindow:
     def test_defaults(self):
         w = WFOWindow()
@@ -57,6 +60,7 @@ class TestWFOWindow:
 # ===========================================================================
 # WFOResult dataclass
 # ===========================================================================
+
 
 class TestWFOResult:
     def test_defaults(self):
@@ -72,6 +76,7 @@ class TestWFOResult:
 # ===========================================================================
 # WalkForwardOptimizer
 # ===========================================================================
+
 
 class TestWalkForwardOptimizer:
     def test_init_defaults(self):
@@ -129,6 +134,7 @@ class TestWalkForwardOptimizer:
 # MonteCarloResult dataclass
 # ===========================================================================
 
+
 class TestMonteCarloResult:
     def test_defaults(self):
         r = MonteCarloResult()
@@ -141,6 +147,7 @@ class TestMonteCarloResult:
 # ===========================================================================
 # MonteCarloValidator
 # ===========================================================================
+
 
 class TestMonteCarloValidator:
     def test_return_shuffling(self):
@@ -193,6 +200,7 @@ class TestMonteCarloValidator:
 # ===========================================================================
 # AdaptiveParameterTuner
 # ===========================================================================
+
 
 class TestAdaptiveParameterTuner:
     def test_init_defaults(self):

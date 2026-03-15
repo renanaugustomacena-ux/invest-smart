@@ -184,13 +184,9 @@ class RegimeRouter:
             blended_confidence += weight * suggestion.confidence
 
             strategy_name = (
-                suggestion.metadata.get("strategy", "unknown")
-                if suggestion.metadata
-                else "unknown"
+                suggestion.metadata.get("strategy", "unknown") if suggestion.metadata else "unknown"
             )
-            reasoning_parts.append(
-                f"{strategy_name}({weight:.0%})→{suggestion.direction}"
-            )
+            reasoning_parts.append(f"{strategy_name}({weight:.0%})→{suggestion.direction}")
 
         if total_weight > Decimal("0"):
             directional_score /= total_weight

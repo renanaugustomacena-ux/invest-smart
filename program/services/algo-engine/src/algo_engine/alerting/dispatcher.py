@@ -86,9 +86,7 @@ class AlertDispatcher:
         key = f"{level.value}:{title}:{context}" if context else f"{level.value}:{title}"
         now = time.monotonic()
         min_interval = (
-            self._critical_min_interval
-            if level == AlertLevel.CRITICAL
-            else self._min_interval
+            self._critical_min_interval if level == AlertLevel.CRITICAL else self._min_interval
         )
 
         last = self._last_sent.get(key, 0.0)
@@ -99,17 +97,12 @@ class AlertDispatcher:
 
         # Cleanup vecchi entries
         cutoff = now - 3600
-        self._last_sent = {
-            k: v for k, v in self._last_sent.items() if v > cutoff
-        }
+        self._last_sent = {k: v for k, v in self._last_sent.items() if v > cutoff}
 
         emoji = LEVEL_EMOJI.get(level, "")
         formatted_title = f"{emoji} [{level.value.upper()}] {title}"
 
-        tasks = [
-            channel.send(level, formatted_title, body)
-            for channel in self._channels
-        ]
+        tasks = [channel.send(level, formatted_title, body) for channel in self._channels]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for i, result in enumerate(results):

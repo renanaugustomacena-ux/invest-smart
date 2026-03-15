@@ -63,6 +63,7 @@ class MT5GrpcClient:
             return None
         try:
             from moneymaker_proto import health_pb2
+
             request = health_pb2.HealthCheckRequest(service_name="mt5-bridge")
             response = stub.CheckHealth(request, timeout=5)
             return {

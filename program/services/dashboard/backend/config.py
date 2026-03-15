@@ -26,9 +26,15 @@ class DashboardSettings(MoneyMakerBaseSettings):
     refresh_macro: int = Field(default=300, alias="DASHBOARD_REFRESH_MACRO")
 
     # Prometheus endpoints (direct scrape)
-    prometheus_data_ingestion: str = Field(default="http://localhost:9090/metrics", alias="DASHBOARD_PROMETHEUS_DI")
-    prometheus_algo_engine: str = Field(default="http://localhost:9093/metrics", alias="DASHBOARD_PROMETHEUS_BRAIN")
-    prometheus_mt5_bridge: str = Field(default="http://localhost:9094/metrics", alias="DASHBOARD_PROMETHEUS_MT5")
+    prometheus_data_ingestion: str = Field(
+        default="http://localhost:9090/metrics", alias="DASHBOARD_PROMETHEUS_DI"
+    )
+    prometheus_algo_engine: str = Field(
+        default="http://localhost:9093/metrics", alias="DASHBOARD_PROMETHEUS_BRAIN"
+    )
+    prometheus_mt5_bridge: str = Field(
+        default="http://localhost:9094/metrics", alias="DASHBOARD_PROMETHEUS_MT5"
+    )
 
     # Frontend static files
     frontend_dist_dir: str = Field(default="frontend/dist", alias="DASHBOARD_FRONTEND_DIR")

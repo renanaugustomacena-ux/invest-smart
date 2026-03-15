@@ -8,16 +8,17 @@ import traceback
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from moneymaker_console.console_logging import log_event
+
 # Default command timeout in seconds.  Long-running operations (build, test,
 # backup) use per-command overrides; everything else gets this safety net.
 _DEFAULT_TIMEOUT_SEC = 60
-
-from moneymaker_console.console_logging import log_event
 
 
 # ---------------------------------------------------------------------------
 # Command dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass(slots=True)
 class Command:
@@ -36,6 +37,7 @@ class Command:
 # ---------------------------------------------------------------------------
 # CommandRegistry
 # ---------------------------------------------------------------------------
+
 
 class CommandRegistry:
     """Central dispatch table mapping (category, subcmd) to Command objects.
@@ -146,9 +148,7 @@ class CommandRegistry:
             if hasattr(signal, "SIGALRM") and cmd.timeout_sec > 0:
 
                 def _timeout_handler(signum: int, frame: Any) -> None:
-                    raise TimeoutError(
-                        f"{category} {subcmd} timed out after {cmd.timeout_sec}s"
-                    )
+                    raise TimeoutError(f"{category} {subcmd} timed out after {cmd.timeout_sec}s")
 
                 _prev_handler = signal.signal(signal.SIGALRM, _timeout_handler)
                 signal.alarm(cmd.timeout_sec)
@@ -251,8 +251,7 @@ class CommandRegistry:
                 continue
             cmds = self._commands[cat]
             subcmds = " | ".join(
-                name for name in sorted(cmds.keys())
-                if name and not cmds[name].hidden
+                name for name in sorted(cmds.keys()) if name and not cmds[name].hidden
             )
             if subcmds:
                 lines.append(f"  {cat:<12} {subcmds}")
@@ -293,11 +292,7 @@ class CommandRegistry:
 
         if len(parts) == 1 and partial.endswith(" "):
             # Category typed, show all sub-commands
-            return [
-                f"{category} {name}"
-                for name in sorted(self._commands[category])
-                if name
-            ]
+            return [f"{category} {name}" for name in sorted(self._commands[category]) if name]
 
         # Completing sub-command
         sub_prefix = parts[1].lower() if len(parts) > 1 else ""
@@ -315,7 +310,4 @@ class CommandRegistry:
 
     @property
     def command_count(self) -> int:
-        return sum(
-            len([n for n in cmds if n])
-            for cmds in self._commands.values()
-        )
+        return sum(len([n for n in cmds if n]) for cmds in self._commands.values())

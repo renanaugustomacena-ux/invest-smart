@@ -14,12 +14,11 @@ Usage:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_EVEN
 from enum import Enum
 from typing import Any
 
-from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +29,7 @@ _ONE_HUNDRED = Decimal("100")
 # ---------------------------------------------------------------------------
 # Enum
 # ---------------------------------------------------------------------------
+
 
 class TrailingMode(Enum):
     """Available trailing-stop algorithms."""
@@ -44,6 +44,7 @@ class TrailingMode(Enum):
 # State
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class TrailingStopState:
     """Immutable snapshot of a trailing stop for one position."""
@@ -53,7 +54,7 @@ class TrailingStopState:
     entry_price: Decimal
     current_stop: Decimal
     highest_price: Decimal  # highest since entry (relevant for BUY)
-    lowest_price: Decimal   # lowest since entry (relevant for SELL)
+    lowest_price: Decimal  # lowest since entry (relevant for SELL)
     mode: TrailingMode
     is_break_even: bool = False  # whether SL has been promoted to entry
 
@@ -61,6 +62,7 @@ class TrailingStopState:
 # ---------------------------------------------------------------------------
 # Manager
 # ---------------------------------------------------------------------------
+
 
 class TrailingStopManager:
     """Compute trailing-stop updates across multiple modes."""
@@ -99,7 +101,11 @@ class TrailingStopManager:
         )
         logger.info(
             "trailing_stop_opened | symbol=%s dir=%s entry=%s stop=%s mode=%s",
-            symbol, direction, entry_price, initial_stop, mode.value,
+            symbol,
+            direction,
+            entry_price,
+            initial_stop,
+            mode.value,
         )
         return state
 
@@ -131,7 +137,11 @@ class TrailingStopManager:
             new_stop = self._chandelier(state, highest, lowest, atr)
         elif mode is TrailingMode.BREAK_EVEN:
             new_stop, mode, is_be = self._break_even(
-                state, current_price, highest, lowest, atr,
+                state,
+                current_price,
+                highest,
+                lowest,
+                atr,
             )
         elif mode is TrailingMode.PERCENTAGE:
             new_stop = self._percentage(state, highest, lowest)
@@ -142,7 +152,10 @@ class TrailingStopManager:
         if new_stop != state.current_stop:
             logger.debug(
                 "trailing_stop_moved | symbol=%s stop=%s->%s mode=%s",
-                state.symbol, state.current_stop, new_stop, mode.value,
+                state.symbol,
+                state.current_stop,
+                new_stop,
+                mode.value,
             )
 
         return TrailingStopState(
@@ -216,7 +229,8 @@ class TrailingStopManager:
         if not state.is_break_even and profit > threshold:
             logger.info(
                 "trailing_stop_break_even | symbol=%s entry=%s",
-                state.symbol, state.entry_price,
+                state.symbol,
+                state.entry_price,
             )
             # Promote stop to entry and switch to ATR trailing.
             new_stop = state.entry_price
@@ -246,6 +260,7 @@ class TrailingStopManager:
 # Position tracker
 # ---------------------------------------------------------------------------
 
+
 class PositionTracker:
     """Track multiple trailing-stop positions keyed by symbol."""
 
@@ -263,7 +278,11 @@ class PositionTracker:
     ) -> None:
         """Register a new position for trailing."""
         self._positions[symbol] = self._manager.open_position(
-            symbol, direction, entry_price, initial_stop, mode,
+            symbol,
+            direction,
+            entry_price,
+            initial_stop,
+            mode,
         )
 
     def update_all(self, bars: dict[str, dict[str, Any]]) -> list[str]:
@@ -290,7 +309,9 @@ class PositionTracker:
             if self._manager.is_stopped_out(new_state, bar["price"]):
                 logger.warning(
                     "trailing_stop_hit | symbol=%s stop=%s price=%s",
-                    symbol, new_state.current_stop, bar["price"],
+                    symbol,
+                    new_state.current_stop,
+                    bar["price"],
                 )
                 stopped.append(symbol)
 

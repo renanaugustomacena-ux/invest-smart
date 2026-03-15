@@ -38,8 +38,7 @@ class ExternalDataSettings(MoneyMakerBaseSettings):
     # Yahoo Finance (backup for VIX)
     yahoo_vix_symbol: str = "^VIX"
 
-    # Redis per caching
-    redis_url: str = "redis://localhost:6379/0"
+    # Redis per caching (uses parent's redis_url property from MONEYMAKER_REDIS_* env vars)
     redis_cache_ttl_seconds: int = 300
 
     # Database

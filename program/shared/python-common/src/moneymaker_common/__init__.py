@@ -14,12 +14,13 @@ La "cassetta degli attrezzi" comune a tutti i servizi Python:
 __version__ = "0.1.0"
 
 from moneymaker_common.secrets import (
-    SecretsValidationError,
-    load_secret,
-    validate_required_secrets,
-    generate_secure_password,
-    mask_secret,
+    SecretsValidationError as SecretsValidationError,
+    load_secret as load_secret,
+    validate_required_secrets as validate_required_secrets,
+    generate_secure_password as generate_secure_password,
+    mask_secret as mask_secret,
 )
+
 
 # Rate limiting imports are lazy — require grpcio which not all services install.
 # Use: from moneymaker_common.ratelimit import RateLimitConfig, ...
@@ -36,5 +37,6 @@ def __getattr__(name: str):
     }
     if name in _ratelimit_names:
         from moneymaker_common import ratelimit
+
         return getattr(ratelimit, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -32,6 +32,7 @@ logger = get_logger(__name__)
 @dataclass
 class YieldCurveData:
     """Yield curve snapshot."""
+
     time: datetime
     rate_2y: Decimal | None
     rate_5y: Decimal | None
@@ -44,6 +45,7 @@ class YieldCurveData:
 @dataclass
 class RealRatesData:
     """Real rates (inflation-adjusted) snapshot."""
+
     time: datetime
     nominal_10y: Decimal
     breakeven_10y: Decimal
@@ -56,6 +58,7 @@ class RealRatesData:
 @dataclass
 class RecessionProbability:
     """Recession probability data."""
+
     time: datetime
     probability_12m: Decimal
     signal_level: int  # 0=low, 1=elevated, 2=high
@@ -133,10 +136,7 @@ class FREDProvider:
             observations = data.get("observations", [])
 
             # Filter out missing values (FRED uses "." for missing)
-            return [
-                obs for obs in observations
-                if obs.get("value") and obs["value"] != "."
-            ]
+            return [obs for obs in observations if obs.get("value") and obs["value"] != "."]
 
         except httpx.HTTPStatusError as e:
             logger.warning(

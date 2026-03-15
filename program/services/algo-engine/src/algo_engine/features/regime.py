@@ -38,10 +38,10 @@ _RSI_OVERSOLD = Decimal("30")
 _TWO = Decimal("2")
 
 # Hysteresis thresholds — prevent regime flip-flopping
-_ADX_ENTER_TREND = Decimal("27")    # ADX must exceed this to enter trending
-_ADX_EXIT_TREND = Decimal("23")     # ADX must drop below this to exit trending
-_ATR_ENTER_VOLATILITY = Decimal("2.0")   # ATR ratio to enter high volatility
-_ATR_EXIT_VOLATILITY = Decimal("1.5")    # ATR ratio to exit high volatility
+_ADX_ENTER_TREND = Decimal("27")  # ADX must exceed this to enter trending
+_ADX_EXIT_TREND = Decimal("23")  # ADX must drop below this to exit trending
+_ATR_ENTER_VOLATILITY = Decimal("2.0")  # ATR ratio to enter high volatility
+_ATR_EXIT_VOLATILITY = Decimal("1.5")  # ATR ratio to exit high volatility
 _HYSTERESIS_BARS = 3  # Consecutive bars required to confirm regime change
 
 # Confidence formula constants for trending regimes.

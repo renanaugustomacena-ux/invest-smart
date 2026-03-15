@@ -14,6 +14,7 @@ def _market_regime(*args: str) -> str:
         try:
             redis = ClientFactory.get_redis()
             import json
+
             data = redis.get("moneymaker:regime")
             if data:
                 regime = json.loads(data) if isinstance(data, str) else data
@@ -50,6 +51,7 @@ def _market_symbols(*args: str) -> str:
     """Display monitored symbols with regime and volatility."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT DISTINCT symbol, max(open_time) AS last_bar "
@@ -74,6 +76,7 @@ def _market_spread(*args: str) -> str:
     symbol = args[0].upper()
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT bid, ask, (ask - bid) AS spread, timestamp "
@@ -99,6 +102,7 @@ def _market_calendar(*args: str) -> str:
     days = int(args[0]) if args else 7
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT event_time, currency, impact, event_name "
@@ -123,6 +127,7 @@ def _market_volatility(*args: str) -> str:
     symbol_filter = f"WHERE symbol = '{args[0].upper()}'" if args else ""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT symbol, "
@@ -132,8 +137,8 @@ def _market_volatility(*args: str) -> str:
             f"FROM ohlcv_bars {symbol_filter} "
             "WHERE open_time > NOW() - INTERVAL '7 days' "
             "GROUP BY symbol ORDER BY volatility DESC NULLS LAST"
-            if not symbol_filter else
-            f"SELECT symbol, "
+            if not symbol_filter
+            else f"SELECT symbol, "
             f"stddev(close) AS volatility, "
             f"avg(high - low) AS avg_range, "
             f"count(*) AS bars "
@@ -157,6 +162,7 @@ def _market_correlation(*args: str) -> str:
     """Display cross-symbol correlation matrix."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT DISTINCT symbol FROM ohlcv_bars "
@@ -179,6 +185,7 @@ def _market_correlation(*args: str) -> str:
 def _market_session(*args: str) -> str:
     """Display current trading session."""
     from datetime import datetime, timezone
+
     now = datetime.now(timezone.utc)
     hour = now.hour
 
@@ -208,6 +215,7 @@ def _market_news(*args: str) -> str:
         impact_filter = f"AND impact = '{args[0].upper()}'"
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT event_time, currency, impact, event_name "
@@ -233,6 +241,7 @@ def _market_indicators(*args: str) -> str:
     symbol = args[0].upper()
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT feature_vector, created_at "
@@ -259,8 +268,8 @@ def _market_macro(*args: str) -> str:
     """Display macroeconomic indicators."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         redis = ClientFactory.get_redis()
-        import json
         vix = redis.get("moneymaker:macro:vix")
         dxy = redis.get("moneymaker:macro:dxy")
         lines = ["Macro Indicators", "=" * 40]
@@ -276,6 +285,7 @@ def _market_macro_status(*args: str) -> str:
     """Display external data service health."""
     try:
         import httpx
+
         port = __import__("os").environ.get("EXTERNAL_DATA_PORT", "9095")
         resp = httpx.get(f"http://localhost:{port}/health", timeout=5)
         if resp.status_code == 200:
@@ -288,6 +298,7 @@ def _market_macro_status(*args: str) -> str:
 def _market_dashboard(*args: str) -> str:
     """Show dashboard URL."""
     import os
+
     port = os.environ.get("DASHBOARD_PORT", "8000")
     return (
         f"MONEYMAKER Dashboard\n{'=' * 40}\n"
@@ -307,5 +318,7 @@ def register(registry: CommandRegistry) -> None:
     registry.register("market", "news", _market_news, "Display recent news events")
     registry.register("market", "indicators", _market_indicators, "Display technical indicators")
     registry.register("market", "macro", _market_macro, "Display macroeconomic indicators")
-    registry.register("market", "macro-status", _market_macro_status, "External data service status")
+    registry.register(
+        "market", "macro-status", _market_macro_status, "External data service status"
+    )
     registry.register("market", "dashboard", _market_dashboard, "Show dashboard URL")

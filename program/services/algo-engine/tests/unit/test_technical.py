@@ -164,9 +164,7 @@ class TestBollingerBands:
 
 class TestATR:
     def test_insufficient_data(self):
-        assert (
-            calculate_atr([Decimal("10")], [Decimal("5")], [Decimal("8")], 14) == ZERO
-        )
+        assert calculate_atr([Decimal("10")], [Decimal("5")], [Decimal("8")], 14) == ZERO
 
     def test_positive_result(self, sample_highs, sample_lows, sample_closes):
         atr = calculate_atr(sample_highs, sample_lows, sample_closes, 14)

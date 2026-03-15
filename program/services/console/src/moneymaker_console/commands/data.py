@@ -9,6 +9,7 @@ def _data_start(*args: str) -> str:
     """Start the data ingestion pipeline."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         return ClientFactory.get_docker().up("data-ingestion")
     except Exception as exc:
         return f"[error] Failed to start data ingestion: {exc}"
@@ -18,6 +19,7 @@ def _data_stop(*args: str) -> str:
     """Stop the data ingestion pipeline."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         return ClientFactory.get_docker().down("data-ingestion")
     except Exception as exc:
         return f"[error] Failed to stop data ingestion: {exc}"
@@ -30,10 +32,11 @@ def _data_status(*args: str) -> str:
     # HTTP health
     try:
         from moneymaker_console.clients import ClientFactory
+
         data = ClientFactory.get_data()
         health = data.get_health()
         if health:
-            lines.append(f"  Health:     OK")
+            lines.append("  Health:     OK")
             for k, v in health.items():
                 lines.append(f"    {k}: {v}")
         else:
@@ -44,6 +47,7 @@ def _data_status(*args: str) -> str:
     # Tick throughput from DB
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT count(*) AS cnt FROM market_ticks "
@@ -61,6 +65,7 @@ def _data_symbols(*args: str) -> str:
     """List actively ingested symbols."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT DISTINCT symbol, "
@@ -117,6 +122,7 @@ def _data_gaps(*args: str) -> str:
         days = args[0]
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT time_bucket('1 hour', open_time) AS bucket, "
@@ -141,6 +147,7 @@ def _data_providers(*args: str) -> str:
     """List configured data providers."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         data = ClientFactory.get_data()
         health = data.get_health()
         if health:
@@ -159,6 +166,7 @@ def _data_reconnect(*args: str) -> str:
     """Force reconnection to providers."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         return ClientFactory.get_docker().restart("data-ingestion")
     except Exception as exc:
         return f"[error] {exc}"
@@ -168,6 +176,7 @@ def _data_buffer(*args: str) -> str:
     """Display aggregation buffer status."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         data = ClientFactory.get_data()
         metrics = data.get_metrics()
         if metrics:
@@ -186,6 +195,7 @@ def _data_latency(*args: str) -> str:
     """Display end-to-end latency metrics."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         data = ClientFactory.get_data()
         metrics = data.get_metrics()
         if metrics:

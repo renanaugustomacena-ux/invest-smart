@@ -27,11 +27,11 @@ _TWENTY_FIVE = Decimal("25")
 class MTFConfirmationResult:
     """Snapshot of cross-timeframe agreement."""
 
-    trend_agreement: Decimal      # [0, 1]
-    momentum_agreement: Decimal   # [0, 1]
-    strength_agreement: Decimal   # [0, 1]
-    volatility_context: Decimal   # [0, 1]
-    confirmation_ratio: Decimal   # [0, 1] weighted composite
+    trend_agreement: Decimal  # [0, 1]
+    momentum_agreement: Decimal  # [0, 1]
+    strength_agreement: Decimal  # [0, 1]
+    volatility_context: Decimal  # [0, 1]
+    confirmation_ratio: Decimal  # [0, 1] weighted composite
 
 
 class MTFConfirmation:

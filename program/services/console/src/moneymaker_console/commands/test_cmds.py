@@ -91,10 +91,12 @@ def _test_lint(*args: str) -> str:
     """Run linting tools."""
     results = []
     # Python
-    results.append(run_tool_live(
-        ["python3", "-m", "ruff", "check", "."],
-        cwd=str(_ALGO_ENGINE_DIR),
-    ))
+    results.append(
+        run_tool_live(
+            ["python3", "-m", "ruff", "check", "."],
+            cwd=str(_ALGO_ENGINE_DIR),
+        )
+    )
     return "\n".join(results) if results else "Lint complete."
 
 
@@ -129,8 +131,15 @@ def _test_ci(*args: str) -> str:
 def _test_coverage(*args: str) -> str:
     """Run tests with coverage reporting."""
     return run_tool_live(
-        ["python3", "-m", "pytest", "--cov=algo_engine", "--cov-report=term-missing",
-         "-v", "--tb=short"],
+        [
+            "python3",
+            "-m",
+            "pytest",
+            "--cov=algo_engine",
+            "--cov-report=term-missing",
+            "-v",
+            "--tb=short",
+        ],
         cwd=str(_ALGO_ENGINE_DIR),
         env_extra={"PYTHONPATH": str(_ALGO_ENGINE_DIR / "src")},
     )
@@ -149,15 +158,27 @@ def _test_specific(*args: str) -> str:
 
 
 def register(registry: CommandRegistry) -> None:
-    registry.register("test", "all", _test_all, "Run complete Algo Engine test suite", timeout_sec=300)
-    registry.register("test", "brain-verify", _test_brain_verify, "Run Brain Verification tests", timeout_sec=120)
+    registry.register(
+        "test", "all", _test_all, "Run complete Algo Engine test suite", timeout_sec=300
+    )
+    registry.register(
+        "test", "brain-verify", _test_brain_verify, "Run Brain Verification tests", timeout_sec=120
+    )
     registry.register("test", "cascade", _test_cascade, "Run cascade / e2e tests", timeout_sec=300)
     registry.register("test", "go", _test_go, "Run Go Data Ingestion tests", timeout_sec=120)
     registry.register("test", "mt5", _test_mt5, "Run MT5 Bridge tests", timeout_sec=120)
-    registry.register("test", "common", _test_common, "Run shared Python library tests", timeout_sec=120)
+    registry.register(
+        "test", "common", _test_common, "Run shared Python library tests", timeout_sec=120
+    )
     registry.register("test", "suite", _test_suite, "Run ALL test suites", timeout_sec=600)
     registry.register("test", "lint", _test_lint, "Run linting tools", timeout_sec=120)
-    registry.register("test", "typecheck", _test_typecheck, "Run mypy type checking", timeout_sec=120)
+    registry.register(
+        "test", "typecheck", _test_typecheck, "Run mypy type checking", timeout_sec=120
+    )
     registry.register("test", "ci", _test_ci, "Run full CI pipeline", timeout_sec=600)
-    registry.register("test", "coverage", _test_coverage, "Run tests with coverage", timeout_sec=300)
-    registry.register("test", "specific", _test_specific, "Run a specific test file", timeout_sec=120)
+    registry.register(
+        "test", "coverage", _test_coverage, "Run tests with coverage", timeout_sec=300
+    )
+    registry.register(
+        "test", "specific", _test_specific, "Run a specific test file", timeout_sec=120
+    )

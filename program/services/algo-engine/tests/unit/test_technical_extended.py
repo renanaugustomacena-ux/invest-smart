@@ -28,9 +28,7 @@ class TestADX:
         assert calculate_adx(highs, lows, closes, 14) == (ZERO, ZERO, ZERO)
 
     def test_strong_uptrend(self, sample_highs, sample_lows, sample_closes):
-        adx, plus_di, minus_di = calculate_adx(
-            sample_highs, sample_lows, sample_closes, 14
-        )
+        adx, plus_di, minus_di = calculate_adx(sample_highs, sample_lows, sample_closes, 14)
         # In an uptrend, ADX should be positive and +DI > -DI
         assert adx > ZERO
         assert plus_di > minus_di
@@ -137,9 +135,11 @@ class TestOBV:
 
 class TestDonchianChannels:
     def test_insufficient_data(self):
-        assert calculate_donchian_channels(
-            [Decimal("10")] * 5, [Decimal("5")] * 5, 20
-        ) == (ZERO, ZERO, ZERO)
+        assert calculate_donchian_channels([Decimal("10")] * 5, [Decimal("5")] * 5, 20) == (
+            ZERO,
+            ZERO,
+            ZERO,
+        )
 
     def test_basic_calculation(self):
         highs = [Decimal(str(10 + i)) for i in range(20)]  # 10-29
@@ -159,9 +159,7 @@ class TestDonchianChannels:
         assert middle == Decimal("95")
 
     def test_upper_above_lower(self, sample_highs, sample_lows):
-        upper, middle, lower = calculate_donchian_channels(
-            sample_highs, sample_lows, 20
-        )
+        upper, middle, lower = calculate_donchian_channels(sample_highs, sample_lows, 20)
         assert upper >= middle >= lower
 
 
@@ -172,10 +170,7 @@ class TestDonchianChannels:
 
 class TestWilliamsR:
     def test_insufficient_data(self):
-        assert (
-            calculate_williams_r([Decimal("10")], [Decimal("5")], [Decimal("8")], 14)
-            == ZERO
-        )
+        assert calculate_williams_r([Decimal("10")], [Decimal("5")], [Decimal("8")], 14) == ZERO
 
     def test_at_highest_high(self):
         highs = [Decimal(str(10 + i)) for i in range(14)]
@@ -233,10 +228,7 @@ class TestROC:
 class TestCCI:
     def test_insufficient_data(self):
         assert (
-            calculate_cci(
-                [Decimal("10")] * 5, [Decimal("5")] * 5, [Decimal("8")] * 5, 20
-            )
-            == ZERO
+            calculate_cci([Decimal("10")] * 5, [Decimal("5")] * 5, [Decimal("8")] * 5, 20) == ZERO
         )
 
     def test_constant_price(self):

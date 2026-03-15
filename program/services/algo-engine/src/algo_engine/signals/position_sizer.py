@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from moneymaker_common.decimal_utils import ZERO, to_decimal
+from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -54,7 +54,7 @@ PIP_VALUES: dict[str, Decimal] = {
     "EURGBP": Decimal("12.5"),
     "EURJPY": Decimal("6.7"),
     "GBPJPY": Decimal("6.7"),
-    "XAUUSD": Decimal("1"),      # $1 per 0.01 move per 1 lot (100 oz)
+    "XAUUSD": Decimal("1"),  # $1 per 0.01 move per 1 lot (100 oz)
     "XAGUSD": Decimal("50"),
 }
 

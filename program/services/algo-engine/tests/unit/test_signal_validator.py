@@ -9,10 +9,10 @@ import pytest
 
 from algo_engine.signals.validator import SignalValidator
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_signal(**overrides) -> dict:
     """Return a valid BUY signal dict, with optional overrides."""
@@ -49,20 +49,17 @@ def _make_portfolio(**overrides) -> dict:
 # Control 1: HOLD rejection
 # ---------------------------------------------------------------------------
 
+
 class TestHoldRejection:
     def test_hold_direction_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(direction="HOLD"), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(direction="HOLD"), _make_portfolio())
         assert not valid
         assert "HOLD" in reason
 
     def test_invalid_direction_string_treated_as_hold(self):
         v = SignalValidator()
-        valid, _ = v.validate(
-            _make_signal(direction="INVALID"), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(direction="INVALID"), _make_portfolio())
         assert not valid
 
     def test_missing_direction_treated_as_hold(self):
@@ -77,34 +74,27 @@ class TestHoldRejection:
 # Control 2: Max open positions
 # ---------------------------------------------------------------------------
 
+
 class TestMaxOpenPositions:
     def test_at_limit_rejected(self):
         v = SignalValidator(max_open_positions=5)
-        valid, reason = v.validate(
-            _make_signal(), _make_portfolio(open_position_count=5)
-        )
+        valid, reason = v.validate(_make_signal(), _make_portfolio(open_position_count=5))
         assert not valid
         assert "5/5" in reason
 
     def test_above_limit_rejected(self):
         v = SignalValidator(max_open_positions=3)
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(open_position_count=4)
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(open_position_count=4))
         assert not valid
 
     def test_below_limit_passes(self):
         v = SignalValidator(max_open_positions=5)
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(open_position_count=4)
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(open_position_count=4))
         assert valid
 
     def test_zero_positions_passes(self):
         v = SignalValidator(max_open_positions=5)
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(open_position_count=0)
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(open_position_count=0))
         assert valid
 
 
@@ -112,27 +102,22 @@ class TestMaxOpenPositions:
 # Control 3: Drawdown limit
 # ---------------------------------------------------------------------------
 
+
 class TestDrawdownLimit:
     def test_at_limit_rejected(self):
         v = SignalValidator(max_drawdown_pct=Decimal("5.0"))
-        valid, reason = v.validate(
-            _make_signal(), _make_portfolio(current_drawdown_pct="5.0")
-        )
+        valid, reason = v.validate(_make_signal(), _make_portfolio(current_drawdown_pct="5.0"))
         assert not valid
         assert "Drawdown" in reason
 
     def test_above_limit_rejected(self):
         v = SignalValidator(max_drawdown_pct=Decimal("5.0"))
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(current_drawdown_pct="7.0")
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(current_drawdown_pct="7.0"))
         assert not valid
 
     def test_below_limit_passes(self):
         v = SignalValidator(max_drawdown_pct=Decimal("5.0"))
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(current_drawdown_pct="4.9")
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(current_drawdown_pct="4.9"))
         assert valid
 
 
@@ -140,20 +125,17 @@ class TestDrawdownLimit:
 # Control 4: Daily loss limit
 # ---------------------------------------------------------------------------
 
+
 class TestDailyLossLimit:
     def test_at_limit_rejected(self):
         v = SignalValidator(max_daily_loss_pct=Decimal("2.0"))
-        valid, reason = v.validate(
-            _make_signal(), _make_portfolio(daily_loss_pct="2.0")
-        )
+        valid, reason = v.validate(_make_signal(), _make_portfolio(daily_loss_pct="2.0"))
         assert not valid
         assert "giornaliera" in reason
 
     def test_below_limit_passes(self):
         v = SignalValidator(max_daily_loss_pct=Decimal("2.0"))
-        valid, _ = v.validate(
-            _make_signal(), _make_portfolio(daily_loss_pct="1.9")
-        )
+        valid, _ = v.validate(_make_signal(), _make_portfolio(daily_loss_pct="1.9"))
         assert valid
 
 
@@ -161,41 +143,35 @@ class TestDailyLossLimit:
 # Control 5: Confidence threshold
 # ---------------------------------------------------------------------------
 
+
 class TestConfidenceThreshold:
     def test_below_threshold_rejected(self):
         v = SignalValidator(min_confidence=Decimal("0.65"))
-        valid, reason = v.validate(
-            _make_signal(confidence=Decimal("0.50")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(confidence=Decimal("0.50")), _make_portfolio())
         assert not valid
         assert "Confidenza" in reason
 
     def test_at_threshold_passes(self):
         v = SignalValidator(min_confidence=Decimal("0.65"))
-        valid, _ = v.validate(
-            _make_signal(confidence=Decimal("0.65")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(confidence=Decimal("0.65")), _make_portfolio())
         assert valid
 
     def test_nan_confidence_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(confidence=Decimal("NaN")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(confidence=Decimal("NaN")), _make_portfolio())
         assert not valid
         assert "non valida" in reason
 
     def test_inf_confidence_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(confidence=Decimal("Infinity")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(confidence=Decimal("Infinity")), _make_portfolio())
         assert not valid
 
 
 # ---------------------------------------------------------------------------
 # Control 5b: Spread percentile tracker
 # ---------------------------------------------------------------------------
+
 
 class TestSpreadPercentile:
     def test_spread_rejected_by_tracker(self):
@@ -213,25 +189,19 @@ class TestSpreadPercentile:
         tracker = MagicMock()
         tracker.check.return_value = (True, "ok")
         v = SignalValidator(spread_tracker=tracker)
-        valid, _ = v.validate(
-            _make_signal(spread=Decimal("1.2")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(spread=Decimal("1.2")), _make_portfolio())
         assert valid
 
     def test_zero_spread_skips_tracker(self):
         tracker = MagicMock()
         v = SignalValidator(spread_tracker=tracker)
-        valid, _ = v.validate(
-            _make_signal(spread=Decimal("0")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(spread=Decimal("0")), _make_portfolio())
         assert valid
         tracker.check.assert_not_called()
 
     def test_no_tracker_passes(self):
         v = SignalValidator(spread_tracker=None)
-        valid, _ = v.validate(
-            _make_signal(spread=Decimal("5.0")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(spread=Decimal("5.0")), _make_portfolio())
         assert valid
 
 
@@ -239,12 +209,11 @@ class TestSpreadPercentile:
 # Control 6: Stop-loss placement
 # ---------------------------------------------------------------------------
 
+
 class TestStopLossPlacement:
     def test_zero_stop_loss_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(stop_loss=Decimal("0")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(stop_loss=Decimal("0")), _make_portfolio())
         assert not valid
         assert "zero" in reason
 
@@ -313,23 +282,20 @@ class TestStopLossPlacement:
 
     def test_nan_entry_price_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(entry_price=Decimal("NaN")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(entry_price=Decimal("NaN")), _make_portfolio())
         assert not valid
         assert "non valido" in reason
 
     def test_nan_stop_loss_rejected(self):
         v = SignalValidator()
-        valid, reason = v.validate(
-            _make_signal(stop_loss=Decimal("NaN")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(stop_loss=Decimal("NaN")), _make_portfolio())
         assert not valid
 
 
 # ---------------------------------------------------------------------------
 # Control 7: Risk/reward ratio
 # ---------------------------------------------------------------------------
+
 
 class TestRiskRewardRatio:
     def test_below_minimum_rejected(self):
@@ -342,22 +308,19 @@ class TestRiskRewardRatio:
 
     def test_at_minimum_passes(self):
         v = SignalValidator(min_risk_reward_ratio=Decimal("1.5"))
-        valid, _ = v.validate(
-            _make_signal(risk_reward_ratio=Decimal("1.5")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(risk_reward_ratio=Decimal("1.5")), _make_portfolio())
         assert valid
 
     def test_zero_minimum_disables_check(self):
         v = SignalValidator(min_risk_reward_ratio=Decimal("0"))
-        valid, _ = v.validate(
-            _make_signal(risk_reward_ratio=Decimal("0.5")), _make_portfolio()
-        )
+        valid, _ = v.validate(_make_signal(risk_reward_ratio=Decimal("0.5")), _make_portfolio())
         assert valid
 
 
 # ---------------------------------------------------------------------------
 # Control 8: Margin check
 # ---------------------------------------------------------------------------
+
 
 class TestMarginCheck:
     def test_insufficient_margin_rejected(self):
@@ -416,14 +379,13 @@ class TestMarginCheck:
 # Control 9: Correlation checker
 # ---------------------------------------------------------------------------
 
+
 class TestCorrelationChecker:
     def test_correlation_rejected(self):
         checker = MagicMock()
         checker.check.return_value = (False, "EUR exposure too high")
         v = SignalValidator(correlation_checker=checker)
-        valid, reason = v.validate(
-            _make_signal(), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(), _make_portfolio())
         assert not valid
         assert "EUR" in reason
 
@@ -444,6 +406,7 @@ class TestCorrelationChecker:
 # Control 10: Session classifier
 # ---------------------------------------------------------------------------
 
+
 class TestSessionClassifier:
     def test_session_low_confidence_rejected(self):
         from enum import Enum
@@ -461,9 +424,7 @@ class TestSessionClassifier:
         )
         # Adjusted threshold: max(0.30, 0.65 - (-0.20)) = max(0.30, 0.85) = 0.85
         # Confidence 0.70 < 0.85 -> rejected
-        valid, reason = v.validate(
-            _make_signal(confidence=Decimal("0.70")), _make_portfolio()
-        )
+        valid, reason = v.validate(_make_signal(confidence=Decimal("0.70")), _make_portfolio())
         assert not valid
         assert "sessione" in reason
 
@@ -476,6 +437,7 @@ class TestSessionClassifier:
 # ---------------------------------------------------------------------------
 # Control 11: Calendar filter
 # ---------------------------------------------------------------------------
+
 
 class TestCalendarFilter:
     def test_blackout_period_rejected(self):
@@ -497,6 +459,7 @@ class TestCalendarFilter:
 # ---------------------------------------------------------------------------
 # Full pass-through
 # ---------------------------------------------------------------------------
+
 
 class TestFullValidation:
     def test_valid_signal_passes_all_controls(self):

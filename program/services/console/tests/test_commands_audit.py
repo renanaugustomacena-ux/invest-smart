@@ -112,6 +112,7 @@ class TestAuditCompliance:
 class TestAuditEnv:
     def test_no_env_file(self):
         from pathlib import Path
+
         with patch("moneymaker_console.commands.config._ENV_FILE", Path("/nonexistent")):
             result = _audit_env()
             assert "warning" in result.lower() or "Environment" in result
@@ -129,7 +130,16 @@ class TestAuditRegister:
         reg = CommandRegistry()
         register(reg)
         assert "audit" in reg.categories
-        expected = ["security", "secrets", "tls", "dependencies",
-                    "permissions", "docker", "hashchain", "compliance", "env"]
+        expected = [
+            "security",
+            "secrets",
+            "tls",
+            "dependencies",
+            "permissions",
+            "docker",
+            "hashchain",
+            "compliance",
+            "env",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["audit"]

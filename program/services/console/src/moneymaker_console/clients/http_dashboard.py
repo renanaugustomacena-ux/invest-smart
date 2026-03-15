@@ -21,6 +21,7 @@ class DashboardClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(f"{self._base_url}/health", timeout=5)
             resp.raise_for_status()
             return resp.json()

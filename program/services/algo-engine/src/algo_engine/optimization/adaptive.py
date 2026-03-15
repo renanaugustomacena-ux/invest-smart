@@ -55,8 +55,7 @@ class AdaptiveParameterTuner:
         }
 
         logger.info(
-            "AdaptiveParameterTuner initialised: interval=%d, rsi=%s, "
-            "ema_fast=%s, ema_slow=%s",
+            "AdaptiveParameterTuner initialised: interval=%d, rsi=%s, " "ema_fast=%s, ema_slow=%s",
             update_interval,
             rsi_bounds,
             ema_fast_bounds,

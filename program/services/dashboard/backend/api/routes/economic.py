@@ -38,6 +38,9 @@ async def recent_events(limit: int = Query(20, ge=1, le=100)) -> dict:
 
 def _serialize_list(rows: list[dict]) -> list[dict]:
     return [
-        {k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None for k, v in r.items()}
+        {
+            k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None
+            for k, v in r.items()
+        }
         for r in rows
     ]

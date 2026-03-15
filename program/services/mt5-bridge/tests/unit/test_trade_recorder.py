@@ -45,57 +45,69 @@ class TestDetermineOutcome:
 
 class TestCalculatePnlPips:
     def test_buy_forex_profit(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "EURUSD",
-            "direction": "BUY",
-            "price_open": "1.0800",
-            "price_close": "1.0850",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "price_open": "1.0800",
+                "price_close": "1.0850",
+            }
+        )
         assert result == Decimal("50.00")
 
     def test_buy_forex_loss(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "EURUSD",
-            "direction": "BUY",
-            "price_open": "1.0800",
-            "price_close": "1.0750",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "price_open": "1.0800",
+                "price_close": "1.0750",
+            }
+        )
         assert result == Decimal("-50.00")
 
     def test_sell_forex_profit(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "EURUSD",
-            "direction": "SELL",
-            "price_open": "1.0850",
-            "price_close": "1.0800",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "EURUSD",
+                "direction": "SELL",
+                "price_open": "1.0850",
+                "price_close": "1.0800",
+            }
+        )
         assert result == Decimal("50.00")
 
     def test_jpy_pair_pip_size(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "USDJPY",
-            "direction": "BUY",
-            "price_open": "150.00",
-            "price_close": "150.50",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "USDJPY",
+                "direction": "BUY",
+                "price_open": "150.00",
+                "price_close": "150.50",
+            }
+        )
         assert result == Decimal("50.00")
 
     def test_xauusd_pip_size(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "XAUUSD",
-            "direction": "BUY",
-            "price_open": "2000.00",
-            "price_close": "2001.00",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "XAUUSD",
+                "direction": "BUY",
+                "price_open": "2000.00",
+                "price_close": "2001.00",
+            }
+        )
         assert result == Decimal("100.00")
 
     def test_zero_open_price(self, recorder):
-        result = recorder._calculate_pnl_pips({
-            "symbol": "EURUSD",
-            "direction": "BUY",
-            "price_open": "0",
-            "price_close": "1.0800",
-        })
+        result = recorder._calculate_pnl_pips(
+            {
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "price_open": "0",
+                "price_close": "1.0800",
+            }
+        )
         assert result is None
 
     def test_missing_prices(self, recorder):

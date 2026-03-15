@@ -35,9 +35,9 @@ class TestEMAConvergence:
             bs.update(trend_score=Decimal("0.80"))
 
         beliefs = bs.get_beliefs()
-        assert beliefs.trend > Decimal("0.75"), (
-            f"After 50 updates of 0.80, trend should converge near 0.80, got {beliefs.trend}"
-        )
+        assert beliefs.trend > Decimal(
+            "0.75"
+        ), f"After 50 updates of 0.80, trend should converge near 0.80, got {beliefs.trend}"
 
     def test_momentum_converges_toward_negative(self):
         bs = BeliefState(alpha=Decimal("0.20"))
@@ -45,9 +45,9 @@ class TestEMAConvergence:
             bs.update(momentum_score=Decimal("-0.60"))
 
         beliefs = bs.get_beliefs()
-        assert beliefs.momentum < Decimal("-0.55"), (
-            f"Should converge near -0.60, got {beliefs.momentum}"
-        )
+        assert beliefs.momentum < Decimal(
+            "-0.55"
+        ), f"Should converge near -0.60, got {beliefs.momentum}"
 
     def test_higher_alpha_converges_faster(self):
         slow = BeliefState(alpha=Decimal("0.05"))
@@ -72,9 +72,9 @@ class TestEMAConvergence:
         # Then bearish for 30 bars
         for _ in range(30):
             bs.update(trend_score=Decimal("-0.80"))
-        assert bs.get_beliefs().trend < Decimal("-0.3"), (
-            f"Trend should flip negative, got {bs.get_beliefs().trend}"
-        )
+        assert bs.get_beliefs().trend < Decimal(
+            "-0.3"
+        ), f"Trend should flip negative, got {bs.get_beliefs().trend}"
 
 
 class TestEdgeBelief:

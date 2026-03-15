@@ -62,10 +62,16 @@ class DataQualityChecker:
         """
         # 1. Relazione OHLC — high deve essere il massimo, low il minimo
         if bar_high < bar_open or bar_high < bar_close:
-            return False, f"OHLC invalido: high ({bar_high}) < open ({bar_open}) o close ({bar_close})"
+            return (
+                False,
+                f"OHLC invalido: high ({bar_high}) < open ({bar_open}) o close ({bar_close})",
+            )
 
         if bar_low > bar_open or bar_low > bar_close:
-            return False, f"OHLC invalido: low ({bar_low}) > open ({bar_open}) o close ({bar_close})"
+            return (
+                False,
+                f"OHLC invalido: low ({bar_low}) > open ({bar_open}) o close ({bar_close})",
+            )
 
         if bar_high < bar_low:
             return False, f"OHLC invalido: high ({bar_high}) < low ({bar_low})"

@@ -125,34 +125,49 @@ class AlgoEngine:
         self._mtf_confirmation = mtf_confirmation
         self._maturity_gate = maturity_gate
 
-        if any([bayesian_regime, spectral_detector, ou_analyzer, fractal_analyzer,
-                shift_detector, advanced_sizer, trailing_manager, adaptive_tuner,
-                feature_scorer, belief_state, composite_confidence,
-                mtf_confirmation, maturity_gate]):
-            active = [name for name, mod in [
-                ("bayesian_regime", bayesian_regime),
-                ("spectral_detector", spectral_detector),
-                ("ou_analyzer", ou_analyzer),
-                ("fractal_analyzer", fractal_analyzer),
-                ("shift_detector", shift_detector),
-                ("advanced_sizer", advanced_sizer),
-                ("trailing_manager", trailing_manager),
-                ("adaptive_tuner", adaptive_tuner),
-                ("feature_scorer", feature_scorer),
-                ("belief_state", belief_state),
-                ("composite_confidence", composite_confidence),
-                ("mtf_confirmation", mtf_confirmation),
-                ("maturity_gate", maturity_gate),
-            ] if mod is not None]
+        if any(
+            [
+                bayesian_regime,
+                spectral_detector,
+                ou_analyzer,
+                fractal_analyzer,
+                shift_detector,
+                advanced_sizer,
+                trailing_manager,
+                adaptive_tuner,
+                feature_scorer,
+                belief_state,
+                composite_confidence,
+                mtf_confirmation,
+                maturity_gate,
+            ]
+        ):
+            active = [
+                name
+                for name, mod in [
+                    ("bayesian_regime", bayesian_regime),
+                    ("spectral_detector", spectral_detector),
+                    ("ou_analyzer", ou_analyzer),
+                    ("fractal_analyzer", fractal_analyzer),
+                    ("shift_detector", shift_detector),
+                    ("advanced_sizer", advanced_sizer),
+                    ("trailing_manager", trailing_manager),
+                    ("adaptive_tuner", adaptive_tuner),
+                    ("feature_scorer", feature_scorer),
+                    ("belief_state", belief_state),
+                    ("composite_confidence", composite_confidence),
+                    ("mtf_confirmation", mtf_confirmation),
+                    ("maturity_gate", maturity_gate),
+                ]
+                if mod is not None
+            ]
             logger.info("Advanced modules active", modules=active)
 
     @property
     def bar_counter(self) -> int:
         return self._bar_counter
 
-    async def process_bar(
-        self, symbol: str, timeframe: str, bar: OHLCVBar
-    ) -> dict | None:
+    async def process_bar(self, symbol: str, timeframe: str, bar: OHLCVBar) -> dict | None:
         """Process a single OHLCV bar through the deterministic pipeline.
 
         Returns a validated trading signal dict ready for dispatch, or None.
@@ -173,9 +188,7 @@ class AlgoEngine:
             )
             return None
 
-    async def _process_bar_inner(
-        self, symbol: str, timeframe: str, bar: OHLCVBar
-    ) -> dict | None:
+    async def _process_bar_inner(self, symbol: str, timeframe: str, bar: OHLCVBar) -> dict | None:
         """Internal pipeline logic wrapped by process_bar timeout."""
         self._bar_counter += 1
 
@@ -189,9 +202,7 @@ class AlgoEngine:
             bar_timestamp_ms=bar.timestamp,
         )
         if not is_quality_ok:
-            logger.debug(
-                "Bar rejected for quality", symbol=symbol, reason=quality_reason
-            )
+            logger.debug("Bar rejected for quality", symbol=symbol, reason=quality_reason)
             return None
 
         # --- Step 2: MTF accumulation + bar buffer (algo-engine lines 563-566) ---
@@ -229,7 +240,12 @@ class AlgoEngine:
         # --- Step 3a-iii: MTF confirmation matrix (optional) ---
         if self._mtf_confirmation is not None:
             try:
-                direction_hint = "BUY" if features.get("ema_fast", Decimal("0")) > features.get("ema_slow", Decimal("0")) else "SELL"
+                direction_hint = (
+                    "BUY"
+                    if features.get("ema_fast", Decimal("0"))
+                    > features.get("ema_slow", Decimal("0"))
+                    else "SELL"
+                )
                 mtf_result = self._mtf_confirmation.compute(features, direction_hint)
                 features["mtf_confirmation_ratio"] = mtf_result.confirmation_ratio
                 features["mtf_trend_agreement"] = mtf_result.trend_agreement
@@ -285,16 +301,12 @@ class AlgoEngine:
         )
 
         # --- Step 5: Session classification ---
-        session_name = self._session_classifier.classify(
-            bar.timestamp // 3_600_000 % 24
-        )
+        self._session_classifier.classify(bar.timestamp // 3_600_000 % 24)
 
         # --- Step 6: Strategy routing ---
         # Use probabilistic routing if Bayesian posteriors available
         if bayesian_posteriors is not None:
-            suggestion = self._router.route_probabilistic(
-                bayesian_posteriors, features
-            )
+            suggestion = self._router.route_probabilistic(bayesian_posteriors, features)
         else:
             suggestion = self._router.route(regime.value, features)
         source_tier = SourceTier.TECHNICAL
@@ -315,9 +327,7 @@ class AlgoEngine:
 
         current_price = features["latest_close"]
         atr = features.get("atr", Decimal("0"))
-        trading_signal = self._signal_gen.generate_signal(
-            symbol, suggestion, current_price, atr
-        )
+        trading_signal = self._signal_gen.generate_signal(symbol, suggestion, current_price, atr)
         if trading_signal is None:
             return None
 
@@ -380,9 +390,7 @@ class AlgoEngine:
                 )
 
         SIGNAL_CONFIDENCE.observe(float(suggestion.confidence))
-        SIGNALS_GENERATED.labels(
-            symbol=symbol, direction=str(suggestion.direction)
-        ).inc()
+        SIGNALS_GENERATED.labels(symbol=symbol, direction=str(suggestion.direction)).inc()
 
         # Step 8b: Spiral protection — cooldown check (algo-engine lines 902-920)
         if self._spiral_protection.is_in_cooldown():
@@ -472,9 +480,9 @@ class AlgoEngine:
             try:
                 params = self._ou_analyzer.update(closes[-1])
                 if params is not None:
-                    features["ou_s_score"] = self._ou_analyzer.get_signal(
-                        closes[-1], params
-                    ).get("s_score")
+                    features["ou_s_score"] = self._ou_analyzer.get_signal(closes[-1], params).get(
+                        "s_score"
+                    )
                     features["ou_half_life"] = params.half_life
             except Exception as e:
                 logger.debug("OU analysis failed", error=str(e))

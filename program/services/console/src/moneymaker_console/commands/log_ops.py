@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from moneymaker_console.registry import CommandRegistry
-from moneymaker_console.runner import _PROJECT_ROOT, run_tool
+from moneymaker_console.runner import _PROJECT_ROOT
 
 
 def _log_view(*args: str) -> str:
@@ -17,6 +17,7 @@ def _log_view(*args: str) -> str:
             tail = int(args[i + 1])
     try:
         from moneymaker_console.clients import ClientFactory
+
         return ClientFactory.get_docker().logs(service, tail=tail)
     except Exception as exc:
         return f"[error] {exc}"
@@ -25,6 +26,7 @@ def _log_view(*args: str) -> str:
 def _log_console(*args: str) -> str:
     """View the console's own JSON log."""
     from datetime import date
+
     days = int(args[0]) if args else 1
     today = date.today()
     log_dir = _PROJECT_ROOT / "services" / "console" / "logs"
@@ -32,6 +34,7 @@ def _log_console(*args: str) -> str:
     lines = [f"Console Log (last {days} day(s))", "=" * 50]
     for d in range(days):
         from datetime import timedelta
+
         target = today - timedelta(days=d)
         log_file = log_dir / f"console_{target.strftime('%Y%m%d')}.json"
         if log_file.exists():
@@ -56,8 +59,9 @@ def _log_search(*args: str) -> str:
     if service:
         try:
             from moneymaker_console.clients import ClientFactory
+
             logs = ClientFactory.get_docker().logs(service, tail=200)
-            matches = [l for l in logs.splitlines() if query.lower() in l.lower()]
+            matches = [line for line in logs.splitlines() if query.lower() in line.lower()]
             if matches:
                 return "\n".join(matches[:30])
             return f"No matches for '{query}' in {service} logs."
@@ -79,9 +83,13 @@ def _log_errors(*args: str) -> str:
 
     try:
         from moneymaker_console.clients import ClientFactory
+
         logs = ClientFactory.get_docker().logs(service, tail=500)
-        errors = [l for l in logs.splitlines()
-                  if "ERROR" in l.upper() or "EXCEPTION" in l.upper() or "TRACEBACK" in l.upper()]
+        errors = [
+            line
+            for line in logs.splitlines()
+            if "ERROR" in line.upper() or "EXCEPTION" in line.upper() or "TRACEBACK" in line.upper()
+        ]
         if errors:
             lines = [f"Errors in {service} (last 500 lines)", "=" * 60]
             lines.extend(errors[:30])
@@ -104,8 +112,10 @@ def _log_export(*args: str) -> str:
         return "Usage: log export SERVICE --output FILE"
     try:
         from moneymaker_console.clients import ClientFactory
+
         logs = ClientFactory.get_docker().logs(service, tail=5000)
         from pathlib import Path
+
         Path(output).write_text(logs)
         return f"[success] Exported {len(logs.splitlines())} lines to {output}"
     except Exception as exc:
@@ -114,8 +124,6 @@ def _log_export(*args: str) -> str:
 
 def _log_rotate(*args: str) -> str:
     """Trigger log rotation."""
-    import glob
-    from pathlib import Path
     log_dir = _PROJECT_ROOT / "services" / "console" / "logs"
     if not log_dir.exists():
         return "No log directory found."

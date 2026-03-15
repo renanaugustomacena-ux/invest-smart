@@ -42,10 +42,10 @@ def _clamp(value: Decimal, lo: Decimal = NEG_ONE, hi: Decimal = ONE) -> Decimal:
 class FeatureAssessment:
     """Unified multi-dimensional market assessment."""
 
-    trend: Decimal       # [-1, +1] bearish ← 0 → bullish
-    momentum: Decimal    # [-1, +1] oversold ← 0 → overbought
+    trend: Decimal  # [-1, +1] bearish ← 0 → bullish
+    momentum: Decimal  # [-1, +1] oversold ← 0 → overbought
     volatility: Decimal  # [-1, +1] contracting ← 0 → expanding
-    volume: Decimal      # [-1, +1] low participation ← 0 → high participation
+    volume: Decimal  # [-1, +1] low participation ← 0 → high participation
 
     @property
     def composite(self) -> Decimal:

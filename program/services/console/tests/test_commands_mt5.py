@@ -78,7 +78,11 @@ class TestMt5WithClients:
 
     def test_status_health_ok(self, mock_cf):
         mock_mt5 = MagicMock()
-        mock_mt5.check_health.return_value = {"status": "connected", "message": "OK", "uptime_seconds": 3600}
+        mock_mt5.check_health.return_value = {
+            "status": "connected",
+            "message": "OK",
+            "uptime_seconds": 3600,
+        }
         mock_cf.get_mt5.return_value = mock_mt5
         result = _mt5_status()
         assert "connected" in result or "MT5" in result
@@ -108,9 +112,15 @@ class TestMt5WithClients:
         mock_db = MagicMock()
         mock_db.ping.return_value = True
         mock_db.query_dict.return_value = [
-            {"order_id": 1, "symbol": "EURUSD", "direction": "BUY",
-             "quantity": 0.1, "executed_price": 1.0850,
-             "stop_loss": 1.0800, "take_profit": 1.0950},
+            {
+                "order_id": 1,
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "quantity": 0.1,
+                "executed_price": 1.0850,
+                "stop_loss": 1.0800,
+                "take_profit": 1.0950,
+            },
         ]
         mock_cf.get_postgres.return_value = mock_db
         result = _mt5_positions()
@@ -135,10 +145,18 @@ class TestMt5WithClients:
         mock_db = MagicMock()
         mock_db.ping.return_value = True
         mock_db.query_dict.return_value = [
-            {"order_id": 1, "symbol": "EURUSD", "direction": "BUY",
-             "quantity": 0.1, "executed_price": 1.0850, "pnl": 50.0,
-             "commission": -2.0, "swap": 0, "opened_at": "2024-01-15",
-             "closed_at": "2024-01-16"},
+            {
+                "order_id": 1,
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "quantity": 0.1,
+                "executed_price": 1.0850,
+                "pnl": 50.0,
+                "commission": -2.0,
+                "swap": 0,
+                "opened_at": "2024-01-15",
+                "closed_at": "2024-01-16",
+            },
         ]
         mock_cf.get_postgres.return_value = mock_db
         result = _mt5_history()
@@ -169,9 +187,15 @@ class TestMt5WithClients:
     def test_orders_found(self, mock_cf):
         mock_db = MagicMock()
         mock_db.query_dict.return_value = [
-            {"order_id": 1, "symbol": "EURUSD", "direction": "BUY_LIMIT",
-             "quantity": 0.1, "requested_price": 1.0800,
-             "status": "PENDING", "created_at": "2024-01-15"},
+            {
+                "order_id": 1,
+                "symbol": "EURUSD",
+                "direction": "BUY_LIMIT",
+                "quantity": 0.1,
+                "requested_price": 1.0800,
+                "status": "PENDING",
+                "created_at": "2024-01-15",
+            },
         ]
         mock_cf.get_postgres.return_value = mock_db
         result = _mt5_orders()
@@ -216,6 +240,7 @@ class TestMt5Disconnect:
     @patch("moneymaker_console.runner.subprocess.run")
     def test_disconnect(self, mock_run, mock_cf):
         import subprocess
+
         mock_run.return_value = subprocess.CompletedProcess(
             args=["docker"], returncode=0, stdout="stopped\n", stderr=""
         )
@@ -228,8 +253,18 @@ class TestMt5Register:
         reg = CommandRegistry()
         register(reg)
         assert "mt5" in reg.categories
-        expected = ["connect", "disconnect", "status", "positions",
-                    "history", "close", "close-all", "modify",
-                    "account", "sync", "orders"]
+        expected = [
+            "connect",
+            "disconnect",
+            "status",
+            "positions",
+            "history",
+            "close",
+            "close-all",
+            "modify",
+            "account",
+            "sync",
+            "orders",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["mt5"]

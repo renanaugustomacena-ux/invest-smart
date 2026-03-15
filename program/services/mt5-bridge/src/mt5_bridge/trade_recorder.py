@@ -14,7 +14,6 @@ Responsabilità:
 
 from __future__ import annotations
 
-import asyncio
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -183,8 +182,16 @@ class TradeRecorder:
         # Converti timestamp Unix in datetime
         open_time = trade_result.get("open_time", 0)
         close_time = trade_result.get("close_time", 0)
-        opened_at = datetime.fromtimestamp(open_time, tz=timezone.utc) if open_time else datetime.now(timezone.utc)
-        closed_at = datetime.fromtimestamp(close_time, tz=timezone.utc) if close_time else datetime.now(timezone.utc)
+        opened_at = (
+            datetime.fromtimestamp(open_time, tz=timezone.utc)
+            if open_time
+            else datetime.now(timezone.utc)
+        )
+        closed_at = (
+            datetime.fromtimestamp(close_time, tz=timezone.utc)
+            if close_time
+            else datetime.now(timezone.utc)
+        )
 
         # Normalizza direzione
         direction = trade_result.get("direction", "BUY").lower()

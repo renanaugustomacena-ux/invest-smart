@@ -75,9 +75,7 @@ def _joint_entropy(x_floats: np.ndarray, y_floats: np.ndarray, n_bins: int) -> f
     return entropy
 
 
-def mutual_information(
-    x: list[Decimal], y: list[Decimal], n_bins: int = 20
-) -> Decimal:
+def mutual_information(x: list[Decimal], y: list[Decimal], n_bins: int = 20) -> Decimal:
     """Compute mutual information MI(X, Y) = H(X) + H(Y) - H(X, Y).
 
     Uses a 2-D histogram for joint entropy estimation.  Captures
@@ -96,9 +94,7 @@ def mutual_information(
         ValueError: If *x* and *y* differ in length.
     """
     if len(x) != len(y):
-        raise ValueError(
-            f"Series must have equal length: len(x)={len(x)}, len(y)={len(y)}"
-        )
+        raise ValueError(f"Series must have equal length: len(x)={len(x)}, len(y)={len(y)}")
 
     if len(x) < 2:
         return ZERO
@@ -120,9 +116,7 @@ def mutual_information(
     return mi
 
 
-def kl_divergence(
-    p: list[Decimal], q: list[Decimal], n_bins: int = 20
-) -> Decimal:
+def kl_divergence(p: list[Decimal], q: list[Decimal], n_bins: int = 20) -> Decimal:
     """Compute Kullback-Leibler divergence KL(P || Q).
 
     KL(P||Q) = sum(p_i * log2(p_i / q_i)).  A small epsilon is added

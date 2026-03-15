@@ -221,9 +221,7 @@ class WaveletDenoiser:
         # Apply threshold to all detail coefficients (keep approximation intact)
         denoised_coeffs = [coeffs[0]]
         for detail in coeffs[1:]:
-            denoised_coeffs.append(
-                pywt.threshold(detail, value=threshold, mode=threshold_mode)
-            )
+            denoised_coeffs.append(pywt.threshold(detail, value=threshold, mode=threshold_mode))
 
         # Reconstruct
         reconstructed = pywt.waverec(denoised_coeffs, self.wavelet)

@@ -252,7 +252,8 @@ class BridgeClient:
             try:
                 start = time.monotonic()
                 response = await self._stub.ExecuteTrade(
-                    proto_signal, timeout=self._RPC_TIMEOUT,
+                    proto_signal,
+                    timeout=self._RPC_TIMEOUT,
                 )
                 elapsed_ms = (time.monotonic() - start) * 1000
 

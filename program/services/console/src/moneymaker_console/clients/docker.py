@@ -20,8 +20,10 @@ class DockerClient:
     def _compose_cmd(self, *args: str) -> list[str]:
         """Build a docker compose command list."""
         return [
-            "docker", "compose",
-            "-f", self._compose_file,
+            "docker",
+            "compose",
+            "-f",
+            self._compose_file,
             *args,
         ]
 

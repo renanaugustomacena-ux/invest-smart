@@ -21,6 +21,7 @@ def _alert_status(*args: str) -> str:
     # Redis pub/sub
     try:
         from moneymaker_console.clients import ClientFactory
+
         redis = ClientFactory.get_redis()
         if redis.ping():
             lines.append("  Redis:     CONNECTED (pub/sub available)")
@@ -59,8 +60,11 @@ def _alert_test(*args: str) -> str:
     if channel in ("all", "redis"):
         try:
             from moneymaker_console.clients import ClientFactory
+
             redis = ClientFactory.get_redis()
-            redis.publish("moneymaker:alerts", '{"level":"INFO","message":"Test alert from console"}')
+            redis.publish(
+                "moneymaker:alerts", '{"level":"INFO","message":"Test alert from console"}'
+            )
             lines.append("  Redis pub/sub: SENT")
         except Exception as exc:
             lines.append(f"  Redis pub/sub: FAILED ({exc})")
@@ -71,6 +75,7 @@ def _alert_test(*args: str) -> str:
         if token and chat_id:
             try:
                 import httpx
+
                 resp = httpx.post(
                     f"https://api.telegram.org/bot{token}/sendMessage",
                     json={"chat_id": chat_id, "text": "MONEYMAKER Test Alert"},
@@ -125,6 +130,7 @@ def _alert_history(*args: str) -> str:
             days = int(args[i + 1])
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT created_at, level, message, channel "
@@ -147,12 +153,16 @@ def _alert_mute(*args: str) -> str:
     minutes = int(args[0]) if args else 60
     try:
         from moneymaker_console.clients import ClientFactory
-        import json, time
+        import time
+
         redis = ClientFactory.get_redis()
-        redis.set_json("moneymaker:alert_mute", {
-            "muted_until": time.time() + (minutes * 60),
-            "muted_at": time.time(),
-        })
+        redis.set_json(
+            "moneymaker:alert_mute",
+            {
+                "muted_until": time.time() + (minutes * 60),
+                "muted_at": time.time(),
+            },
+        )
         return f"[success] Non-critical alerts muted for {minutes} minutes."
     except Exception as exc:
         return f"[error] {exc}"
@@ -162,6 +172,7 @@ def _alert_unmute(*args: str) -> str:
     """Unmute alerts."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         redis = ClientFactory.get_redis()
         redis.delete("moneymaker:alert_mute")
         return "[success] Alerts unmuted."
@@ -182,6 +193,7 @@ def _alert_telegram(*args: str) -> str:
             chat_id = args[i + 1]
     if token and chat_id:
         from moneymaker_console.commands.config import _config_set
+
         _config_set("TELEGRAM_BOT_TOKEN", token)
         _config_set("TELEGRAM_CHAT_ID", chat_id)
         return "[success] Telegram configured. Run 'alert test telegram' to verify."

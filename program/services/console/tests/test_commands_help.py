@@ -9,6 +9,7 @@ from moneymaker_console.registry import CommandRegistry
 class TestHelpCommand:
     def test_no_registry(self):
         import moneymaker_console.commands.help as help_mod
+
         old = help_mod._registry
         help_mod._registry = None
         try:

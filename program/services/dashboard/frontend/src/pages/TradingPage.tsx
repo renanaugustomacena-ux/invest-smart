@@ -6,23 +6,7 @@ import EmptyState from '../components/common/EmptyState';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useTradingStore } from '../store/tradingStore';
-
-interface SignalRow {
-  symbol: string;
-  direction: string;
-  confidence: string;
-  source_tier: string;
-  regime: string;
-  created_at: string;
-}
-
-interface PositionRow {
-  symbol: string;
-  side: string;
-  quantity: string;
-  avg_price: string;
-  unrealized_pnl: string;
-}
+import type { SignalRow, PositionRow } from '../store/tradingStore';
 
 interface WsTradingPayload {
   type: string;

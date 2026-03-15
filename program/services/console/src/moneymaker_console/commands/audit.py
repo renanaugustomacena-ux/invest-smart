@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import stat
 from pathlib import Path
 
 from moneymaker_console.registry import CommandRegistry
@@ -27,8 +26,20 @@ def _audit_security(*args: str) -> str:
 
     # Check for secrets in git
     result = run_tool(
-        ["git", "log", "--all", "-p", "--diff-filter=A", "-S", "PASSWORD",
-         "--format=%h %s", "--", "*.py", "*.yml", "*.yaml"],
+        [
+            "git",
+            "log",
+            "--all",
+            "-p",
+            "--diff-filter=A",
+            "-S",
+            "PASSWORD",
+            "--format=%h %s",
+            "--",
+            "*.py",
+            "*.yml",
+            "*.yaml",
+        ],
         cwd=str(_PROJECT_ROOT),
     )
     if result.strip():
@@ -63,8 +74,13 @@ def _audit_secrets(*args: str) -> str:
     """Scan for committed secrets."""
     deep = "--deep" in args
     patterns = [
-        "PRIVATE.KEY", "BEGIN RSA", "BEGIN EC",
-        "sk_live_", "sk_test_", "ghp_", "gho_",
+        "PRIVATE.KEY",
+        "BEGIN RSA",
+        "BEGIN EC",
+        "sk_live_",
+        "sk_test_",
+        "ghp_",
+        "gho_",
     ]
     lines = ["Secret Scan", "=" * 50]
 
@@ -164,10 +180,9 @@ def _audit_hashchain(*args: str) -> str:
     """Verify audit hash chain integrity."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
-        row = db.query_one(
-            "SELECT count(*) FROM audit_log"
-        )
+        row = db.query_one("SELECT count(*) FROM audit_log")
         count = row[0] if row else 0
         if count == 0:
             return "No audit log entries to verify."
@@ -202,6 +217,7 @@ def _audit_compliance(*args: str) -> str:
 def _audit_env(*args: str) -> str:
     """Audit the .env file."""
     from moneymaker_console.commands.config import _read_env_file, _is_secret, _ENV_FILE
+
     env = _read_env_file(_ENV_FILE)
     if not env:
         return "[warning] No .env file found."
@@ -237,7 +253,7 @@ def _audit_report(*args: str) -> str:
         ("Docker", _audit_docker),
         ("Environment", _audit_env),
     ]
-    parts = [f"# MONEYMAKER Security Audit Report\n"]
+    parts = ["# MONEYMAKER Security Audit Report\n"]
     for name, fn in sections:
         parts.append(f"\n## {name}\n```\n{fn()}\n```\n")
 
@@ -245,6 +261,7 @@ def _audit_report(*args: str) -> str:
 
     # Save
     from datetime import datetime
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_dir = _PROJECT_ROOT.parent / "AUDIT_REPORTS"
     report_dir.mkdir(exist_ok=True)

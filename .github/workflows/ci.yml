@@ -121,6 +121,8 @@ jobs:
       - name: Mypy type check
         run: |
           pip install -e program/shared/python-common/
+          mkdir -p program/shared/proto/gen/moneymaker_proto
+          touch program/shared/proto/gen/__init__.py program/shared/proto/gen/moneymaker_proto/__init__.py
           pip install -e program/shared/proto/
           pip install pydantic pydantic-settings structlog prometheus-client \
                       grpcio protobuf numpy scipy redis sqlalchemy asyncpg pyzmq
@@ -194,6 +196,8 @@ jobs:
       - name: Install
         run: |
           pip install -e program/shared/python-common/
+          mkdir -p program/shared/proto/gen/moneymaker_proto
+          touch program/shared/proto/gen/__init__.py program/shared/proto/gen/moneymaker_proto/__init__.py
           pip install -e program/shared/proto/
           pip install -e "program/services/algo-engine/[dev]"
       - name: Unit tests
@@ -253,6 +257,8 @@ jobs:
       - name: Install
         run: |
           pip install -e program/shared/python-common/
+          mkdir -p program/shared/proto/gen/moneymaker_proto
+          touch program/shared/proto/gen/__init__.py program/shared/proto/gen/moneymaker_proto/__init__.py
           pip install -e program/shared/proto/
           pip install -e "program/services/mt5-bridge/[dev]"
       - name: Unit tests
@@ -413,6 +419,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          install-mode: goinstall
           working-directory: program/services/data-ingestion
       - name: Test with coverage
         working-directory: program/services/data-ingestion
@@ -591,7 +598,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: moneymaker-${{ matrix.service }}:ci
           format: table

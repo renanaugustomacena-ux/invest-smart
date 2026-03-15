@@ -122,15 +122,15 @@ class SignalValidator:
             except ValueError:
                 direction = Direction.HOLD
         if direction == Direction.HOLD:
-            logger.debug(
-                "Segnale rifiutato: direzione HOLD", signal_id=signal.get("signal_id")
-            )
+            logger.debug("Segnale rifiutato: direzione HOLD", signal_id=signal.get("signal_id"))
             return False, "I segnali HOLD non vengono eseguiti"
 
         # Controllo 2: Posizioni aperte massime — il parcheggio è pieno
         open_positions = portfolio_state.get("open_position_count", 0)
         if open_positions >= self.max_open_positions:
-            reason = f"Posizioni aperte massime raggiunte: {open_positions}/{self.max_open_positions}"
+            reason = (
+                f"Posizioni aperte massime raggiunte: {open_positions}/{self.max_open_positions}"
+            )
             logger.warning(
                 "Segnale rifiutato: max posizioni",
                 signal_id=signal.get("signal_id"),
@@ -140,9 +140,7 @@ class SignalValidator:
             return False, reason
 
         # Controllo 3: Drawdown massimo — il freno d'emergenza
-        current_drawdown = Decimal(
-            str(portfolio_state.get("current_drawdown_pct", "0"))
-        )
+        current_drawdown = Decimal(str(portfolio_state.get("current_drawdown_pct", "0")))
         if current_drawdown >= self.max_drawdown_pct:
             reason = f"Drawdown massimo superato: {current_drawdown}% >= {self.max_drawdown_pct}%"
             logger.warning(
@@ -156,7 +154,9 @@ class SignalValidator:
         # Controllo 4: Limite perdita giornaliera — il budget è esaurito
         daily_loss = Decimal(str(portfolio_state.get("daily_loss_pct", "0")))
         if daily_loss >= self.max_daily_loss_pct:
-            reason = f"Limite perdita giornaliera superato: {daily_loss}% >= {self.max_daily_loss_pct}%"
+            reason = (
+                f"Limite perdita giornaliera superato: {daily_loss}% >= {self.max_daily_loss_pct}%"
+            )
             logger.warning(
                 "Segnale rifiutato: limite perdita giornaliera",
                 signal_id=signal.get("signal_id"),
@@ -214,9 +214,7 @@ class SignalValidator:
 
         # Verifica che lo stop-loss sia dal lato corretto del prezzo d'ingresso
         if direction == Direction.BUY and stop_loss >= entry_price:
-            reason = (
-                f"Stop-loss BUY ({stop_loss}) deve essere sotto il prezzo d'ingresso ({entry_price})"
-            )
+            reason = f"Stop-loss BUY ({stop_loss}) deve essere sotto il prezzo d'ingresso ({entry_price})"
             logger.warning(
                 "Segnale rifiutato: SL posizionato male",
                 signal_id=signal.get("signal_id"),
@@ -239,10 +237,7 @@ class SignalValidator:
 
         # Controllo 7: Rapporto rischio/rendimento minimo — il gioco deve valere la candela
         risk_reward = Decimal(str(signal.get("risk_reward_ratio", "0")))
-        if (
-            risk_reward < self.min_risk_reward_ratio
-            and self.min_risk_reward_ratio > ZERO
-        ):
+        if risk_reward < self.min_risk_reward_ratio and self.min_risk_reward_ratio > ZERO:
             reason = f"Rapporto rischio/rendimento troppo basso: {risk_reward} < {self.min_risk_reward_ratio}"
             logger.info(
                 "Segnale rifiutato: rischio/rendimento basso",
@@ -262,16 +257,18 @@ class SignalValidator:
         if equity > ZERO and suggested_lots > ZERO:
             symbol = signal.get("symbol", "")
             if "XAU" in symbol:
-                contract_size = Decimal("100")      # 1 lot = 100 oz gold
+                contract_size = Decimal("100")  # 1 lot = 100 oz gold
             elif "XAG" in symbol:
-                contract_size = Decimal("5000")     # 1 lot = 5000 oz silver
+                contract_size = Decimal("5000")  # 1 lot = 5000 oz silver
             else:
-                contract_size = Decimal("100000")   # 1 lot = 100k units (forex)
+                contract_size = Decimal("100000")  # 1 lot = 100k units (forex)
             # Usa la leva reale dal contesto account, fallback al default configurato
             account_leverage = int(portfolio_state.get("leverage", self._default_leverage))
             if account_leverage <= 0:
                 account_leverage = self._default_leverage
-            estimated_margin = (suggested_lots * contract_size * entry_price) / Decimal(str(account_leverage))
+            estimated_margin = (suggested_lots * contract_size * entry_price) / Decimal(
+                str(account_leverage)
+            )
             available_margin = equity - used_margin
             margin_buffer = available_margin * self._margin_buffer_pct
             if estimated_margin > margin_buffer:
@@ -298,9 +295,7 @@ class SignalValidator:
             symbol = signal.get("symbol", "")
             dir_str = str(direction)
             positions_detail = portfolio_state.get("positions_detail", [])
-            is_ok, corr_reason = self._correlation_checker.check(
-                symbol, dir_str, positions_detail
-            )
+            is_ok, corr_reason = self._correlation_checker.check(symbol, dir_str, positions_detail)
             if not is_ok:
                 logger.warning(
                     "Segnale rifiutato: correlazione esposizione",

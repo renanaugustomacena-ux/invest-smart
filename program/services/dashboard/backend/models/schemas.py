@@ -7,8 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # --- Overview ---
+
 
 class ServiceHealth(BaseModel):
     name: str
@@ -37,6 +37,7 @@ class OverviewResponse(BaseModel):
 
 
 # --- Trading ---
+
 
 class TradingSignal(BaseModel):
     signal_id: str
@@ -78,6 +79,7 @@ class TradingResponse(BaseModel):
 
 # --- Risk ---
 
+
 class RiskMetrics(BaseModel):
     daily_loss_pct: str = "0.00"
     drawdown_pct: str = "0.00"
@@ -91,6 +93,7 @@ class RiskMetrics(BaseModel):
 
 
 # --- Market Data ---
+
 
 class OHLCVBar(BaseModel):
     time: datetime
@@ -110,6 +113,7 @@ class MarketDataResponse(BaseModel):
 
 # --- Macro ---
 
+
 class MacroSnapshot(BaseModel):
     vix_spot: str | None = None
     vix_regime: str | None = None
@@ -125,6 +129,7 @@ class MacroSnapshot(BaseModel):
 
 # --- Strategy ---
 
+
 class StrategyPerformance(BaseModel):
     strategy_name: str
     symbol: str | None = None
@@ -138,6 +143,7 @@ class StrategyPerformance(BaseModel):
 
 # --- Economic ---
 
+
 class EconomicEvent(BaseModel):
     event_time: datetime
     event_name: str
@@ -150,6 +156,7 @@ class EconomicEvent(BaseModel):
 
 
 # --- System ---
+
 
 class SystemStatus(BaseModel):
     database: ServiceHealth

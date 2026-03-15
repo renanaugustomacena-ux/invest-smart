@@ -67,6 +67,7 @@ class OrderManager:
         self._max_drawdown_pct = max_drawdown_pct
         self._recent_signals: dict[str, float] = {}  # signal_id → timestamp
         import threading
+
         self._execution_lock = threading.Lock()
 
     def execute_signal(self, signal: dict[str, Any]) -> dict[str, Any]:
@@ -167,9 +168,7 @@ class OrderManager:
         # Controlla la direzione
         direction = signal.get("direction", "")
         if direction not in ("BUY", "SELL"):
-            raise SignalRejectedError(
-                signal["signal_id"], f"direzione non valida: {direction}"
-            )
+            raise SignalRejectedError(signal["signal_id"], f"direzione non valida: {direction}")
 
         # Controlla la dimensione dei lotti
         lots = to_decimal(signal.get("suggested_lots", "0"))
@@ -253,7 +252,11 @@ class OrderManager:
                     )
 
                 # Perdita giornaliera approssimata dal P&L floating
-                daily_loss_pct = (account["profit"] / balance) * Decimal("-100") if account["profit"] < ZERO else ZERO
+                daily_loss_pct = (
+                    (account["profit"] / balance) * Decimal("-100")
+                    if account["profit"] < ZERO
+                    else ZERO
+                )
                 if daily_loss_pct >= self._max_daily_loss_pct:
                     raise SignalRejectedError(
                         signal["signal_id"],
@@ -372,9 +375,7 @@ class OrderManager:
         except ImportError:
             raise BrokerError("Pacchetto MetaTrader5 non disponibile")
 
-        order_type = (
-            mt5.ORDER_TYPE_BUY_LIMIT if direction == "BUY" else mt5.ORDER_TYPE_SELL_LIMIT
-        )
+        order_type = mt5.ORDER_TYPE_BUY_LIMIT if direction == "BUY" else mt5.ORDER_TYPE_SELL_LIMIT
 
         request = {
             "action": mt5.TRADE_ACTION_PENDING,
@@ -418,8 +419,7 @@ class OrderManager:
         """Rimuove segnali più vecchi della finestra di de-duplicazione configurata."""
         now = time.time()
         expired = [
-            sid for sid, ts in self._recent_signals.items()
-            if now - ts > self._dedup_window_sec
+            sid for sid, ts in self._recent_signals.items() if now - ts > self._dedup_window_sec
         ]
         for sid in expired:
             del self._recent_signals[sid]

@@ -25,4 +25,5 @@ def discover_and_register(registry: CommandRegistry) -> None:
         except Exception as exc:
             # Never crash on a bad command module — log and skip
             from moneymaker_console.console_logging import log_event
+
             log_event("command_discovery_error", module=name, error=str(exc))

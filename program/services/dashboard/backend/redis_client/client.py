@@ -9,7 +9,6 @@ import redis.asyncio as aioredis
 
 from backend.config import settings
 
-
 _client: aioredis.Redis | None = None
 
 
@@ -29,7 +28,9 @@ async def get_redis() -> aioredis.Redis:
         except aioredis.AuthenticationError:
             # Password in .env but Redis has none — retry without auth
             await client.aclose()
-            fallback_url = f"redis://{settings.moneymaker_redis_host}:{settings.moneymaker_redis_port}/0"
+            fallback_url = (
+                f"redis://{settings.moneymaker_redis_host}:{settings.moneymaker_redis_port}/0"
+            )
             _client = aioredis.from_url(fallback_url, decode_responses=True)
     return _client
 

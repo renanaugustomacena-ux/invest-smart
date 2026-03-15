@@ -27,12 +27,13 @@ ONE = Decimal("1")
 def _pure_sine(period: int = 20, n: int = 400, amplitude: float = 1.0) -> list[Decimal]:
     """Generate a pure sine wave with known period."""
     return [
-        Decimal(str(round(amplitude * math.sin(2 * math.pi * i / period), 10)))
-        for i in range(n)
+        Decimal(str(round(amplitude * math.sin(2 * math.pi * i / period), 10))) for i in range(n)
     ]
 
 
-def _noisy_sine(period: int = 20, n: int = 400, noise_std: float = 0.3, seed: int = 42) -> list[Decimal]:
+def _noisy_sine(
+    period: int = 20, n: int = 400, noise_std: float = 0.3, seed: int = 42
+) -> list[Decimal]:
     """Sine wave with additive Gaussian noise."""
     rng = np.random.default_rng(seed)
     signal = [amplitude := math.sin(2 * math.pi * i / period) for i in range(n)]

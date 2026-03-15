@@ -57,10 +57,14 @@ class TestDispatch:
         assert "Available:" in result
 
     def test_dispatch_handler_exception(self, registry):
-        registry.register("fail", "boom", lambda: (_ for _ in ()).throw(ValueError("test")), "Will fail")
+        registry.register(
+            "fail", "boom", lambda: (_ for _ in ()).throw(ValueError("test")), "Will fail"
+        )
+
         # Use a simpler approach
         def raise_error():
             raise ValueError("test error")
+
         registry.register("fail2", "boom", raise_error, "Will fail")
         result = registry.dispatch("fail2", "boom", [])
         assert "[error]" in result

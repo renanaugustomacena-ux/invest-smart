@@ -23,8 +23,14 @@ from external_data.main import ExternalDataService
 @pytest.fixture()
 def settings(monkeypatch):
     for key in [
-        "FRED_API_KEY", "POLYGON_API_KEY", "REDIS_URL",
-        "DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
+        "FRED_API_KEY",
+        "POLYGON_API_KEY",
+        "REDIS_URL",
+        "DB_HOST",
+        "DB_PORT",
+        "DB_USER",
+        "DB_PASSWORD",
+        "DB_NAME",
     ]:
         monkeypatch.delenv(key, raising=False)
     return ExternalDataSettings()

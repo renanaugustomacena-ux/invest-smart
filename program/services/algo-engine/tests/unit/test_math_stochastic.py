@@ -27,7 +27,9 @@ HSV = HestonStochasticVolatility
 # ---------------------------------------------------------------------------
 
 
-def _normal_returns(n: int = 100, mu: float = 0.0005, sigma: float = 0.01, seed: int = 42) -> list[Decimal]:
+def _normal_returns(
+    n: int = 100, mu: float = 0.0005, sigma: float = 0.01, seed: int = 42
+) -> list[Decimal]:
     """Generate normal log returns."""
     rng = np.random.default_rng(seed)
     returns = rng.normal(mu, sigma, n)
@@ -83,16 +85,22 @@ class TestGeometricBrownianMotion:
     # --- simulate_paths tests ---
 
     def test_simulate_shape(self) -> None:
-        paths = GBM.simulate_paths(s0=100.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=10, seed=42)
+        paths = GBM.simulate_paths(
+            s0=100.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=10, seed=42
+        )
         n_steps = int(round(1.0 / (1 / 252)))
         assert paths.shape == (n_steps + 1, 10)
 
     def test_simulate_first_row_is_s0(self) -> None:
-        paths = GBM.simulate_paths(s0=50.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=5, seed=42)
+        paths = GBM.simulate_paths(
+            s0=50.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=5, seed=42
+        )
         np.testing.assert_allclose(paths[0], 50.0)
 
     def test_simulate_all_positive(self) -> None:
-        paths = GBM.simulate_paths(s0=100.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=20, seed=42)
+        paths = GBM.simulate_paths(
+            s0=100.0, mu=0.05, sigma=0.2, t=1.0, dt=1 / 252, n_paths=20, seed=42
+        )
         assert np.all(paths > 0)
 
     def test_simulate_s0_zero_raises(self) -> None:
@@ -114,7 +122,9 @@ class TestGeometricBrownianMotion:
 
     def test_simulate_zero_sigma_pure_drift(self) -> None:
         # With sigma=0, S(t) = S0 * exp(mu * t)
-        paths = GBM.simulate_paths(s0=100.0, mu=0.1, sigma=0.0, t=1.0, dt=1 / 252, n_paths=1, seed=42)
+        paths = GBM.simulate_paths(
+            s0=100.0, mu=0.1, sigma=0.0, t=1.0, dt=1 / 252, n_paths=1, seed=42
+        )
         expected_final = 100.0 * math.exp(0.1 * 1.0)
         assert abs(paths[-1, 0] - expected_final) < 0.01
 
@@ -264,13 +274,17 @@ class TestHestonStochasticVolatility:
 
     def test_simulate_returns_tuple(self) -> None:
         params = {"mu": 0.05, "kappa": 2.0, "theta": 0.04, "xi": 0.3, "rho": -0.7}
-        result = HSV.simulate_paths(params, s0=100.0, v0=0.04, t=0.5, dt=1 / 252, n_paths=3, seed=42)
+        result = HSV.simulate_paths(
+            params, s0=100.0, v0=0.04, t=0.5, dt=1 / 252, n_paths=3, seed=42
+        )
         assert isinstance(result, tuple)
         assert len(result) == 2
 
     def test_simulate_shapes_match(self) -> None:
         params = {"mu": 0.05, "kappa": 2.0, "theta": 0.04, "xi": 0.3, "rho": -0.7}
-        prices, vols = HSV.simulate_paths(params, s0=100.0, v0=0.04, t=1.0, dt=1 / 252, n_paths=5, seed=42)
+        prices, vols = HSV.simulate_paths(
+            params, s0=100.0, v0=0.04, t=1.0, dt=1 / 252, n_paths=5, seed=42
+        )
         assert prices.shape == vols.shape
 
     def test_simulate_s0_zero_raises(self) -> None:
@@ -283,13 +297,19 @@ class TestHestonStochasticVolatility:
 
     def test_simulate_deterministic_seed(self) -> None:
         params = {"mu": 0.05, "kappa": 2.0, "theta": 0.04, "xi": 0.3, "rho": -0.7}
-        p1, v1 = HSV.simulate_paths(params, s0=100.0, v0=0.04, t=0.1, dt=1 / 252, n_paths=3, seed=99)
-        p2, v2 = HSV.simulate_paths(params, s0=100.0, v0=0.04, t=0.1, dt=1 / 252, n_paths=3, seed=99)
+        p1, v1 = HSV.simulate_paths(
+            params, s0=100.0, v0=0.04, t=0.1, dt=1 / 252, n_paths=3, seed=99
+        )
+        p2, v2 = HSV.simulate_paths(
+            params, s0=100.0, v0=0.04, t=0.1, dt=1 / 252, n_paths=3, seed=99
+        )
         np.testing.assert_array_equal(p1, p2)
         np.testing.assert_array_equal(v1, v2)
 
     def test_simulate_first_row_s0(self) -> None:
         params = {"mu": 0.05, "kappa": 2.0, "theta": 0.04, "xi": 0.3, "rho": -0.7}
-        prices, vols = HSV.simulate_paths(params, s0=50.0, v0=0.04, t=0.5, dt=1 / 252, n_paths=3, seed=42)
+        prices, vols = HSV.simulate_paths(
+            params, s0=50.0, v0=0.04, t=0.5, dt=1 / 252, n_paths=3, seed=42
+        )
         np.testing.assert_allclose(prices[0], 50.0)
         np.testing.assert_allclose(vols[0], 0.04)

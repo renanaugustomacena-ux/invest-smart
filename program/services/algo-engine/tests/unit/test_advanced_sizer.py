@@ -12,13 +12,13 @@ from algo_engine.signals.advanced_sizer import (
     TradeRecord,
 )
 
-
 D = Decimal
 
 
 # ===========================================================================
 # DrawdownScaler
 # ===========================================================================
+
 
 class TestDrawdownScaler:
     def test_no_drawdown_full_size(self):
@@ -31,29 +31,37 @@ class TestDrawdownScaler:
 
     def test_at_tier1_reduced(self):
         s = DrawdownScaler(
-            tier1_dd=D("3"), tier1_scale=D("0.50"),
-            tier2_dd=D("5"), tier2_scale=D("0.25"),
+            tier1_dd=D("3"),
+            tier1_scale=D("0.50"),
+            tier2_dd=D("5"),
+            tier2_scale=D("0.25"),
         )
         assert s.scale(D("3.0")) == D("0.50")
 
     def test_between_tiers_tier1_scale(self):
         s = DrawdownScaler(
-            tier1_dd=D("3"), tier1_scale=D("0.50"),
-            tier2_dd=D("5"), tier2_scale=D("0.25"),
+            tier1_dd=D("3"),
+            tier1_scale=D("0.50"),
+            tier2_dd=D("5"),
+            tier2_scale=D("0.25"),
         )
         assert s.scale(D("4.5")) == D("0.50")
 
     def test_at_tier2_minimum(self):
         s = DrawdownScaler(
-            tier1_dd=D("3"), tier1_scale=D("0.50"),
-            tier2_dd=D("5"), tier2_scale=D("0.25"),
+            tier1_dd=D("3"),
+            tier1_scale=D("0.50"),
+            tier2_dd=D("5"),
+            tier2_scale=D("0.25"),
         )
         assert s.scale(D("5.0")) == D("0.25")
 
     def test_above_tier2_minimum(self):
         s = DrawdownScaler(
-            tier1_dd=D("3"), tier1_scale=D("0.50"),
-            tier2_dd=D("5"), tier2_scale=D("0.25"),
+            tier1_dd=D("3"),
+            tier1_scale=D("0.50"),
+            tier2_dd=D("5"),
+            tier2_scale=D("0.25"),
         )
         assert s.scale(D("10.0")) == D("0.25")
 
@@ -61,6 +69,7 @@ class TestDrawdownScaler:
 # ===========================================================================
 # TradeRecord
 # ===========================================================================
+
 
 class TestTradeRecord:
     def test_frozen(self):
@@ -72,6 +81,7 @@ class TestTradeRecord:
 # ===========================================================================
 # AdvancedPositionSizer
 # ===========================================================================
+
 
 class TestAdvancedSizerBasic:
     def test_returns_decimal(self):

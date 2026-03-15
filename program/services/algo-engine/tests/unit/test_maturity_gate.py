@@ -14,8 +14,8 @@ from algo_engine.maturity_gate import (
     STATE_MULTIPLIERS,
 )
 
-
 # ---- ConvictionIndex tests ----
+
 
 class TestConvictionIndex:
     def test_perfect_metrics(self):
@@ -87,9 +87,9 @@ class TestConvictionIndex:
                 for pf in (Decimal("0"), Decimal("1.5"), Decimal("50")):
                     for dd in (Decimal("0"), Decimal("50"), Decimal("200")):
                         snap = ci.compute(wr, sr, pf, dd)
-                        assert Decimal("0") <= snap.conviction_index <= Decimal("1"), (
-                            f"Out of bounds: {snap.conviction_index}"
-                        )
+                        assert (
+                            Decimal("0") <= snap.conviction_index <= Decimal("1")
+                        ), f"Out of bounds: {snap.conviction_index}"
 
     def test_returns_frozen_snapshot(self):
         ci = ConvictionIndex()
@@ -100,6 +100,7 @@ class TestConvictionIndex:
 
 
 # ---- MaturityGate state machine tests ----
+
 
 class TestMaturityGateInitial:
     def test_starts_in_doubt(self):
@@ -257,10 +258,15 @@ class TestStateMultipliers:
 
     def test_multipliers_monotonic(self):
         """Higher states must have higher or equal multipliers."""
-        vals = [STATE_MULTIPLIERS[s] for s in [
-            MaturityState.DOUBT, MaturityState.LEARNING,
-            MaturityState.CONVICTION, MaturityState.MATURE,
-        ]]
+        vals = [
+            STATE_MULTIPLIERS[s]
+            for s in [
+                MaturityState.DOUBT,
+                MaturityState.LEARNING,
+                MaturityState.CONVICTION,
+                MaturityState.MATURE,
+            ]
+        ]
         for i in range(len(vals) - 1):
             assert vals[i] < vals[i + 1]
 

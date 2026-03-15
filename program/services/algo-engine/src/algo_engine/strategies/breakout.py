@@ -96,14 +96,12 @@ class BreakoutStrategy(TradingStrategy):
         if is_upper_break:
             direction = Direction.BUY
             reasoning = (
-                f"Donchian upper breakout ({close}>={donchian_upper}); "
-                f"{'; '.join(reasons)}"
+                f"Donchian upper breakout ({close}>={donchian_upper}); " f"{'; '.join(reasons)}"
             )
         else:
             direction = Direction.SELL
             reasoning = (
-                f"Donchian lower breakout ({close}<={donchian_lower}); "
-                f"{'; '.join(reasons)}"
+                f"Donchian lower breakout ({close}<={donchian_lower}); " f"{'; '.join(reasons)}"
             )
 
         logger.debug(

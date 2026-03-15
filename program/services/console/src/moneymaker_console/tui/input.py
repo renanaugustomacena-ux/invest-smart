@@ -21,6 +21,7 @@ class InputHandler:
         if not self._is_windows:
             import termios
             import tty
+
             self._old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
         return self
@@ -28,6 +29,7 @@ class InputHandler:
     def __exit__(self, *exc) -> None:
         if not self._is_windows and self._old_settings is not None:
             import termios
+
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_settings)
 
     def get_char(self) -> str | None:
@@ -39,6 +41,7 @@ class InputHandler:
     @staticmethod
     def _get_char_windows() -> str | None:
         import msvcrt
+
         if msvcrt.kbhit():
             return msvcrt.getwch()
         return None
@@ -46,6 +49,7 @@ class InputHandler:
     @staticmethod
     def _get_char_unix() -> str | None:
         import select
+
         if select.select([sys.stdin], [], [], 0.0)[0]:
             return sys.stdin.read(1)
         return None

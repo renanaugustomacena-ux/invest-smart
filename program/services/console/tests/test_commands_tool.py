@@ -23,6 +23,7 @@ from moneymaker_console.registry import CommandRegistry
 class TestToolList:
     def test_no_registry(self):
         import moneymaker_console.commands.tool as t
+
         old = t._registry_ref
         t._registry_ref = None
         result = _tool_list()
@@ -185,7 +186,17 @@ class TestToolRegister:
         reg = CommandRegistry()
         register(reg)
         assert "tool" in reg.categories
-        expected = ["list", "logs", "env-check", "shell", "sql",
-                    "redis-cli", "benchmark", "version", "whoami", "motd"]
+        expected = [
+            "list",
+            "logs",
+            "env-check",
+            "shell",
+            "sql",
+            "redis-cli",
+            "benchmark",
+            "version",
+            "whoami",
+            "motd",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["tool"]

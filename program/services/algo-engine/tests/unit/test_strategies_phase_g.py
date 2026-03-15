@@ -288,19 +288,23 @@ class TestOUMeanReversion:
         s = OUMeanReversionStrategy(lookback=100)
         # Feed only 5 prices — need 100
         for i in range(5):
-            sig = s.analyze({
-                "symbol": "EURUSD",
-                "latest_close": D("1.10000") + D(str(i)) * D("0.0001"),
-            })
+            sig = s.analyze(
+                {
+                    "symbol": "EURUSD",
+                    "latest_close": D("1.10000") + D(str(i)) * D("0.0001"),
+                }
+            )
         assert sig.direction == Direction.HOLD
 
     def test_builds_price_history(self):
         s = OUMeanReversionStrategy(lookback=10)
         for i in range(15):
-            s.analyze({
-                "symbol": "EURUSD",
-                "latest_close": D("1.10000") + D(str(i)) * D("0.0001"),
-            })
+            s.analyze(
+                {
+                    "symbol": "EURUSD",
+                    "latest_close": D("1.10000") + D(str(i)) * D("0.0001"),
+                }
+            )
         assert len(s._price_history.get("EURUSD", [])) <= 10
 
     def test_separate_symbol_histories(self):

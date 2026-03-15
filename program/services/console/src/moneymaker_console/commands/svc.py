@@ -78,8 +78,14 @@ def _svc_inspect(*args: str) -> str:
     if not args:
         return "[error] Usage: svc inspect <service>"
     cmd = [
-        "docker", "compose", "-f", str(_DOCKER_COMPOSE),
-        "ps", "--format", "json", args[0],
+        "docker",
+        "compose",
+        "-f",
+        str(_DOCKER_COMPOSE),
+        "ps",
+        "--format",
+        "json",
+        args[0],
     ]
     return run_tool(cmd, cwd=_PROJECT_ROOT)
 
@@ -107,8 +113,13 @@ def _svc_compose_config(*args: str) -> str:
 def _svc_health(*args: str) -> str:
     """Run Docker health checks for services."""
     cmd = [
-        "docker", "compose", "-f", str(_DOCKER_COMPOSE),
-        "ps", "--format", "table",
+        "docker",
+        "compose",
+        "-f",
+        str(_DOCKER_COMPOSE),
+        "ps",
+        "--format",
+        "table",
     ]
     return run_tool(cmd, cwd=_PROJECT_ROOT)
 
@@ -126,7 +137,9 @@ def _svc_launch(*args: str) -> str:
 
 def register(registry: CommandRegistry) -> None:
     registry.register("svc", "up", _svc_up, "Start services (docker compose up)", timeout_sec=120)
-    registry.register("svc", "down", _svc_down, "Stop services (docker compose down)", timeout_sec=120)
+    registry.register(
+        "svc", "down", _svc_down, "Stop services (docker compose down)", timeout_sec=120
+    )
     registry.register("svc", "restart", _svc_restart, "Restart a service", timeout_sec=120)
     registry.register("svc", "status", _svc_status, "Container status")
     registry.register("svc", "logs", _svc_logs, "Service logs [--follow] [--tail N]")
@@ -134,10 +147,15 @@ def register(registry: CommandRegistry) -> None:
     registry.register("svc", "exec", _svc_exec, "Execute command in container", timeout_sec=120)
     registry.register("svc", "inspect", _svc_inspect, "Container inspection details")
     registry.register("svc", "pull", _svc_pull, "Pull latest images", timeout_sec=300)
-    registry.register("svc", "prune", _svc_prune, "Prune unused Docker resources",
-                       requires_confirmation=True)
-    registry.register("svc", "compose-config", _svc_compose_config,
-                       "Show effective compose config")
+    registry.register(
+        "svc", "prune", _svc_prune, "Prune unused Docker resources", requires_confirmation=True
+    )
+    registry.register("svc", "compose-config", _svc_compose_config, "Show effective compose config")
     registry.register("svc", "health", _svc_health, "Docker health check status")
-    registry.register("svc", "launch", _svc_launch,
-                       "Launch full stack with validation [--no-build]", timeout_sec=300)
+    registry.register(
+        "svc",
+        "launch",
+        _svc_launch,
+        "Launch full stack with validation [--no-build]",
+        timeout_sec=300,
+    )

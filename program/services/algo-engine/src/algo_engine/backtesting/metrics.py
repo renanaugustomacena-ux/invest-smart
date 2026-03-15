@@ -79,9 +79,7 @@ class BacktestMetrics:
 
     def __init__(self, *, risk_free_rate: Decimal = Decimal("0.02")) -> None:
         self._risk_free_rate = risk_free_rate
-        self._daily_risk_free = _quantize(
-            risk_free_rate / _TRADING_DAYS_PER_YEAR, "0.00000001"
-        )
+        self._daily_risk_free = _quantize(risk_free_rate / _TRADING_DAYS_PER_YEAR, "0.00000001")
 
     def compute(
         self,
@@ -131,9 +129,7 @@ class BacktestMetrics:
             result.sortino_ratio = self._sortino_ratio(returns)
 
         if result.max_drawdown_pct > ZERO:
-            result.calmar_ratio = _quantize(
-                result.annualized_return_pct / result.max_drawdown_pct
-            )
+            result.calmar_ratio = _quantize(result.annualized_return_pct / result.max_drawdown_pct)
 
         # Trade-level metrics
         self._compute_trade_metrics(trade_log, result)
@@ -161,22 +157,16 @@ class BacktestMetrics:
             if prev == ZERO:
                 returns.append(ZERO)
             else:
-                ret = _quantize(
-                    (equity_curve[i] - prev) / prev, "0.00000001"
-                )
+                ret = _quantize((equity_curve[i] - prev) / prev, "0.00000001")
                 returns.append(ret)
         return returns
 
     @staticmethod
-    def _total_return_pct(
-        initial_equity: Decimal, final_equity: Decimal
-    ) -> Decimal:
+    def _total_return_pct(initial_equity: Decimal, final_equity: Decimal) -> Decimal:
         """Calculate total return as a percentage."""
         if initial_equity == ZERO:
             return ZERO
-        return _quantize(
-            ((final_equity - initial_equity) / initial_equity) * Decimal("100")
-        )
+        return _quantize(((final_equity - initial_equity) / initial_equity) * Decimal("100"))
 
     @staticmethod
     def _annualized_return(total_return_pct: Decimal, num_periods: int) -> Decimal:
@@ -262,9 +252,7 @@ class BacktestMetrics:
         return _quantize(max_dd_pct), _quantize(max_dd_value)
 
     @staticmethod
-    def _compute_trade_metrics(
-        trade_log: list[dict[str, Any]], result: BacktestResult
-    ) -> None:
+    def _compute_trade_metrics(trade_log: list[dict[str, Any]], result: BacktestResult) -> None:
         """Populate trade-level metrics on the result object."""
         if not trade_log:
             return
@@ -299,12 +287,8 @@ class BacktestMetrics:
             result.profit_factor = _quantize(result.gross_profit / result.gross_loss)
 
         # Average trade P&L
-        total_pnl = sum(
-            (Decimal(str(t.get("pnl", "0"))) for t in trade_log), ZERO
-        )
-        result.avg_trade_pnl = _quantize(
-            total_pnl / Decimal(str(result.total_trades))
-        )
+        total_pnl = sum((Decimal(str(t.get("pnl", "0"))) for t in trade_log), ZERO)
+        result.avg_trade_pnl = _quantize(total_pnl / Decimal(str(result.total_trades)))
 
         # Average trade duration in bars (using timestamps)
         durations: list[int] = []
@@ -339,9 +323,7 @@ class BacktestMetrics:
 
         # Decimal doesn't have sqrt, use float conversion
         std_float = math.sqrt(float(variance))
-        return Decimal(str(std_float)).quantize(
-            Decimal("0.00000001"), rounding=ROUND_HALF_EVEN
-        )
+        return Decimal(str(std_float)).quantize(Decimal("0.00000001"), rounding=ROUND_HALF_EVEN)
 
     @staticmethod
     def _downside_deviation(values: list[Decimal]) -> Decimal:
@@ -355,6 +337,4 @@ class BacktestMetrics:
         variance = sum(squared_diffs, ZERO) / Decimal(str(len(negative_returns) - 1))
 
         std_float = math.sqrt(float(variance))
-        return Decimal(str(std_float)).quantize(
-            Decimal("0.00000001"), rounding=ROUND_HALF_EVEN
-        )
+        return Decimal(str(std_float)).quantize(Decimal("0.00000001"), rounding=ROUND_HALF_EVEN)

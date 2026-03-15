@@ -164,6 +164,7 @@ async def main() -> None:
 
     loop = asyncio.get_event_loop()
     import sys
+
     if sys.platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, handle_signal, sig)

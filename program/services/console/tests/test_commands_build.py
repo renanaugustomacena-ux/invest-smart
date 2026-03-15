@@ -142,7 +142,15 @@ class TestBuildRegister:
         reg = CommandRegistry()
         register(reg)
         assert "build" in reg.categories
-        expected = ["all", "brain", "ingestion", "bridge",
-                    "dashboard", "external", "status", "clean"]
+        expected = [
+            "all",
+            "brain",
+            "ingestion",
+            "bridge",
+            "dashboard",
+            "external",
+            "status",
+            "clean",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["build"]

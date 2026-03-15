@@ -193,9 +193,7 @@ class SpiralProtection:
                 remaining = cooldown_until - time.time()
                 if remaining > 0:
                     # Convert wall-clock deadline back to monotonic offset
-                    self._cooldown_start = time.monotonic() - (
-                        self._cooldown_seconds - remaining
-                    )
+                    self._cooldown_start = time.monotonic() - (self._cooldown_seconds - remaining)
                 else:
                     # Cooldown already expired
                     self._cooldown_start = None

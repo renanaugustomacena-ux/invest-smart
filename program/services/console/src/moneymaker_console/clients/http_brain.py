@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
 from moneymaker_console.console_logging import log_event
 
@@ -24,6 +23,7 @@ class BrainClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(url, timeout=timeout)
             resp.raise_for_status()
             return resp.json()
@@ -41,6 +41,7 @@ class BrainClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(url, timeout=timeout)
             resp.raise_for_status()
             return resp.text
@@ -58,6 +59,7 @@ class BrainClient:
             return None
         try:
             import httpx
+
             resp = httpx.get(f"{self._metrics_url}/", timeout=5)
             if resp.status_code == 200:
                 return {"status": "HEALTHY", "source": "metrics"}

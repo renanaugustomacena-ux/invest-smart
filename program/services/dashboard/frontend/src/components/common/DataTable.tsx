@@ -11,7 +11,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export default function DataTable<T extends Record<string, unknown>>({
+export default function DataTable<T extends object>({
   columns,
   data,
   emptyMessage = 'No data available',
@@ -48,7 +48,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               >
                 {columns.map((col) => (
                   <td key={col.key} className={`px-4 py-3 ${col.className || ''}`}>
-                    {col.render ? col.render(row) : String(row[col.key] ?? '-')}
+                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '-')}
                   </td>
                 ))}
               </tr>

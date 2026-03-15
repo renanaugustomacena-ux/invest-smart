@@ -9,10 +9,10 @@ def _signal_status(*args: str) -> str:
     """Display signal pipeline status."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         total = db.query_one(
-            "SELECT count(*) FROM trading_signals "
-            "WHERE created_at > NOW() - INTERVAL '24 hours'"
+            "SELECT count(*) FROM trading_signals " "WHERE created_at > NOW() - INTERVAL '24 hours'"
         )
         validated = db.query_one(
             "SELECT count(*) FROM trading_signals "
@@ -41,6 +41,7 @@ def _signal_last(*args: str) -> str:
     n = int(args[0]) if args else 5
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT id, symbol, direction, confidence, strategy_source, "
@@ -66,6 +67,7 @@ def _signal_pending(*args: str) -> str:
     """Display signals in the validation queue."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT id, symbol, direction, confidence, created_at "
@@ -89,6 +91,7 @@ def _signal_rejected(*args: str) -> str:
     days = int(args[0]) if args else 7
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT id, symbol, direction, confidence, rejection_reason, created_at "
@@ -102,10 +105,7 @@ def _signal_rejected(*args: str) -> str:
         lines = [f"Rejected Signals (last {days} days)", "=" * 80]
         for r in rows:
             conf = f"{r[3]:.2f}" if r[3] is not None else "N/A"
-            lines.append(
-                f"  {r[1]:12s} {r[2]:5s} conf={conf}  "
-                f"reason={r[4] or 'N/A'}  {r[5]}"
-            )
+            lines.append(f"  {r[1]:12s} {r[2]:5s} conf={conf}  " f"reason={r[4] or 'N/A'}  {r[5]}")
         return "\n".join(lines)
     except Exception as exc:
         return f"[error] {exc}"
@@ -115,6 +115,7 @@ def _signal_confidence(*args: str) -> str:
     """Display confidence distribution histogram."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT width_bucket(confidence, 0, 1, 10) AS bucket, "
@@ -143,6 +144,7 @@ def _signal_rate(*args: str) -> str:
     """Display signal generation rate."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT date_trunc('hour', created_at) AS hr, count(*) AS cnt "
@@ -153,6 +155,7 @@ def _signal_rate(*args: str) -> str:
         if not rows:
             return "No signals generated in the last 24 hours."
         import os
+
         max_rate = os.environ.get("BRAIN_MAX_SIGNALS_PER_HOUR", "50")
         lines = [f"Signal Rate (max: {max_rate}/hr)", "=" * 50]
         for r in rows:
@@ -166,6 +169,7 @@ def _signal_strategy(*args: str) -> str:
     """Display strategy source breakdown."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT strategy_source, count(*) AS cnt, "
@@ -191,6 +195,7 @@ def _signal_validate(*args: str) -> str:
         return "Usage: signal validate SIGNAL_ID"
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT id, symbol, direction, confidence, validation_result, "

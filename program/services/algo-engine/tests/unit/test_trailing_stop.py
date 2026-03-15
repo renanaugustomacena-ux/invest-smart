@@ -13,7 +13,6 @@ from algo_engine.signals.trailing_stop import (
     TrailingStopState,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -25,12 +24,16 @@ D = Decimal
 # TrailingStopState
 # ---------------------------------------------------------------------------
 
+
 class TestTrailingStopState:
     def test_frozen(self):
         state = TrailingStopState(
-            symbol="EURUSD", direction="BUY",
-            entry_price=D("1.10000"), current_stop=D("1.09500"),
-            highest_price=D("1.10000"), lowest_price=D("1.10000"),
+            symbol="EURUSD",
+            direction="BUY",
+            entry_price=D("1.10000"),
+            current_stop=D("1.09500"),
+            highest_price=D("1.10000"),
+            lowest_price=D("1.10000"),
             mode=TrailingMode.ATR_TRAIL,
         )
         with pytest.raises(AttributeError):
@@ -38,9 +41,12 @@ class TestTrailingStopState:
 
     def test_default_not_break_even(self):
         state = TrailingStopState(
-            symbol="EURUSD", direction="BUY",
-            entry_price=D("1.10000"), current_stop=D("1.09500"),
-            highest_price=D("1.10000"), lowest_price=D("1.10000"),
+            symbol="EURUSD",
+            direction="BUY",
+            entry_price=D("1.10000"),
+            current_stop=D("1.09500"),
+            highest_price=D("1.10000"),
+            lowest_price=D("1.10000"),
             mode=TrailingMode.ATR_TRAIL,
         )
         assert state.is_break_even is False
@@ -49,6 +55,7 @@ class TestTrailingStopState:
 # ---------------------------------------------------------------------------
 # open_position
 # ---------------------------------------------------------------------------
+
 
 class TestOpenPosition:
     def test_creates_state(self):
@@ -64,7 +71,10 @@ class TestOpenPosition:
     def test_custom_mode(self):
         mgr = TrailingStopManager()
         state = mgr.open_position(
-            "EURUSD", "SELL", D("1.1"), D("1.12"),
+            "EURUSD",
+            "SELL",
+            D("1.1"),
+            D("1.12"),
             mode=TrailingMode.CHANDELIER,
         )
         assert state.mode == TrailingMode.CHANDELIER
@@ -73,6 +83,7 @@ class TestOpenPosition:
 # ---------------------------------------------------------------------------
 # ATR Trailing
 # ---------------------------------------------------------------------------
+
 
 class TestATRTrail:
     def test_buy_stop_moves_up(self):
@@ -112,11 +123,15 @@ class TestATRTrail:
 # Chandelier
 # ---------------------------------------------------------------------------
 
+
 class TestChandelier:
     def test_buy_chandelier_trail(self):
         mgr = TrailingStopManager(chandelier_multiplier=D("3.0"))
         state = mgr.open_position(
-            "EURUSD", "BUY", D("1.10000"), D("1.09000"),
+            "EURUSD",
+            "BUY",
+            D("1.10000"),
+            D("1.09000"),
             mode=TrailingMode.CHANDELIER,
         )
         # High = 1.12000, ATR = 0.00200
@@ -129,11 +144,15 @@ class TestChandelier:
 # Break Even
 # ---------------------------------------------------------------------------
 
+
 class TestBreakEven:
     def test_promotes_to_break_even(self):
         mgr = TrailingStopManager(break_even_atr_profit=D("2.0"))
         state = mgr.open_position(
-            "EURUSD", "BUY", D("1.10000"), D("1.09500"),
+            "EURUSD",
+            "BUY",
+            D("1.10000"),
+            D("1.09500"),
             mode=TrailingMode.BREAK_EVEN,
         )
         # Profit threshold = 2.0 * ATR (0.00200) = 0.00400
@@ -146,7 +165,10 @@ class TestBreakEven:
     def test_not_enough_profit_stays(self):
         mgr = TrailingStopManager(break_even_atr_profit=D("2.0"))
         state = mgr.open_position(
-            "EURUSD", "BUY", D("1.10000"), D("1.09500"),
+            "EURUSD",
+            "BUY",
+            D("1.10000"),
+            D("1.09500"),
             mode=TrailingMode.BREAK_EVEN,
         )
         # Profit = 0.00100, threshold = 0.00400 → no promotion
@@ -157,7 +179,10 @@ class TestBreakEven:
     def test_sell_break_even(self):
         mgr = TrailingStopManager(break_even_atr_profit=D("2.0"))
         state = mgr.open_position(
-            "EURUSD", "SELL", D("1.10000"), D("1.10500"),
+            "EURUSD",
+            "SELL",
+            D("1.10000"),
+            D("1.10500"),
             mode=TrailingMode.BREAK_EVEN,
         )
         # Profit = entry - price = 1.10000 - 1.09400 = 0.00600 > threshold 0.00400
@@ -169,11 +194,15 @@ class TestBreakEven:
 # Percentage
 # ---------------------------------------------------------------------------
 
+
 class TestPercentageTrail:
     def test_buy_percentage_trail(self):
         mgr = TrailingStopManager(pct_trail=D("1.0"))
         state = mgr.open_position(
-            "EURUSD", "BUY", D("100.00"), D("98.00"),
+            "EURUSD",
+            "BUY",
+            D("100.00"),
+            D("98.00"),
             mode=TrailingMode.PERCENTAGE,
         )
         # Highest = 105.00, candidate = 105.00 * (1 - 0.01) = 103.95
@@ -184,7 +213,10 @@ class TestPercentageTrail:
     def test_sell_percentage_trail(self):
         mgr = TrailingStopManager(pct_trail=D("1.0"))
         state = mgr.open_position(
-            "EURUSD", "SELL", D("100.00"), D("102.00"),
+            "EURUSD",
+            "SELL",
+            D("100.00"),
+            D("102.00"),
             mode=TrailingMode.PERCENTAGE,
         )
         # Lowest = 95.00, candidate = 95.00 * (1 + 0.01) = 95.95
@@ -196,6 +228,7 @@ class TestPercentageTrail:
 # ---------------------------------------------------------------------------
 # Stopped out
 # ---------------------------------------------------------------------------
+
 
 class TestStoppedOut:
     def test_buy_stopped_out_at_stop(self):
@@ -227,6 +260,7 @@ class TestStoppedOut:
 # ---------------------------------------------------------------------------
 # PositionTracker
 # ---------------------------------------------------------------------------
+
 
 class TestPositionTracker:
     def test_open_and_get(self):

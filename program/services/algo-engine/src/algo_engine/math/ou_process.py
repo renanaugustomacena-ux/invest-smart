@@ -76,8 +76,7 @@ class OrnsteinUhlenbeck:
         n = len(series)
         if n < _MIN_OBSERVATIONS:
             raise ValueError(
-                f"Need at least {_MIN_OBSERVATIONS} observations for "
-                f"reliable OU fit, got {n}"
+                f"Need at least {_MIN_OBSERVATIONS} observations for " f"reliable OU fit, got {n}"
             )
 
         # Convert to numpy for efficient OLS
@@ -113,10 +112,12 @@ class OrnsteinUhlenbeck:
                 is_valid=False,
             )
 
-        XtX_inv = np.array([
-            [XtX[1, 1] / det, -XtX[0, 1] / det],
-            [-XtX[1, 0] / det, XtX[0, 0] / det],
-        ])
+        XtX_inv = np.array(
+            [
+                [XtX[1, 1] / det, -XtX[0, 1] / det],
+                [-XtX[1, 0] / det, XtX[0, 0] / det],
+            ]
+        )
 
         beta = XtX_inv @ (X_mat.T @ dy)
         b = beta[0]
@@ -127,7 +128,7 @@ class OrnsteinUhlenbeck:
         sigma_eps = float(np.std(residuals, ddof=0))
 
         # R-squared: 1 - SS_res / SS_tot
-        ss_res = float(np.sum(residuals ** 2))
+        ss_res = float(np.sum(residuals**2))
         dy_mean = float(np.mean(dy))
         ss_tot = float(np.sum((dy - dy_mean) ** 2))
 
@@ -198,9 +199,7 @@ class OrnsteinUhlenbeck:
             ValueError: If theta is not positive.
         """
         if theta <= ZERO:
-            raise ValueError(
-                f"theta must be positive for half-life calculation, got {theta}"
-            )
+            raise ValueError(f"theta must be positive for half-life calculation, got {theta}")
         return _LN2 / theta
 
     @staticmethod
@@ -225,15 +224,11 @@ class OrnsteinUhlenbeck:
             ValueError: If sigma_eq is not positive.
         """
         if sigma_eq <= ZERO:
-            raise ValueError(
-                f"sigma_eq must be positive for s-score, got {sigma_eq}"
-            )
+            raise ValueError(f"sigma_eq must be positive for s-score, got {sigma_eq}")
         return (current - mu) / sigma_eq
 
     @staticmethod
-    def is_mean_reverting(
-        theta: Decimal, min_theta: Decimal = Decimal("0.01")
-    ) -> bool:
+    def is_mean_reverting(theta: Decimal, min_theta: Decimal = Decimal("0.01")) -> bool:
         """Check whether the fitted theta indicates significant mean reversion.
 
         Args:
@@ -286,9 +281,7 @@ class OrnsteinUhlenbeck:
 
         for i in range(n_steps):
             x = path[i]
-            path[i + 1] = (
-                x + theta_f * (mu_f - x) * dt_f + sigma_f * sqrt_dt * noise[i]
-            )
+            path[i + 1] = x + theta_f * (mu_f - x) * dt_f + sigma_f * sqrt_dt * noise[i]
 
         return [Decimal(str(v)) for v in path]
 

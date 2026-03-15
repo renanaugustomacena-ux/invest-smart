@@ -238,8 +238,19 @@ class TestMarketRegister:
         reg = CommandRegistry()
         register(reg)
         assert "market" in reg.categories
-        expected = ["regime", "symbols", "spread", "calendar", "volatility",
-                    "correlation", "session", "news", "indicators",
-                    "macro", "macro-status", "dashboard"]
+        expected = [
+            "regime",
+            "symbols",
+            "spread",
+            "calendar",
+            "volatility",
+            "correlation",
+            "session",
+            "news",
+            "indicators",
+            "macro",
+            "macro-status",
+            "dashboard",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["market"]

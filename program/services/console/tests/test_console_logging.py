@@ -114,6 +114,7 @@ class TestLogEvent:
     def test_log_event_no_dir(self):
         """log_event should not crash when _LOG_DIR is None."""
         import moneymaker_console.console_logging as cl
+
         old = cl._LOG_DIR
         cl._LOG_DIR = None
         try:

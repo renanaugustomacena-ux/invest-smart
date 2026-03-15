@@ -240,8 +240,19 @@ class TestPerfRegister:
         reg = CommandRegistry()
         register(reg)
         assert "perf" in reg.categories
-        expected = ["summary", "daily", "weekly", "monthly", "by-symbol",
-                    "by-strategy", "by-session", "by-regime", "drawdown",
-                    "equity", "trades", "expectancy"]
+        expected = [
+            "summary",
+            "daily",
+            "weekly",
+            "monthly",
+            "by-symbol",
+            "by-strategy",
+            "by-session",
+            "by-regime",
+            "drawdown",
+            "equity",
+            "trades",
+            "expectancy",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["perf"]

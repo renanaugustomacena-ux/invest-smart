@@ -54,10 +54,7 @@ class TestBayesianRegimeDetector:
             detector.update(Decimal(str(i * 0.1)))
         updated = detector.get_posteriors()
         # At least one posterior should have changed
-        assert any(
-            abs(initial[k] - updated[k]) > Decimal("0.001")
-            for k in initial
-        )
+        assert any(abs(initial[k] - updated[k]) > Decimal("0.001") for k in initial)
 
     def test_most_likely_regime_returns_tuple(self) -> None:
         detector = BayesianRegimeDetector(n_regimes=4)
@@ -101,10 +98,7 @@ class TestBayesianRegimeDetector:
             detector.update(Decimal("100.0"))
         p_after = detector.get_posteriors()
         # At least one posterior should shift significantly
-        assert any(
-            abs(p_before[k] - p_after[k]) > Decimal("0.05")
-            for k in p_before
-        )
+        assert any(abs(p_before[k] - p_after[k]) > Decimal("0.05") for k in p_before)
 
 
 # ---------------------------------------------------------------------------

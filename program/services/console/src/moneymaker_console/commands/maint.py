@@ -10,6 +10,7 @@ def _maint_vacuum(*args: str) -> str:
     """Run VACUUM ANALYZE on all tables."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         db.execute("VACUUM ANALYZE")
         return "[success] VACUUM ANALYZE completed on all tables."
@@ -21,6 +22,7 @@ def _maint_reindex(*args: str) -> str:
     """Rebuild all database indexes."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         db_name = __import__("os").environ.get("MONEYMAKER_DB_NAME", "moneymaker_brain")
         db.execute(f"REINDEX DATABASE {db_name}")
@@ -33,20 +35,43 @@ def _maint_clear_cache(*args: str) -> str:
     """Remove caches from the project tree."""
     lines = ["Clearing caches..."]
     run_tool(
-        ["find", str(_PROJECT_ROOT), "-type", "d", "-name", "__pycache__",
-         "-exec", "rm", "-rf", "{}", "+"],
+        [
+            "find",
+            str(_PROJECT_ROOT),
+            "-type",
+            "d",
+            "-name",
+            "__pycache__",
+            "-exec",
+            "rm",
+            "-rf",
+            "{}",
+            "+",
+        ],
     )
     lines.append("  Removed __pycache__ directories")
 
     run_tool(
-        ["find", str(_PROJECT_ROOT), "-type", "d", "-name", ".pytest_cache",
-         "-exec", "rm", "-rf", "{}", "+"],
+        [
+            "find",
+            str(_PROJECT_ROOT),
+            "-type",
+            "d",
+            "-name",
+            ".pytest_cache",
+            "-exec",
+            "rm",
+            "-rf",
+            "{}",
+            "+",
+        ],
     )
     lines.append("  Removed .pytest_cache directories")
 
     if "--redis" in args:
         try:
             from moneymaker_console.clients import ClientFactory
+
             redis = ClientFactory.get_redis()
             redis._conn.flushdb()
             lines.append("  Flushed Redis cache")
@@ -89,15 +114,27 @@ def _maint_backup(*args: str) -> str:
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        "pg_dump", "-h", db_host, "-p", db_port,
-        "-U", db_user, "-d", db_name, "-F", "p",
+        "pg_dump",
+        "-h",
+        db_host,
+        "-p",
+        db_port,
+        "-U",
+        db_user,
+        "-d",
+        db_name,
+        "-F",
+        "p",
     ]
     if compress:
         import subprocess
+
         try:
             pg = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             gz = subprocess.Popen(
-                ["gzip"], stdin=pg.stdout, stdout=open(str(out_file), "wb"),
+                ["gzip"],
+                stdin=pg.stdout,
+                stdout=open(str(out_file), "wb"),
                 stderr=subprocess.PIPE,
             )
             pg.stdout.close()  # allow SIGPIPE
@@ -130,6 +167,7 @@ def _maint_prune_old(*args: str) -> str:
 
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
 
         tables = ["drift_log", "performance_snapshot"]
@@ -145,8 +183,7 @@ def _maint_prune_old(*args: str) -> str:
                     lines.append(f"  [dry-run] {table}: would delete {count} rows")
                 else:
                     db.execute(
-                        f"DELETE FROM {table} "
-                        f"WHERE created_at < NOW() - INTERVAL '{days} days'"
+                        f"DELETE FROM {table} " f"WHERE created_at < NOW() - INTERVAL '{days} days'"
                     )
                     lines.append(f"  {table}: deleted {count} rows")
             except Exception as exc:
@@ -172,6 +209,7 @@ def _maint_table_sizes(*args: str) -> str:
     """Display table sizes in the database."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT schemaname || '.' || tablename AS tbl, "
@@ -198,6 +236,7 @@ def _maint_chunk_stats(*args: str) -> str:
     """Display TimescaleDB chunk statistics."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT hypertable_name, "
@@ -226,10 +265,9 @@ def _maint_compress(*args: str) -> str:
             days = int(args[i + 1])
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
-        rows = db.query(
-            "SELECT hypertable_name FROM timescaledb_information.hypertables"
-        )
+        rows = db.query("SELECT hypertable_name FROM timescaledb_information.hypertables")
         if not rows:
             return "No hypertables found."
         lines = [f"Compressing chunks older than {days} days", "=" * 40]
@@ -268,7 +306,6 @@ def _maint_sanitize(*args: str) -> str:
     # Check .env permissions
     env_file = _PROJECT_ROOT / ".env"
     if env_file.exists():
-        import stat
         mode = oct(env_file.stat().st_mode & 0o777)
         if mode != "0o600":
             lines.append(f"  [warning] .env permissions: {mode} (should be 0o600)")
@@ -282,6 +319,7 @@ def _maint_integrity(*args: str) -> str:
     """Verify database integrity."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         lines = ["Database Integrity Check", "=" * 40]
 
@@ -311,17 +349,42 @@ def _maint_integrity(*args: str) -> str:
 
 def register(registry: CommandRegistry) -> None:
     registry.register("maint", "vacuum", _maint_vacuum, "Run VACUUM ANALYZE", timeout_sec=300)
-    registry.register("maint", "reindex", _maint_reindex, "Rebuild database indexes", timeout_sec=300)
-    registry.register("maint", "clear-cache", _maint_clear_cache, "Remove caches",
-                       requires_confirmation=True, dangerous=True)
+    registry.register(
+        "maint", "reindex", _maint_reindex, "Rebuild database indexes", timeout_sec=300
+    )
+    registry.register(
+        "maint",
+        "clear-cache",
+        _maint_clear_cache,
+        "Remove caches",
+        requires_confirmation=True,
+        dangerous=True,
+    )
     registry.register("maint", "retention", _maint_retention, "Display retention policies")
     registry.register("maint", "backup", _maint_backup, "Create database backup", timeout_sec=600)
-    registry.register("maint", "restore", _maint_restore, "Restore from backup", dangerous=True, timeout_sec=600)
-    registry.register("maint", "prune-old", _maint_prune_old, "Delete old data", requires_confirmation=True, timeout_sec=120)
-    registry.register("maint", "migrate", _maint_migrate, "Run database migrations", timeout_sec=120)
+    registry.register(
+        "maint", "restore", _maint_restore, "Restore from backup", dangerous=True, timeout_sec=600
+    )
+    registry.register(
+        "maint",
+        "prune-old",
+        _maint_prune_old,
+        "Delete old data",
+        requires_confirmation=True,
+        timeout_sec=120,
+    )
+    registry.register(
+        "maint", "migrate", _maint_migrate, "Run database migrations", timeout_sec=120
+    )
     registry.register("maint", "table-sizes", _maint_table_sizes, "Display table sizes")
     registry.register("maint", "chunk-stats", _maint_chunk_stats, "Display chunk statistics")
     registry.register("maint", "compress", _maint_compress, "Compress old chunks", timeout_sec=300)
-    registry.register("maint", "dead-code", _maint_dead_code, "Run dead code detection", timeout_sec=120)
-    registry.register("maint", "sanitize", _maint_sanitize, "Run project sanitization", timeout_sec=120)
-    registry.register("maint", "integrity", _maint_integrity, "Verify database integrity", timeout_sec=120)
+    registry.register(
+        "maint", "dead-code", _maint_dead_code, "Run dead code detection", timeout_sec=120
+    )
+    registry.register(
+        "maint", "sanitize", _maint_sanitize, "Run project sanitization", timeout_sec=120
+    )
+    registry.register(
+        "maint", "integrity", _maint_integrity, "Verify database integrity", timeout_sec=120
+    )

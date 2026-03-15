@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from decimal import Decimal
 from typing import Any
 
@@ -190,7 +190,9 @@ class KillSwitch:
     ) -> None:
         """Attiva automaticamente se i limiti di rischio sono gravemente superati."""
         if daily_loss_pct >= max_daily_loss_pct:
-            reason = f"Perdita giornaliera limite raggiunto: {daily_loss_pct}% >= {max_daily_loss_pct}%"
+            reason = (
+                f"Perdita giornaliera limite raggiunto: {daily_loss_pct}% >= {max_daily_loss_pct}%"
+            )
             await self._append_audit(
                 KillSwitchAuditEntry(
                     timestamp=time.time(),
@@ -271,11 +273,7 @@ class KillSwitch:
             )
 
         # Level 1: Strategy-level pause
-        if (
-            strategy_name is not None
-            and strategy_dd_pct is not None
-            and strategy_dd_pct >= D("5")
-        ):
+        if strategy_name is not None and strategy_dd_pct is not None and strategy_dd_pct >= D("5"):
             reason = f"Level 1 pause: {strategy_name} DD {strategy_dd_pct}% >= 5%"
             logger.warning(reason)
             await self._append_audit(
@@ -312,14 +310,16 @@ class KillSwitch:
         self._audit_log.append(entry)
         # Trim local buffer
         if len(self._audit_log) > self._MAX_AUDIT_ENTRIES:
-            self._audit_log = self._audit_log[-self._MAX_AUDIT_ENTRIES:]
+            self._audit_log = self._audit_log[-self._MAX_AUDIT_ENTRIES :]
 
         if self._redis is not None:
             try:
                 payload = json.dumps(asdict(entry))
                 await self._redis.rpush(KILL_SWITCH_AUDIT_KEY, payload)
                 await self._redis.ltrim(
-                    KILL_SWITCH_AUDIT_KEY, -self._MAX_AUDIT_ENTRIES, -1,
+                    KILL_SWITCH_AUDIT_KEY,
+                    -self._MAX_AUDIT_ENTRIES,
+                    -1,
                 )
             except Exception as exc:
                 logger.warning("Kill switch audit write failed", error=str(exc))
@@ -336,7 +336,9 @@ class KillSwitch:
         if self._redis is not None:
             try:
                 raw_entries = await self._redis.lrange(
-                    KILL_SWITCH_AUDIT_KEY, -limit, -1,
+                    KILL_SWITCH_AUDIT_KEY,
+                    -limit,
+                    -1,
                 )
                 return [json.loads(e) for e in raw_entries]
             except Exception as exc:

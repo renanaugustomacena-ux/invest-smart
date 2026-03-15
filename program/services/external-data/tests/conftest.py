@@ -13,7 +13,8 @@ from external_data.config import ExternalDataSettings
 def mock_settings(monkeypatch):
     """Return ExternalDataSettings with test defaults."""
     monkeypatch.setenv("FRED_API_KEY", "test-key")
-    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("MONEYMAKER_REDIS_HOST", "localhost")
+    monkeypatch.setenv("MONEYMAKER_REDIS_PORT", "6379")
     monkeypatch.setenv("DB_HOST", "localhost")
     monkeypatch.setenv("DB_PORT", "5432")
     monkeypatch.setenv("DB_USER", "test")

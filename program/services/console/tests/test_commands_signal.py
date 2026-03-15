@@ -138,7 +138,13 @@ class TestSignalWithClients:
 
     def test_validate_found(self, mock_cf, mock_db):
         mock_db.query_one.return_value = (
-            42, "EURUSD", "BUY", 0.85, "validated", None, "coper",
+            42,
+            "EURUSD",
+            "BUY",
+            0.85,
+            "validated",
+            None,
+            "coper",
         )
         mock_cf.get_postgres.return_value = mock_db
         result = _signal_validate("42")
@@ -157,7 +163,16 @@ class TestSignalRegister:
         reg = CommandRegistry()
         register(reg)
         assert "signal" in reg.categories
-        expected = ["status", "last", "pending", "rejected",
-                    "confidence", "rate", "strategy", "validate", "replay"]
+        expected = [
+            "status",
+            "last",
+            "pending",
+            "rejected",
+            "confidence",
+            "rate",
+            "strategy",
+            "validate",
+            "replay",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["signal"]

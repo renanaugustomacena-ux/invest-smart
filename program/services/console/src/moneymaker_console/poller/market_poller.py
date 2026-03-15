@@ -97,6 +97,7 @@ class MarketPoller:
                     }
         except (json.JSONDecodeError, KeyError) as exc:
             from moneymaker_console.console_logging import log_event
+
             log_event("market_poller_parse_error", error=str(exc), raw=raw[:80])
 
     @property

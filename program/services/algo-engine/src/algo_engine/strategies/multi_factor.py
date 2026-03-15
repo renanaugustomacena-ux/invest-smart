@@ -183,9 +183,7 @@ class MultiFactorStrategy(TradingStrategy):
         return sum(scores, ZERO) / Decimal(str(len(scores)))
 
     @staticmethod
-    def _volume_factor(
-        features: dict[str, Any], other_factors_sign: Decimal
-    ) -> Decimal:
+    def _volume_factor(features: dict[str, Any], other_factors_sign: Decimal) -> Decimal:
         """Volume factor — confirms or denies the prevailing directional bias."""
         volume_ratio = features.get("volume_ratio")
         if volume_ratio is None:
@@ -247,7 +245,8 @@ class MultiFactorStrategy(TradingStrategy):
             + trend * self._trend_weight
         )
         other_sign = (
-            _ONE if directional_composite > ZERO
+            _ONE
+            if directional_composite > ZERO
             else (_NEG_ONE if directional_composite < ZERO else ZERO)
         )
         volume = self._volume_factor(features, other_sign)

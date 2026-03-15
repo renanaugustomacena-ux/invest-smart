@@ -36,9 +36,7 @@ async def test_trading_with_symbol_filter(client, mock_pool: MockPool):
 async def test_trading_with_positions_in_redis(client, mock_pool: MockPool):
     """Positions come from Redis brain state."""
     _REDIS_STORE["moneymaker:brain:state"] = {
-        "positions_detail": [
-            {"symbol": "EURUSD", "direction": "BUY", "lots": "0.01"}
-        ]
+        "positions_detail": [{"symbol": "EURUSD", "direction": "BUY", "lots": "0.01"}]
     }
     mock_pool.fetch.return_value = []
 

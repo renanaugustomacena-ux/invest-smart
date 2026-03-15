@@ -32,12 +32,17 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_success(self, cboe):
-        respx.get(CBOEProvider.VIX_URL).mock(return_value=httpx.Response(200, json={
-            "data": [
-                [1705300000000, 13.1, 13.5, 12.9, 13.2, 100000],
-                [1705310000000, 13.2, 14.0, 13.0, 13.8, 120000],
-            ]
-        }))
+        respx.get(CBOEProvider.VIX_URL).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "data": [
+                        [1705300000000, 13.1, 13.5, 12.9, 13.2, 100000],
+                        [1705310000000, 13.2, 14.0, 13.0, 13.8, 120000],
+                    ]
+                },
+            )
+        )
 
         result = await cboe.fetch_vix()
         assert result is not None
@@ -48,9 +53,7 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_empty_data(self, cboe):
-        respx.get(CBOEProvider.VIX_URL).mock(return_value=httpx.Response(200, json={
-            "data": []
-        }))
+        respx.get(CBOEProvider.VIX_URL).mock(return_value=httpx.Response(200, json={"data": []}))
 
         result = await cboe.fetch_vix()
         assert result is None
@@ -58,9 +61,9 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_short_array(self, cboe):
-        respx.get(CBOEProvider.VIX_URL).mock(return_value=httpx.Response(200, json={
-            "data": [[1705300000000, 13.1, 13.5]]
-        }))
+        respx.get(CBOEProvider.VIX_URL).mock(
+            return_value=httpx.Response(200, json={"data": [[1705300000000, 13.1, 13.5]]})
+        )
 
         result = await cboe.fetch_vix()
         assert result is None
@@ -84,9 +87,9 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_quote_success(self, cboe):
-        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(return_value=httpx.Response(200, json={
-            "data": {"last_price": 18.5}
-        }))
+        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(
+            return_value=httpx.Response(200, json={"data": {"last_price": 18.5}})
+        )
 
         result = await cboe.fetch_vix_quote()
         assert result is not None
@@ -96,9 +99,9 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_quote_missing_price(self, cboe):
-        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(return_value=httpx.Response(200, json={
-            "data": {}
-        }))
+        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(
+            return_value=httpx.Response(200, json={"data": {}})
+        )
 
         result = await cboe.fetch_vix_quote()
         assert result is None
@@ -106,9 +109,9 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_quote_alternative_path(self, cboe):
-        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(return_value=httpx.Response(200, json={
-            "last_price": 30.0
-        }))
+        respx.get(CBOEProvider.VIX_FUTURES_URL).mock(
+            return_value=httpx.Response(200, json={"last_price": 30.0})
+        )
 
         result = await cboe.fetch_vix_quote()
         assert result is not None
@@ -118,9 +121,11 @@ class TestCBOEProvider:
 
     @respx.mock
     async def test_fetch_vix_term_structure(self, cboe):
-        respx.get(CBOEProvider.VIX_URL).mock(return_value=httpx.Response(200, json={
-            "data": [[1705300000000, 20.0, 21.0, 19.0, 20.5, 100000]]
-        }))
+        respx.get(CBOEProvider.VIX_URL).mock(
+            return_value=httpx.Response(
+                200, json={"data": [[1705300000000, 20.0, 21.0, 19.0, 20.5, 100000]]}
+            )
+        )
 
         result = await cboe.fetch_vix_term_structure()
         assert result is not None
@@ -140,14 +145,21 @@ class TestYahooVIXProvider:
 
     @respx.mock
     async def test_fetch_vix_success(self, yahoo):
-        respx.get(YahooVIXProvider.YAHOO_URL).mock(return_value=httpx.Response(200, json={
-            "chart": {
-                "result": [{
-                    "meta": {"regularMarketPrice": 16.5},
-                    "indicators": {},
-                }]
-            }
-        }))
+        respx.get(YahooVIXProvider.YAHOO_URL).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "chart": {
+                        "result": [
+                            {
+                                "meta": {"regularMarketPrice": 16.5},
+                                "indicators": {},
+                            }
+                        ]
+                    }
+                },
+            )
+        )
 
         result = await yahoo.fetch_vix()
         assert result is not None
@@ -157,9 +169,9 @@ class TestYahooVIXProvider:
 
     @respx.mock
     async def test_fetch_vix_no_result(self, yahoo):
-        respx.get(YahooVIXProvider.YAHOO_URL).mock(return_value=httpx.Response(200, json={
-            "chart": {"result": []}
-        }))
+        respx.get(YahooVIXProvider.YAHOO_URL).mock(
+            return_value=httpx.Response(200, json={"chart": {"result": []}})
+        )
 
         result = await yahoo.fetch_vix()
         assert result is None
@@ -167,9 +179,9 @@ class TestYahooVIXProvider:
 
     @respx.mock
     async def test_fetch_vix_no_price(self, yahoo):
-        respx.get(YahooVIXProvider.YAHOO_URL).mock(return_value=httpx.Response(200, json={
-            "chart": {"result": [{"meta": {}}]}
-        }))
+        respx.get(YahooVIXProvider.YAHOO_URL).mock(
+            return_value=httpx.Response(200, json={"chart": {"result": [{"meta": {}}]}})
+        )
 
         result = await yahoo.fetch_vix()
         assert result is None

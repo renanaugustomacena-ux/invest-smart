@@ -81,17 +81,11 @@ def tail_dependence(
     """
     n = len(u)
     if n != len(v):
-        raise ValueError(
-            f"Series lengths must match: len(u)={n}, len(v)={len(v)}"
-        )
+        raise ValueError(f"Series lengths must match: len(u)={n}, len(v)={len(v)}")
     if n < _MIN_OBSERVATIONS:
-        raise ValueError(
-            f"Need at least {_MIN_OBSERVATIONS} observations, got {n}"
-        )
+        raise ValueError(f"Need at least {_MIN_OBSERVATIONS} observations, got {n}")
     if not (ZERO < threshold < HALF):
-        raise ValueError(
-            f"Threshold must be in (0, 0.5), got {threshold}"
-        )
+        raise ValueError(f"Threshold must be in (0, 0.5), got {threshold}")
 
     q_low = threshold
     q_high = ONE - threshold
@@ -101,9 +95,7 @@ def tail_dependence(
     if lower_u_count == 0:
         lambda_lower = ZERO
     else:
-        joint_lower = sum(
-            1 for ui, vi in zip(u, v) if ui <= q_low and vi <= q_low
-        )
+        joint_lower = sum(1 for ui, vi in zip(u, v) if ui <= q_low and vi <= q_low)
         lambda_lower = Decimal(joint_lower) / Decimal(lower_u_count)
 
     # Upper tail: count where both U > 1-q and V > 1-q
@@ -111,9 +103,7 @@ def tail_dependence(
     if upper_u_count == 0:
         lambda_upper = ZERO
     else:
-        joint_upper = sum(
-            1 for ui, vi in zip(u, v) if ui > q_high and vi > q_high
-        )
+        joint_upper = sum(1 for ui, vi in zip(u, v) if ui > q_high and vi > q_high)
         lambda_upper = Decimal(joint_upper) / Decimal(upper_u_count)
 
     logger.debug(
@@ -151,9 +141,7 @@ class GaussianCopula:
         """
         n = len(u)
         if n != len(v):
-            raise ValueError(
-                f"Series lengths must match: len(u)={n}, len(v)={len(v)}"
-            )
+            raise ValueError(f"Series lengths must match: len(u)={n}, len(v)={len(v)}")
         if n < _MIN_OBSERVATIONS:
             raise ValueError(
                 f"Need at least {_MIN_OBSERVATIONS} observations for "
@@ -162,13 +150,9 @@ class GaussianCopula:
 
         for i, (ui, vi) in enumerate(zip(u, v)):
             if not (ZERO < ui < ONE):
-                raise ValueError(
-                    f"u[{i}]={ui} outside (0, 1); apply rank_transform first"
-                )
+                raise ValueError(f"u[{i}]={ui} outside (0, 1); apply rank_transform first")
             if not (ZERO < vi < ONE):
-                raise ValueError(
-                    f"v[{i}]={vi} outside (0, 1); apply rank_transform first"
-                )
+                raise ValueError(f"v[{i}]={vi} outside (0, 1); apply rank_transform first")
 
         u_float = np.array([float(x) for x in u])
         v_float = np.array([float(x) for x in v])
@@ -323,9 +307,7 @@ class DependencyAnalyzer:
             ValueError: If window is smaller than the minimum.
         """
         if window < _MIN_OBSERVATIONS:
-            raise ValueError(
-                f"Window must be at least {_MIN_OBSERVATIONS}, got {window}"
-            )
+            raise ValueError(f"Window must be at least {_MIN_OBSERVATIONS}, got {window}")
         self._window = window
         self._x_buf: deque[Decimal] = deque(maxlen=window)
         self._y_buf: deque[Decimal] = deque(maxlen=window)
@@ -354,9 +336,7 @@ class DependencyAnalyzer:
 
         return self._compute_report(x_list, y_list)
 
-    def _compute_report(
-        self, x_list: list[Decimal], y_list: list[Decimal]
-    ) -> dict:
+    def _compute_report(self, x_list: list[Decimal], y_list: list[Decimal]) -> dict:
         """Compute full dependency report from buffered data."""
         n = len(x_list)
 
@@ -412,9 +392,7 @@ class DependencyAnalyzer:
         return report
 
     @staticmethod
-    def _pearson_correlation(
-        x: list[Decimal], y: list[Decimal]
-    ) -> Decimal:
+    def _pearson_correlation(x: list[Decimal], y: list[Decimal]) -> Decimal:
         """Compute Pearson correlation between two Decimal series.
 
         Args:

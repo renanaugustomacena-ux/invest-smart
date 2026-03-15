@@ -79,6 +79,7 @@ class StatusPoller:
     def _check_postgres() -> str:
         try:
             from moneymaker_console.clients import ClientFactory
+
             return "OK" if ClientFactory.get_postgres().ping() else "NOT CONNECTED"
         except Exception:
             return "ERROR"
@@ -87,6 +88,7 @@ class StatusPoller:
     def _check_redis() -> str:
         try:
             from moneymaker_console.clients import ClientFactory
+
             return "OK" if ClientFactory.get_redis().ping() else "NOT CONNECTED"
         except Exception:
             return "ERROR"
@@ -104,6 +106,7 @@ class StatusPoller:
         }
         try:
             from moneymaker_console.clients import ClientFactory
+
             brain = ClientFactory.get_brain()
             health = brain.get_health()
             if health:
@@ -124,6 +127,7 @@ class StatusPoller:
     def _check_mt5() -> str:
         try:
             from moneymaker_console.clients import ClientFactory
+
             return "CONNECTED" if ClientFactory.get_mt5().is_healthy() else "NOT CONNECTED"
         except Exception:
             return "ERROR"
@@ -132,6 +136,7 @@ class StatusPoller:
     def _check_data() -> str:
         try:
             from moneymaker_console.clients import ClientFactory
+
             return "STREAMING" if ClientFactory.get_data().is_healthy() else "NOT CONNECTED"
         except Exception:
             return "ERROR"
@@ -158,23 +163,24 @@ class StatusPoller:
         }
         try:
             import psutil
+
             cpu = psutil.cpu_percent(interval=0)
             mem = psutil.virtual_memory()
             disk = psutil.disk_usage("/")
             result["cpu"] = f"{cpu:.1f}%"
-            result["ram"] = (
-                f"{mem.used / (1024**3):.1f} / "
-                f"{mem.total / (1024**3):.1f} GB"
-            )
+            result["ram"] = f"{mem.used / (1024**3):.1f} / " f"{mem.total / (1024**3):.1f} GB"
             result["disk"] = f"{disk.percent:.1f}% used"
         except ImportError:
             log_event("poller_system_warning", reason="psutil not installed")
 
         try:
             import subprocess
+
             r = subprocess.run(
                 ["rocm-smi", "--showtemp", "--csv"],
-                capture_output=True, text=True, timeout=3,
+                capture_output=True,
+                text=True,
+                timeout=3,
             )
             if r.returncode == 0:
                 lines = r.stdout.strip().splitlines()
@@ -191,6 +197,7 @@ class StatusPoller:
     def _check_kill_switch() -> dict[str, str]:
         try:
             from moneymaker_console.clients import ClientFactory
+
             redis = ClientFactory.get_redis()
             data = redis.get_json("moneymaker:kill_switch")
             if data and data.get("active"):

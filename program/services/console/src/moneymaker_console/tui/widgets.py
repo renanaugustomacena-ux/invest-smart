@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Sequence
 
-
 # ---------------------------------------------------------------------------
 # ASCII Sparkline
 # ---------------------------------------------------------------------------
@@ -42,6 +41,7 @@ def sparkline(values: Sequence[float], width: int = 20) -> str:
 # Mini progress bar
 # ---------------------------------------------------------------------------
 
+
 def progress_bar(value: float, total: float, width: int = 20) -> str:
     """Render a simple ASCII progress bar.
 
@@ -58,6 +58,7 @@ def progress_bar(value: float, total: float, width: int = 20) -> str:
 # Status indicator
 # ---------------------------------------------------------------------------
 
+
 def status_dot(ok: bool) -> str:
     """Return a green or red dot for boolean status."""
     return "● " if ok else "○ "
@@ -67,13 +68,14 @@ def status_dot(ok: bool) -> str:
 # Value coloring helpers (for Rich markup)
 # ---------------------------------------------------------------------------
 
+
 def color_pnl(value: float) -> str:
     """Color a P&L value green (positive) or red (negative)."""
     if value > 0:
         return f"[success]+${value:,.2f}[/success]"
     if value < 0:
         return f"[error]-${abs(value):,.2f}[/error]"
-    return f"$0.00"
+    return "$0.00"
 
 
 def color_pct(value: float, invert: bool = False) -> str:

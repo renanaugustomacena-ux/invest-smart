@@ -21,7 +21,6 @@ from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.enums import Direction
 from moneymaker_common.logging import get_logger
 
-from algo_engine.features.technical import calculate_ema, calculate_rsi
 from algo_engine.strategies.base import SignalSuggestion, TradingStrategy
 
 logger = get_logger(__name__)
@@ -166,9 +165,7 @@ class AdaptiveTrendStrategy(TradingStrategy):
             return SignalSuggestion(
                 direction=Direction.HOLD,
                 confidence=Decimal("0.30"),
-                reasoning=(
-                    f"Conflicting confirmations: BUY={buy_count}, SELL={sell_count}"
-                ),
+                reasoning=(f"Conflicting confirmations: BUY={buy_count}, SELL={sell_count}"),
             )
 
         # --- 6. Hurst exponent filter ---------------------------------

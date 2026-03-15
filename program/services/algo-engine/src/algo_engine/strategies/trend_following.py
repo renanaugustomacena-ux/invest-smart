@@ -109,8 +109,7 @@ class TrendFollowingStrategy(TradingStrategy):
                 direction=Direction.SELL,
                 confidence=confidence,
                 reasoning=(
-                    f"Trend SELL: {sell_count} conferme"
-                    f" — {', '.join(sell_confirmations)}"
+                    f"Trend SELL: {sell_count} conferme" f" — {', '.join(sell_confirmations)}"
                 ),
                 metadata={
                     "confirmations": sell_count,

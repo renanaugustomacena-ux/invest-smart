@@ -34,9 +34,7 @@ def run_cli(registry: CommandRegistry, argv: list[str]) -> int:
 
         def _cli_confirm(label: str) -> bool:
             try:
-                answer = input(
-                    f"  \u26a0 {label} — Are you sure? [y/N]: "
-                ).strip().lower()
+                answer = input(f"  \u26a0 {label} — Are you sure? [y/N]: ").strip().lower()
                 return answer == "y"
             except (EOFError, KeyboardInterrupt):
                 return False

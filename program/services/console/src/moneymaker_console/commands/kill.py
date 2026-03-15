@@ -35,9 +35,7 @@ def _persist_to_audit_log(action: str, details: dict | None = None) -> None:
         now = datetime.now(timezone.utc)
 
         # Fetch the last hash to continue the chain
-        row = db.query_one(
-            "SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1"
-        )
+        row = db.query_one("SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1")
         prev_hash = row[0] if row else "GENESIS"
 
         entry_hash = compute_audit_hash(
@@ -107,11 +105,13 @@ def _kill_activate(*args: str) -> str:
     redis.set_json(_KILL_KEY, payload)
     redis.publish(
         _ALERT_CHANNEL,
-        json.dumps({
-            "severity": "CRITICAL",
-            "message": f"Kill switch ACTIVATED: {reason}",
-            "timestamp": time.time(),
-        }),
+        json.dumps(
+            {
+                "severity": "CRITICAL",
+                "message": f"Kill switch ACTIVATED: {reason}",
+                "timestamp": time.time(),
+            }
+        ),
     )
 
     log_event("kill_switch_activated", reason=reason)
@@ -133,11 +133,13 @@ def _kill_deactivate(*args: str) -> str:
     redis.delete(_KILL_KEY)
     redis.publish(
         _ALERT_CHANNEL,
-        json.dumps({
-            "severity": "INFO",
-            "message": "Kill switch DEACTIVATED. Trading restored.",
-            "timestamp": time.time(),
-        }),
+        json.dumps(
+            {
+                "severity": "INFO",
+                "message": "Kill switch DEACTIVATED. Trading restored.",
+                "timestamp": time.time(),
+            }
+        ),
     )
 
     log_event("kill_switch_deactivated")
@@ -213,17 +215,13 @@ def _kill_history(*args: str) -> str:
     # Try audit_log first
     db_entries = _kill_history_from_db()
     if db_entries:
-        return (
-            "Kill Switch History (from audit_log):\n"
-            + "\n".join(db_entries[:20])
-        )
+        return "Kill Switch History (from audit_log):\n" + "\n".join(db_entries[:20])
 
     # Fallback to file-based history
     file_entries = _kill_history_from_files()
     if file_entries:
-        return (
-            "Kill Switch History (from console logs — last 7 days):\n"
-            + "\n".join(file_entries[:20])
+        return "Kill Switch History (from console logs — last 7 days):\n" + "\n".join(
+            file_entries[:20]
         )
 
     return "[info] No kill switch events found."
@@ -253,11 +251,16 @@ def _kill_test(*args: str) -> str:
     redis.delete(test_key)
 
     # 3. Pub/sub test
-    ok = redis.publish(_ALERT_CHANNEL, json.dumps({
-        "severity": "TEST",
-        "message": "Kill switch test — ignore this alert",
-        "timestamp": time.time(),
-    }))
+    ok = redis.publish(
+        _ALERT_CHANNEL,
+        json.dumps(
+            {
+                "severity": "TEST",
+                "message": "Kill switch test — ignore this alert",
+                "timestamp": time.time(),
+            }
+        ),
+    )
     if ok:
         results.append("  [OK] Pub/sub delivery")
     else:
@@ -274,15 +277,17 @@ def _kill_test(*args: str) -> str:
 
 
 def register(registry: CommandRegistry) -> None:
-    registry.register("kill", "status", _kill_status, "Kill switch state",
-                       aliases=["k status"])
-    registry.register("kill", "activate", _kill_activate,
-                       "Activate kill switch (+ reason)",
-                       requires_confirmation=True, dangerous=True)
-    registry.register("kill", "deactivate", _kill_deactivate,
-                       "Deactivate kill switch",
-                       requires_confirmation=True)
-    registry.register("kill", "history", _kill_history,
-                       "Activation/deactivation history")
-    registry.register("kill", "test", _kill_test,
-                       "Test kill switch mechanism")
+    registry.register("kill", "status", _kill_status, "Kill switch state", aliases=["k status"])
+    registry.register(
+        "kill",
+        "activate",
+        _kill_activate,
+        "Activate kill switch (+ reason)",
+        requires_confirmation=True,
+        dangerous=True,
+    )
+    registry.register(
+        "kill", "deactivate", _kill_deactivate, "Deactivate kill switch", requires_confirmation=True
+    )
+    registry.register("kill", "history", _kill_history, "Activation/deactivation history")
+    registry.register("kill", "test", _kill_test, "Test kill switch mechanism")

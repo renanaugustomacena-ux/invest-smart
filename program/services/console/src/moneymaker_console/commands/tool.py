@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from moneymaker_console.registry import CommandRegistry
 from moneymaker_console.runner import _PROJECT_ROOT, run_tool
 
-
 _registry_ref: CommandRegistry | None = None
 
 
@@ -29,6 +28,7 @@ def _tool_list(*args: str) -> str:
 def _tool_logs(*args: str) -> str:
     """Show recent console log entries."""
     from datetime import date
+
     log_dir = _PROJECT_ROOT / "services" / "console" / "logs"
     today = date.today()
     log_file = log_dir / f"console_{today.strftime('%Y%m%d')}.json"
@@ -102,6 +102,7 @@ def _tool_sql(*args: str) -> str:
 
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(query)
         if not rows:
@@ -123,12 +124,13 @@ def _tool_redis_cli(*args: str) -> str:
     cmd = args[0].upper()
     try:
         from moneymaker_console.clients import ClientFactory
+
         redis = ClientFactory.get_redis()
         if cmd == "GET" and len(args) > 1:
             result = redis.get(args[1])
             return f"  {args[1]} = {result}"
         elif cmd == "PING":
-            return f"  PONG" if redis.ping() else "  Connection failed"
+            return "  PONG" if redis.ping() else "  Connection failed"
         elif cmd == "INFO":
             info = redis.info()
             lines = ["Redis Info", "=" * 40]
@@ -144,11 +146,13 @@ def _tool_redis_cli(*args: str) -> str:
 def _tool_benchmark(*args: str) -> str:
     """Benchmark console-to-service latency."""
     import time
+
     lines = ["Latency Benchmark", "=" * 40]
 
     # Postgres
     try:
         from moneymaker_console.clients import ClientFactory
+
         start = time.monotonic()
         ClientFactory.get_postgres().ping()
         elapsed = (time.monotonic() - start) * 1000
@@ -159,6 +163,7 @@ def _tool_benchmark(*args: str) -> str:
     # Redis
     try:
         from moneymaker_console.clients import ClientFactory
+
         start = time.monotonic()
         ClientFactory.get_redis().ping()
         elapsed = (time.monotonic() - start) * 1000
@@ -169,6 +174,7 @@ def _tool_benchmark(*args: str) -> str:
     # Brain REST
     try:
         from moneymaker_console.clients import ClientFactory
+
         start = time.monotonic()
         ClientFactory.get_brain().is_healthy()
         elapsed = (time.monotonic() - start) * 1000
@@ -179,6 +185,7 @@ def _tool_benchmark(*args: str) -> str:
     # MT5 gRPC
     try:
         from moneymaker_console.clients import ClientFactory
+
         start = time.monotonic()
         ClientFactory.get_mt5().is_healthy()
         elapsed = (time.monotonic() - start) * 1000
@@ -192,6 +199,7 @@ def _tool_benchmark(*args: str) -> str:
 def _tool_version(*args: str) -> str:
     """Display version information."""
     from moneymaker_console import __version__
+
     lines = [
         "MONEYMAKER Version Info",
         "=" * 40,
@@ -210,6 +218,7 @@ def _tool_version(*args: str) -> str:
     # Postgres
     try:
         from moneymaker_console.clients import ClientFactory
+
         row = ClientFactory.get_postgres().query_one("SELECT version()")
         if row:
             lines.append(f"  PostgreSQL: {str(row[0])[:50]}")
@@ -219,6 +228,7 @@ def _tool_version(*args: str) -> str:
     # Redis
     try:
         from moneymaker_console.clients import ClientFactory
+
         info = ClientFactory.get_redis().info()
         if info:
             lines.append(f"  Redis:      {info.get('redis_version', 'N/A')}")
@@ -231,6 +241,7 @@ def _tool_version(*args: str) -> str:
 def _tool_whoami(*args: str) -> str:
     """Display operator identity."""
     import getpass
+
     return (
         f"Operator Identity\n{'=' * 40}\n"
         f"  User:        {getpass.getuser()}\n"
@@ -252,6 +263,7 @@ def _tool_motd(*args: str) -> str:
     # Quick status checks
     try:
         from moneymaker_console.clients import ClientFactory
+
         db_ok = ClientFactory.get_postgres().ping()
         lines.append(f"  Database:   {'OK' if db_ok else 'DOWN'}")
     except Exception:
@@ -259,17 +271,20 @@ def _tool_motd(*args: str) -> str:
 
     try:
         from moneymaker_console.clients import ClientFactory
+
         redis_ok = ClientFactory.get_redis().ping()
         lines.append(f"  Redis:      {'OK' if redis_ok else 'DOWN'}")
     except Exception:
         lines.append("  Redis:      DOWN")
 
-    lines.extend([
-        "",
-        "  Type 'help' for command reference.",
-        "  Type 'sys health' for full health check.",
-        "=" * 50,
-    ])
+    lines.extend(
+        [
+            "",
+            "  Type 'help' for command reference.",
+            "  Type 'sys health' for full health check.",
+            "=" * 50,
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -280,8 +295,7 @@ def register(registry: CommandRegistry) -> None:
     registry.register("tool", "logs", _tool_logs, "View console log")
     registry.register("tool", "env-check", _tool_env_check, "Check dependencies")
     registry.register("tool", "shell", _tool_shell, "Open interactive shell")
-    registry.register("tool", "sql", _tool_sql, "Execute SQL query",
-                       dangerous=True)
+    registry.register("tool", "sql", _tool_sql, "Execute SQL query", dangerous=True)
     registry.register("tool", "redis-cli", _tool_redis_cli, "Execute Redis command")
     registry.register("tool", "benchmark", _tool_benchmark, "Latency benchmark")
     registry.register("tool", "version", _tool_version, "Version information")

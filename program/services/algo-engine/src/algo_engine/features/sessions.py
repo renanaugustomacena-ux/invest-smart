@@ -30,23 +30,23 @@ class TradingSession(str, Enum):
 # Caratteristiche per sessione: aggiustamento confidenza e limiti
 SESSION_CONFIGS: dict[TradingSession, dict] = {
     TradingSession.ASIAN: {
-        "confidence_boost": -0.05,   # Richiedi +5% confidenza (mercato tranquillo, falsi segnali)
+        "confidence_boost": -0.05,  # Richiedi +5% confidenza (mercato tranquillo, falsi segnali)
         "description": "00:00-08:00 UTC — sessione calma, range trading",
     },
     TradingSession.LONDON: {
-        "confidence_boost": 0.0,     # Nessun aggiustamento
+        "confidence_boost": 0.0,  # Nessun aggiustamento
         "description": "08:00-13:00 UTC — alta volatilità, trend forti",
     },
     TradingSession.LONDON_US_OVERLAP: {
-        "confidence_boost": 0.05,    # Permetti -5% confidenza (alta liquidità)
+        "confidence_boost": 0.05,  # Permetti -5% confidenza (alta liquidità)
         "description": "13:00-16:00 UTC — massima liquidità, spread minimi",
     },
     TradingSession.US: {
-        "confidence_boost": 0.0,     # Nessun aggiustamento
+        "confidence_boost": 0.0,  # Nessun aggiustamento
         "description": "16:00-21:00 UTC — buona liquidità, movimenti direzionali",
     },
     TradingSession.OFF_HOURS: {
-        "confidence_boost": -0.10,   # Richiedi +10% confidenza (poca liquidità)
+        "confidence_boost": -0.10,  # Richiedi +10% confidenza (poca liquidità)
         "description": "21:00-00:00 UTC — bassa liquidità, evitare se possibile",
     },
 }

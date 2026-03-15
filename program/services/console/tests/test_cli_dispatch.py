@@ -26,7 +26,8 @@ def reg():
     r.register("svc", "fail", lambda: "[error] something broke", "Fail cmd")
     r.register("svc", "cancel", lambda: "[cancelled] aborted", "Cancel cmd")
     r.register(
-        "svc", "unavail",
+        "svc",
+        "unavail",
         lambda: "[error] service unavailable — not connected",
         "Unavail cmd",
     )
@@ -72,8 +73,9 @@ class TestRunCli:
         assert payload["exit_code"] == EXIT_ERROR
 
     def test_yes_flag_sets_auto_confirm(self, reg):
-        reg.register("danger", "go", lambda: "done", "Dangerous",
-                     requires_confirmation=True, dangerous=True)
+        reg.register(
+            "danger", "go", lambda: "done", "Dangerous", requires_confirmation=True, dangerous=True
+        )
         code = run_cli(reg, ["--yes", "danger", "go"])
         assert code == EXIT_OK
 

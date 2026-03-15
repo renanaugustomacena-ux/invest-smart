@@ -13,7 +13,7 @@ Utilizzo:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 
 from moneymaker_common.decimal_utils import ZERO
@@ -68,17 +68,13 @@ class StrategyAttribution:
             self._stats[strategy_name] = StrategyStats()
         return self._stats[strategy_name]
 
-    def record_signal(
-        self, strategy_name: str, direction: str, confidence: Decimal
-    ) -> None:
+    def record_signal(self, strategy_name: str, direction: str, confidence: Decimal) -> None:
         """Registra l'emissione di un segnale da una strategia."""
         stats = self._ensure_stats(strategy_name)
         stats.signals_count += 1
         stats.confidence_sum += confidence
 
-    def record_outcome(
-        self, strategy_name: str, profit: Decimal
-    ) -> None:
+    def record_outcome(self, strategy_name: str, profit: Decimal) -> None:
         """Registra l'esito di un trade chiuso per una strategia."""
         stats = self._ensure_stats(strategy_name)
         if profit > ZERO:

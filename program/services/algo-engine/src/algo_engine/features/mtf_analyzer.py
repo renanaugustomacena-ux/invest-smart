@@ -20,7 +20,6 @@ Utilizzo:
 from __future__ import annotations
 
 from collections import deque
-from decimal import Decimal
 
 from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
@@ -80,9 +79,7 @@ class MultiTimeframeAnalyzer:
         # Cache delle ultime feature per TF superiori
         self._htf_features: dict[str, dict[str, dict]] = {}
 
-    def add_bar(
-        self, symbol: str, timeframe: str, bar: OHLCVBar
-    ) -> dict | None:
+    def add_bar(self, symbol: str, timeframe: str, bar: OHLCVBar) -> dict | None:
         """Aggiunge una barra al buffer del timeframe appropriato.
 
         Returns:
@@ -107,9 +104,7 @@ class MultiTimeframeAnalyzer:
 
         # Calcola feature per questo TF se ha abbastanza barre
         if len(buf) >= min_needed:
-            features = self._pipeline.compute_features(
-                f"{symbol}_{timeframe}", list(buf)
-            )
+            features = self._pipeline.compute_features(f"{symbol}_{timeframe}", list(buf))
             if features and timeframe != self._primary_tf:
                 # Salva feature HTF per arricchire il TF primario
                 self._htf_features[symbol][timeframe] = features
@@ -123,18 +118,14 @@ class MultiTimeframeAnalyzer:
             return None
 
         # Calcola feature primarie
-        primary_features = self._pipeline.compute_features(
-            symbol, list(primary_buf)
-        )
+        primary_features = self._pipeline.compute_features(symbol, list(primary_buf))
         if not primary_features:
             return None
 
         # Arricchisci con contesto HTF
         return self._enrich_with_htf(symbol, primary_features)
 
-    def _enrich_with_htf(
-        self, symbol: str, primary: dict
-    ) -> dict:
+    def _enrich_with_htf(self, symbol: str, primary: dict) -> dict:
         """Aggiunge feature dai timeframe superiori al dict primario."""
         htf_data = self._htf_features.get(symbol, {})
 
@@ -145,9 +136,7 @@ class MultiTimeframeAnalyzer:
             ema_fast = features.get("ema_fast", ZERO)
             ema_slow = features.get("ema_slow", ZERO)
             if ema_fast > ZERO and ema_slow > ZERO:
-                primary[f"{prefix}_trend"] = (
-                    "bullish" if ema_fast > ema_slow else "bearish"
-                )
+                primary[f"{prefix}_trend"] = "bullish" if ema_fast > ema_slow else "bearish"
             else:
                 primary[f"{prefix}_trend"] = "neutral"
 

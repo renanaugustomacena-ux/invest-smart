@@ -126,7 +126,15 @@ class TestPortfolioRegister:
         reg = CommandRegistry()
         register(reg)
         assert "portfolio" in reg.categories
-        expected = ["overview", "allocation", "heat-map", "optimize",
-                    "var", "cvar", "stress-test", "compare"]
+        expected = [
+            "overview",
+            "allocation",
+            "heat-map",
+            "optimize",
+            "var",
+            "cvar",
+            "stress-test",
+            "compare",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["portfolio"]

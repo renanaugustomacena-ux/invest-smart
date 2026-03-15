@@ -9,6 +9,7 @@ def _portfolio_overview(*args: str) -> str:
     """Display current portfolio overview."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT count(*) AS positions, "
@@ -23,8 +24,9 @@ def _portfolio_overview(*args: str) -> str:
             f"Portfolio Overview\n{'=' * 40}\n"
             f"  Open Positions: {row[0]}\n"
             f"  Total Volume:   {row[1]:.2f} lots\n"
-            f"  Open P&L:       ${row[2]:,.2f}" if row[2] else
-            f"Portfolio Overview\n{'=' * 40}\n"
+            f"  Open P&L:       ${row[2]:,.2f}"
+            if row[2]
+            else f"Portfolio Overview\n{'=' * 40}\n"
             f"  Open Positions: {row[0]}\n"
             f"  Total Volume:   {row[1] or 0:.2f} lots\n"
             f"  Open P&L:       N/A"
@@ -37,6 +39,7 @@ def _portfolio_allocation(*args: str) -> str:
     """Display capital allocation by symbol."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT symbol, direction, sum(volume) AS vol, count(*) AS cnt "
@@ -57,10 +60,10 @@ def _portfolio_heat_map(*args: str) -> str:
     """Display ASCII heat map of position P&L."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
-            "SELECT symbol, pnl FROM trade_executions "
-            "WHERE closed_at IS NULL ORDER BY symbol"
+            "SELECT symbol, pnl FROM trade_executions " "WHERE closed_at IS NULL ORDER BY symbol"
         )
         if not rows:
             return "No open positions."
@@ -124,6 +127,7 @@ def _portfolio_compare(*args: str) -> str:
     """Compare portfolio vs benchmarks."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT sum(pnl) AS total, count(*) AS trades "

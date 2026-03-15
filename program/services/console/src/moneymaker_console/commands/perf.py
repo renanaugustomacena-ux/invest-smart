@@ -10,6 +10,7 @@ def _perf_summary(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT count(*) AS total_trades, "
@@ -56,6 +57,7 @@ def _perf_daily(*args: str) -> str:
     days = int(args[0]) if args else 14
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT date_trunc('day', closed_at) AS trade_date, "
@@ -70,7 +72,9 @@ def _perf_daily(*args: str) -> str:
         lines = [f"Daily P&L (last {days} days)", "=" * 50]
         for r in rows:
             pnl = r[1] or 0
-            bar = "+" * min(int(abs(pnl) / 10), 20) if pnl >= 0 else "-" * min(int(abs(pnl) / 10), 20)
+            bar = (
+                "+" * min(int(abs(pnl) / 10), 20) if pnl >= 0 else "-" * min(int(abs(pnl) / 10), 20)
+            )
             sign = "+" if pnl >= 0 else ""
             lines.append(f"  {str(r[0])[:10]}  {sign}${pnl:,.2f}  ({r[2]} trades)  {bar}")
         return "\n".join(lines)
@@ -83,6 +87,7 @@ def _perf_weekly(*args: str) -> str:
     weeks = int(args[0]) if args else 8
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT date_trunc('week', closed_at) AS week, "
@@ -111,6 +116,7 @@ def _perf_monthly(*args: str) -> str:
     months = int(args[0]) if args else 6
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT date_trunc('month', closed_at) AS month, "
@@ -122,7 +128,7 @@ def _perf_monthly(*args: str) -> str:
         )
         if not rows:
             return f"No monthly data in the last {months} months."
-        lines = [f"Monthly P&L", "=" * 50]
+        lines = ["Monthly P&L", "=" * 50]
         for r in rows:
             pnl = r[1] or 0
             sign = "+" if pnl >= 0 else ""
@@ -137,6 +143,7 @@ def _perf_by_symbol(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT symbol, sum(pnl) AS total, count(*) AS trades, "
@@ -162,6 +169,7 @@ def _perf_by_strategy(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT ts.strategy_source, sum(te.pnl) AS total, count(*) AS trades "
@@ -186,6 +194,7 @@ def _perf_by_session(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT "
@@ -217,6 +226,7 @@ def _perf_by_regime(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT ts.regime_at_entry, sum(te.pnl) AS total, count(*) AS trades "
@@ -241,6 +251,7 @@ def _perf_drawdown(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT closed_at, pnl FROM trade_executions "
@@ -277,6 +288,7 @@ def _perf_equity(*args: str) -> str:
     days = int(args[0]) if args else 30
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT date_trunc('day', closed_at) AS day, sum(pnl) AS daily_pnl "
@@ -288,6 +300,7 @@ def _perf_equity(*args: str) -> str:
         if not rows:
             return "No data."
         from moneymaker_console.tui.widgets import sparkline
+
         values = []
         cum = 0
         for r in rows:
@@ -309,6 +322,7 @@ def _perf_trades(*args: str) -> str:
     days = int(args[0]) if args else 7
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         rows = db.query(
             "SELECT symbol, direction, volume, entry_price, exit_price, "
@@ -338,6 +352,7 @@ def _perf_expectancy(*args: str) -> str:
     """Calculate system expectancy."""
     try:
         from moneymaker_console.clients import ClientFactory
+
         db = ClientFactory.get_postgres()
         row = db.query_one(
             "SELECT "

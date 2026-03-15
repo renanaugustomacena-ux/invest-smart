@@ -257,8 +257,12 @@ class TestDependencyAnalyzer:
         for xi, yi in zip(x, y):
             result = analyzer.update(xi, yi)
         expected_keys = {
-            "pearson", "rank_correlation", "copula_rho",
-            "tail_dep_lower", "tail_dep_upper", "is_tail_dependent",
+            "pearson",
+            "rank_correlation",
+            "copula_rho",
+            "tail_dep_lower",
+            "tail_dep_upper",
+            "is_tail_dependent",
         }
         assert set(result.keys()) == expected_keys
 

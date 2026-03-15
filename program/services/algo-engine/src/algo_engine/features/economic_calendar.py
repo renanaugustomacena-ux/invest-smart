@@ -38,7 +38,14 @@ EVENT_CURRENCY_MAP: dict[str, list[str]] = {
 # Questi sono i più importanti e ricorrenti mensilmente
 RECURRING_HIGH_IMPACT: list[dict] = [
     # NFP — primo venerdì del mese (approssimato: ogni venerdì in prima settimana)
-    {"name": "US Non-Farm Payrolls", "currency": "USD", "hour_utc": 13, "minute": 30, "weekday": 4, "week_of_month": 1},
+    {
+        "name": "US Non-Farm Payrolls",
+        "currency": "USD",
+        "hour_utc": 13,
+        "minute": 30,
+        "weekday": 4,
+        "week_of_month": 1,
+    },
     # FOMC — ogni 6 settimane circa (gestito via JSON eventi)
     # ECB Rate Decision — gestito via JSON
     # CPI releases — gestito via JSON
@@ -78,9 +85,7 @@ class EconomicCalendarFilter:
         except (json.JSONDecodeError, OSError) as exc:
             logger.error("Errore caricamento calendario", error=str(exc))
 
-    def is_blackout(
-        self, symbol: str, utc_now: datetime | None = None
-    ) -> tuple[bool, str]:
+    def is_blackout(self, symbol: str, utc_now: datetime | None = None) -> tuple[bool, str]:
         """Controlla se siamo in periodo di blackout per il simbolo dato.
 
         Returns:
@@ -91,9 +96,7 @@ class EconomicCalendarFilter:
 
         # 1. Controlla eventi dal file JSON
         for event in self._events:
-            event_time = datetime.fromisoformat(event["datetime"]).replace(
-                tzinfo=timezone.utc
-            )
+            event_time = datetime.fromisoformat(event["datetime"]).replace(tzinfo=timezone.utc)
             event_currency = event.get("currency", "")
             event_impact = event.get("impact", "low")
 

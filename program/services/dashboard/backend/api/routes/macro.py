@@ -63,7 +63,10 @@ async def recession() -> dict:
 
 
 def _serialize(row: dict) -> dict:
-    return {k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None for k, v in row.items()}
+    return {
+        k: v.isoformat() if hasattr(v, "isoformat") else str(v) if v is not None else None
+        for k, v in row.items()
+    }
 
 
 def _serialize_list(rows: list[dict]) -> list[dict]:

@@ -257,14 +257,8 @@ class TestFetchGoldCot:
 
     @respx.mock
     async def test_not_found(self, cftc):
-        headers = (
-            "Market_and_Exchange_Names\t"
-            "Report_Date_as_YYYY-MM-DD\t"
-            "Open_Interest_All"
-        )
-        respx.get(CFTCProvider.COT_URL).mock(
-            return_value=httpx.Response(200, text=f"{headers}\n")
-        )
+        headers = "Market_and_Exchange_Names\t" "Report_Date_as_YYYY-MM-DD\t" "Open_Interest_All"
+        respx.get(CFTCProvider.COT_URL).mock(return_value=httpx.Response(200, text=f"{headers}\n"))
 
         report = await cftc.fetch_gold_cot()
         assert report is None

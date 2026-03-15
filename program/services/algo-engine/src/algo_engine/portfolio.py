@@ -80,9 +80,7 @@ class PortfolioStateManager:
             "used_margin": self._used_margin,
         }
 
-    def record_fill(
-        self, symbol: str = "", lots: Decimal = ZERO, direction: str = ""
-    ) -> None:
+    def record_fill(self, symbol: str = "", lots: Decimal = ZERO, direction: str = "") -> None:
         """Registra l'apertura di una nuova posizione — come aggiungere un'auto al parcheggio."""
         self._open_position_count += 1
         self._total_exposure += lots
@@ -92,7 +90,11 @@ class PortfolioStateManager:
             self._positions_detail.append({"symbol": symbol, "direction": direction})
 
     def record_close(
-        self, symbol: str = "", lots: Decimal = ZERO, profit: Decimal = ZERO, direction: str = "",
+        self,
+        symbol: str = "",
+        lots: Decimal = ZERO,
+        profit: Decimal = ZERO,
+        direction: str = "",
     ) -> None:
         """Registra la chiusura di una posizione — un'auto esce dal parcheggio."""
         self._open_position_count = max(0, self._open_position_count - 1)

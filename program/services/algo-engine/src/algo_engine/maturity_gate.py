@@ -69,8 +69,8 @@ def _clamp_01(value: Decimal) -> Decimal:
 class ConvictionSnapshot:
     """Point-in-time conviction index calculation."""
 
-    win_rate: Decimal         # [0, 1]
-    sharpe_norm: Decimal      # [0, 1] — normalized Sharpe
+    win_rate: Decimal  # [0, 1]
+    sharpe_norm: Decimal  # [0, 1] — normalized Sharpe
     profit_factor_norm: Decimal  # [0, 1] — normalized PF
     drawdown_health: Decimal  # [0, 1] — (1 - dd_pct/100)
     conviction_index: Decimal  # [0, 1] weighted composite

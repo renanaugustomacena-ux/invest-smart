@@ -31,9 +31,7 @@ async def get_ohlcv_bars(
 
 async def get_available_symbols(pool: asyncpg.Pool) -> list[str]:
     """Get distinct symbols available in the database."""
-    rows = await pool.fetch(
-        "SELECT DISTINCT symbol FROM ohlcv_bars ORDER BY symbol"
-    )
+    rows = await pool.fetch("SELECT DISTINCT symbol FROM ohlcv_bars ORDER BY symbol")
     return [r["symbol"] for r in rows]
 
 
@@ -58,12 +56,8 @@ async def get_tick_stats(pool: asyncpg.Pool, hours: int = 1) -> list[dict]:
 
 async def get_data_quality(pool: asyncpg.Pool) -> dict:
     """Get data quality overview."""
-    bars_row = await pool.fetchrow(
-        "SELECT COUNT(*) as total_bars FROM ohlcv_bars"
-    )
-    ticks_row = await pool.fetchrow(
-        "SELECT COUNT(*) as total_ticks FROM market_ticks"
-    )
+    bars_row = await pool.fetchrow("SELECT COUNT(*) as total_bars FROM ohlcv_bars")
+    ticks_row = await pool.fetchrow("SELECT COUNT(*) as total_ticks FROM market_ticks")
     return {
         "total_bars": bars_row["total_bars"] if bars_row else 0,
         "total_ticks": ticks_row["total_ticks"] if ticks_row else 0,

@@ -67,8 +67,14 @@ class TestFullPipeline:
 
         # Verify every emitted signal has required fields
         required_fields = {
-            "signal_id", "symbol", "direction", "suggested_lots",
-            "stop_loss", "take_profit", "confidence", "source_tier",
+            "signal_id",
+            "symbol",
+            "direction",
+            "suggested_lots",
+            "stop_loss",
+            "take_profit",
+            "confidence",
+            "source_tier",
         }
 
         for sig in signals:
@@ -95,7 +101,7 @@ class TestFullPipeline:
         bad_bar = OHLCVBar(
             timestamp=1700100000000,
             open=Decimal("2350.00"),
-            high=Decimal("2340.00"),   # high below low = invalid
+            high=Decimal("2340.00"),  # high below low = invalid
             low=Decimal("2360.00"),
             close=Decimal("2355.00"),
             volume=Decimal("1000"),

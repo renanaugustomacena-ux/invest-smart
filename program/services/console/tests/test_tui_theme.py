@@ -13,9 +13,18 @@ class TestTheme:
         if HAS_RICH:
             assert MONEYMAKER_THEME is not None
             # Check all expected style names
-            for name in ("info", "warning", "error", "success",
-                         "brain", "market", "risk", "system",
-                         "kill", "signal"):
+            for name in (
+                "info",
+                "warning",
+                "error",
+                "success",
+                "brain",
+                "market",
+                "risk",
+                "system",
+                "kill",
+                "signal",
+            ):
                 assert name in MONEYMAKER_THEME.styles
 
     def test_get_console(self):

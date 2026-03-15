@@ -18,7 +18,7 @@ Utilizzo:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import ROUND_HALF_EVEN, Decimal
 
 from moneymaker_common.decimal_utils import ZERO
@@ -128,9 +128,7 @@ class HistoricalEdgeTracker:
             stats.losses += 1
             stats.total_loss += profit  # negative
 
-    def get_edge(
-        self, symbol: str, regime: str, session: str
-    ) -> EdgeSnapshot:
+    def get_edge(self, symbol: str, regime: str, session: str) -> EdgeSnapshot:
         """Get the edge snapshot for a specific context."""
         key = self._key(symbol, regime, session)
         stats = self._edges.get(key, EdgeStats())
@@ -152,18 +150,20 @@ class HistoricalEdgeTracker:
         """Get snapshots for all tracked contexts."""
         results = []
         for (sym, reg, ses), stats in self._edges.items():
-            results.append(EdgeSnapshot(
-                symbol=sym,
-                regime=reg,
-                session=ses,
-                win_rate=stats.win_rate,
-                avg_win=stats.avg_win,
-                avg_loss=stats.avg_loss,
-                expected_value=stats.expected_value,
-                profit_factor=stats.profit_factor,
-                trade_count=stats.trade_count,
-                is_reliable=stats.trade_count >= self._min_trades,
-            ))
+            results.append(
+                EdgeSnapshot(
+                    symbol=sym,
+                    regime=reg,
+                    session=ses,
+                    win_rate=stats.win_rate,
+                    avg_win=stats.avg_win,
+                    avg_loss=stats.avg_loss,
+                    expected_value=stats.expected_value,
+                    profit_factor=stats.profit_factor,
+                    trade_count=stats.trade_count,
+                    is_reliable=stats.trade_count >= self._min_trades,
+                )
+            )
         return results
 
     def get_report(self) -> dict[str, dict]:

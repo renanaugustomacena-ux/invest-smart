@@ -7,13 +7,11 @@ data source (historical bars instead of a live ZMQ feed).
 
 from __future__ import annotations
 
-import asyncio
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
 
 from algo_engine.backtesting.metrics import BacktestMetrics, BacktestResult

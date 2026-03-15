@@ -110,8 +110,19 @@ class TestTestRegister:
         reg = CommandRegistry()
         register(reg)
         assert "test" in reg.categories
-        expected = ["all", "brain-verify", "cascade", "go", "mt5",
-                    "common", "suite", "lint", "typecheck", "ci",
-                    "coverage", "specific"]
+        expected = [
+            "all",
+            "brain-verify",
+            "cascade",
+            "go",
+            "mt5",
+            "common",
+            "suite",
+            "lint",
+            "typecheck",
+            "ci",
+            "coverage",
+            "specific",
+        ]
         for cmd in expected:
             assert cmd in reg._commands["test"]

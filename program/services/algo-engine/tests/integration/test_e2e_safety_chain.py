@@ -48,16 +48,14 @@ class TestE2ESafetyChain:
         spiral.record_loss()  # 3rd loss = threshold reached
 
         mult_after_3 = spiral.get_sizing_multiplier()
-        assert mult_after_3 < Decimal("1"), (
-            f"After 3 losses, sizing should be reduced (got {mult_after_3})"
-        )
+        assert mult_after_3 < Decimal(
+            "1"
+        ), f"After 3 losses, sizing should be reduced (got {mult_after_3})"
 
         spiral.record_loss()
         spiral.record_loss()  # 5th loss = max consecutive reached
 
-        assert spiral.is_in_cooldown() is True, (
-            "After 5 consecutive losses, cooldown must activate"
-        )
+        assert spiral.is_in_cooldown() is True, "After 5 consecutive losses, cooldown must activate"
 
         # --- Phase 3: Portfolio drawdown hits 3% → Level 2 ---
         level2_action = await kill_switch.hierarchical_check(
@@ -92,9 +90,9 @@ class TestE2ESafetyChain:
 
         # After recovery, wins should reset spiral
         spiral.record_win()
-        assert spiral.get_sizing_multiplier() == Decimal("1"), (
-            "Win after recovery should reset sizing to 1.0"
-        )
+        assert spiral.get_sizing_multiplier() == Decimal(
+            "1"
+        ), "Win after recovery should reset sizing to 1.0"
 
         # Hierarchical check with healthy drawdown
         recovery_action = await kill_switch.hierarchical_check(

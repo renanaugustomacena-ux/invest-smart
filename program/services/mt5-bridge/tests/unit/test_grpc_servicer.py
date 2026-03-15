@@ -41,9 +41,7 @@ class TestGRPCExecutionServicer:
         )
 
     @pytest.mark.asyncio
-    async def test_execute_trade_converts_proto_to_dict(
-        self, grpc_servicer, mock_servicer
-    ):
+    async def test_execute_trade_converts_proto_to_dict(self, grpc_servicer, mock_servicer):
         """Verify proto TradingSignal is correctly converted to dict."""
         mock_servicer.execute_trade = AsyncMock(
             return_value={
@@ -68,9 +66,7 @@ class TestGRPCExecutionServicer:
         assert call_args["suggested_lots"] == "0.10"
 
     @pytest.mark.asyncio
-    async def test_execute_trade_returns_proto_response(
-        self, grpc_servicer, mock_servicer
-    ):
+    async def test_execute_trade_returns_proto_response(self, grpc_servicer, mock_servicer):
         """Verify dict result is correctly converted to proto TradeExecution."""
         mock_servicer.execute_trade = AsyncMock(
             return_value={

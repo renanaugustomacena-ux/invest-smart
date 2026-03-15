@@ -46,14 +46,12 @@ async def get_upcoming_events(
 
 async def get_active_blackouts(pool: asyncpg.Pool) -> list[dict]:
     """Fetch currently active trading blackouts."""
-    rows = await pool.fetch(
-        """
+    rows = await pool.fetch("""
         SELECT symbol, blackout_start, blackout_end, reason, created_at
         FROM trading_blackouts
         WHERE blackout_start <= NOW() AND blackout_end >= NOW()
         ORDER BY blackout_start ASC
-        """
-    )
+        """)
     return [dict(r) for r in rows]
 
 

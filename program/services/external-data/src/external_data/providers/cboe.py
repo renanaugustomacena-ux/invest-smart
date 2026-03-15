@@ -23,7 +23,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 import httpx
 
@@ -35,6 +34,7 @@ logger = get_logger(__name__)
 @dataclass
 class VIXData:
     """VIX data snapshot."""
+
     time: datetime
     vix_spot: Decimal
     vix_1m: Decimal | None = None

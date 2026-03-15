@@ -92,6 +92,6 @@ class TestSpiralProtectionIntegration:
         # During active cooldown, sizing is zero (fully blocked)
         assert sp.is_in_cooldown() is True
         mult = sp.get_sizing_multiplier()
-        assert mult == Decimal("0"), (
-            f"During cooldown, multiplier should be 0 (full block), got {mult}"
-        )
+        assert mult == Decimal(
+            "0"
+        ), f"During cooldown, multiplier should be 0 (full block), got {mult}"
