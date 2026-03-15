@@ -175,73 +175,7 @@ CREATE TRIGGER audit_no_delete
 
 ---
 
-## 3. ML Tables
-
-Source: `infra/docker/init-db/002_ml_tables.sql`
-
-These tables support the ML Training Lab integration (placeholder service — not yet deployed).
-
-### model_registry
-
-Stores versioned model checkpoints.
-
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `BIGSERIAL` | PRIMARY KEY | Auto-increment ID |
-| `model_name` | `TEXT` | NOT NULL | Model family name (e.g., "jepa") |
-| `version` | `TEXT` | NOT NULL | Version identifier |
-| `model_type` | `TEXT` | | Architecture type: jepa, gnn, mlp, ensemble |
-| `checkpoint_path` | `TEXT` | NOT NULL | Path to model checkpoint file |
-| `is_active` | `BOOLEAN` | DEFAULT FALSE | Currently serving predictions |
-| `training_samples` | `INT` | | Number of training samples |
-| `validation_accuracy` | `NUMERIC(7,6)` | | Validation accuracy (e.g., 0.847923) |
-| `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT NOW() | Registration time |
-| `metadata` | `JSONB` | DEFAULT '{}' | Additional metadata |
-
-- **Unique constraint**: `(model_name, version)` — one checkpoint per model+version
-- **Partial index**: `idx_model_registry_active ON (model_name) WHERE is_active = TRUE` — fast lookup of active model
-
-### model_metrics
-
-Stores training/validation metrics over time.
-
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `BIGSERIAL` | PRIMARY KEY | Auto-increment ID |
-| `model_id` | `BIGINT` | NOT NULL, FK → model_registry(id) ON DELETE CASCADE | Parent model |
-| `recorded_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT NOW() | Metric timestamp |
-| `metric_name` | `TEXT` | NOT NULL | Metric identifier (e.g., "accuracy", "sharpe", "max_drawdown") |
-| `metric_value` | `NUMERIC(12,6)` | NOT NULL | Metric value |
-| `metadata` | `JSONB` | DEFAULT '{}' | Additional context |
-
-- **Index**: `idx_model_metrics_model_time ON (model_id, recorded_at DESC)`
-- **Cascade**: Deleting a model from registry deletes all its metrics
-
-### ml_predictions (Hypertable)
-
-Stores raw ML predictions for outcome correlation (feedback loop).
-
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `BIGSERIAL` | PRIMARY KEY | Auto-increment ID |
-| `prediction_id` | `UUID` | NOT NULL DEFAULT gen_random_uuid() | Unique prediction identifier |
-| `symbol` | `TEXT` | NOT NULL | Trading instrument |
-| `model_name` | `TEXT` | NOT NULL | Model that produced prediction |
-| `model_version` | `TEXT` | NOT NULL | Model version |
-| `direction` | `TEXT` | NOT NULL | BUY, SELL, or HOLD |
-| `confidence` | `NUMERIC(5,4)` | NOT NULL | Prediction confidence |
-| `regime` | `TEXT` | | Market regime at prediction time |
-| `features_hash` | `TEXT` | | SHA-256 of the feature snapshot (for reproducibility) |
-| `inference_time_us` | `INT` | | Inference latency in microseconds |
-| `predicted_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT NOW() | Prediction timestamp |
-| `metadata` | `JSONB` | DEFAULT '{}' | Additional context |
-
-- **Hypertable**: on `predicted_at` column
-- **Compression**: After 7 days, segmentby `symbol,model_name`, orderby `predicted_at DESC`
-
----
-
-## 4. Strategy Tables
+## 3. Strategy Tables
 
 Source: `infra/docker/init-db/003_strategy_tables.sql`
 
@@ -296,7 +230,7 @@ Daily aggregates computed from `strategy_performance`. This is a TimescaleDB **c
 
 ---
 
-## 5. TimescaleDB Features
+## 4. TimescaleDB Features
 
 ### Compression Policies
 
@@ -320,7 +254,7 @@ Compression ratios typically exceed 90% for time-series data. Segment columns ar
 
 ---
 
-## 6. Redis Cache
+## 5. Redis Cache
 
 Redis 7 serves as a high-speed cache layer with AOF persistence and password protection.
 
@@ -335,7 +269,7 @@ Redis 7 serves as a high-speed cache layer with AOF persistence and password pro
 
 ---
 
-## 7. Algo Engine Storage Layer
+## 6. Algo Engine Storage Layer
 
 The Algo Engine has its own internal storage layer at `services/algo-engine/src/algo_engine/storage/` that wraps PostgreSQL access:
 
@@ -356,7 +290,7 @@ This layer uses the same PostgreSQL instance defined in `docker-compose.yml`. It
 
 ---
 
-## 8. Query Patterns
+## 7. Query Patterns
 
 ### Latest bars by symbol and timeframe
 
@@ -417,7 +351,7 @@ ORDER BY id;
 
 ---
 
-## 9. Data Lifecycle
+## 8. Data Lifecycle
 
 ### Compression Timeline
 
