@@ -404,7 +404,7 @@ Il sistema di fallback a 4 livelli e uno dei design pattern piu importanti di MO
 
 Il **Tier 1 (Statistical Primary)** e il livello piu avanzato: utilizza modelli statistici avanzati calibrati sui dati storici per generare predizioni direzionali. Quando il modello statistico e operativo e supera le soglie di validazione, questo e il tier preferito.
 
-Il **Tier 2 (Technical)** utilizza indicatori tecnici classici (RSI, MACD, ATR, Bollinger Bands, EMA crossover) per generare segnali. Questo livello non richiede ML ed e completamente deterministico.
+Il **Tier 2 (Technical)** utilizza indicatori tecnici classici (RSI, MACD, ATR, Bollinger Bands, EMA crossover) per generare segnali. Questo livello non richiede modelli statistici avanzati ed e completamente deterministico.
 
 Il **Tier 3 (Sentiment)** analizza dati di sentiment (quando disponibili) per generare segnali basati sul posizionamento del mercato.
 
