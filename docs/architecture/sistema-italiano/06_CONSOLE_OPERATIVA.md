@@ -144,7 +144,7 @@ La modalita TUI (Text User Interface) e l'interfaccia interattiva principale del
 |  MONEYMAKER Trading Console v1.0.0  |  2026-02-28 14:32:15  |  DB:OK Redis:OK |
 +============================================================================+
 |                          |                                                  |
-|   MARKET DATA            |   AI BRAIN                                       |
+|   MARKET DATA            |   ALGO ENGINE                                    |
 |   -----------------      |   -----------------                              |
 |   EURUSD: 1.0923/25      |   Status: RUNNING                               |
 |   GBPUSD: 1.2654/56      |   Regime: TRENDING                              |
@@ -182,7 +182,7 @@ graph TD
         end
 
         subgraph "Pannello Superiore Destro"
-            C["AI BRAIN<br/>Stato servizio<br/>Regime mercato<br/>Confidenza modello<br/>Ultimo segnale"]
+            C["ALGO ENGINE<br/>Stato servizio<br/>Regime mercato<br/>Confidenza modello<br/>Ultimo segnale"]
         end
 
         subgraph "Pannello Inferiore Sinistro"
@@ -253,7 +253,7 @@ flowchart LR
 
 ## 4. Categoria: brain
 
-La categoria `brain` gestisce il ciclo di vita e lo stato dell'Algo Engine, il componente di intelligenza artificiale che genera i segnali di trading. Tutti i comandi di questa categoria comunicano con il servizio Algo Engine tramite gRPC. Attualmente, i comandi sono implementati come stub gRPC in attesa che il servizio sia completamente operativo in modalita server.
+La categoria `brain` gestisce il ciclo di vita e lo stato dell'Algo Engine, il motore algoritmico che genera i segnali di trading. Tutti i comandi di questa categoria comunicano con il servizio Algo Engine tramite gRPC. Attualmente, i comandi sono implementati come stub gRPC in attesa che il servizio sia completamente operativo in modalita server.
 
 ```mermaid
 flowchart TD
@@ -357,7 +357,7 @@ Would save model checkpoint to persistent storage
 
 **Sintassi:** `brain model-info`
 **Argomenti:** nessuno
-**Funzionamento:** Restituisce informazioni dettagliate sul modello attualmente caricato: architettura (MarketRAPCoach), numero di parametri, dimensioni (hidden_dim, metadata_dim, output_dim), data di addestramento, dataset utilizzato, e metriche del checkpoint.
+**Funzionamento:** Restituisce informazioni dettagliate sul modello attualmente caricato: architettura, numero di parametri, dimensioni (hidden_dim, metadata_dim, output_dim), data di calibrazione, dataset utilizzato, e metriche del checkpoint.
 **Stato:** gRPC stub.
 **Output esempio:**
 ```
@@ -830,7 +830,7 @@ Running: pytest program/services/algo-engine/ -v
 
 **Sintassi:** `test brain-verify`
 **Argomenti:** nessuno
-**Funzionamento:** Esegue solo i test di verifica del cervello artificiale (`brain_verification`), che controllano la correttezza delle dimensioni dei tensori, le firme dei moduli, e la coerenza del flusso forward.
+**Funzionamento:** Esegue solo i test di verifica del motore algoritmico (`brain_verification`), che controllano la correttezza delle dimensioni dei vettori, le firme dei moduli, e la coerenza del flusso forward.
 **Stato:** Funzionante immediatamente.
 **Output esempio:**
 ```
