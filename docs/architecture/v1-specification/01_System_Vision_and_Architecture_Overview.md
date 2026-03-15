@@ -56,10 +56,6 @@ All financial calculations use Decimal arithmetic (never floating point). The sy
                       Grafana (dashboards)
                         port 3000
 
-                    ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
-                      ML Training Lab       (separate machine, placeholder)
-                      port 50056
-                    └─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
 ```
 
 Four core services plus monitoring infrastructure:
@@ -69,8 +65,6 @@ Four core services plus monitoring infrastructure:
 | **Data Ingestion** | Go 1.22+ | Connects to Polygon.io via WebSocket, normalizes data, aggregates OHLCV bars, publishes via ZeroMQ |
 | **Algo Engine** | Python 3.11+ | 17 subdirectories, 130+ Python files. Computes indicators, classifies regime, routes to strategies, validates and emits signals |
 | **MT5 Bridge** | Python 3.11+ | Receives signals via gRPC, enforces risk limits, executes orders through MetaTrader 5 |
-| **ML Training Lab** | Python (placeholder) | GPU-based model training on a separate machine; integrated via gRPC when deployed |
-
 ---
 
 ## 3. Technology Stack
@@ -109,14 +103,13 @@ Four core services plus monitoring infrastructure:
 ### gRPC + Protobuf — Service-to-Service Calls
 
 - **Algo Engine -> MT5 Bridge**: `TradingSignalService.SendSignal()` (signal dispatch)
-- **Algo Engine -> ML Lab**: `MLInferenceService.Predict()` (optional ML inference)
 - **All services**: `HealthCheckService` (standardized health protocol)
 - **Contracts**: 5 `.proto` files in `shared/proto/`
 - **Decimal encoding**: All financial values as strings in protobuf (never float/double)
 
 ### PostgreSQL + Redis — Shared State
 
-- **TimescaleDB**: Historical OHLCV, ticks, signals, executions, audit log, ML predictions, strategy performance
+- **TimescaleDB**: Historical OHLCV, ticks, signals, executions, audit log, strategy performance
 - **Redis**: Real-time price cache (TTL 300s), portfolio state, signal deduplication, kill switch flag
 
 ---
@@ -163,7 +156,6 @@ Risk management operates at multiple layers:
 | Data Ingestion | Exchange connections, normalization, OHLCV aggregation (M1/M5/M15/H1 runtime), tick persistence, Redis price cache | Feature computation, trading decisions |
 | Algo Engine | Feature pipeline, regime classification, strategy routing (4-tier cascade), signal generation and validation, analysis, coaching, knowledge graph | Order execution, broker connectivity |
 | MT5 Bridge | Order placement, position tracking, trailing stops, signal dedup, risk enforcement at execution | Market data, feature computation, strategy selection |
-| ML Training Lab | Model training, inference serving | Everything else (placeholder) |
 | Monitoring | Prometheus scraping, Grafana dashboards, alerting | Application logic |
 
 ---
@@ -272,7 +264,6 @@ Code defaults → YAML config → Environment variables → Docker Compose env
 | Algo Engine | 9093 | HTTP | Prometheus metrics |
 | MT5 Bridge | 50055 | gRPC | Signal reception |
 | MT5 Bridge | 9094 | HTTP | Prometheus metrics |
-| ML Training Lab | 50056 | gRPC | Inference service (placeholder) |
 | PostgreSQL | 5432 | TCP | Database |
 | Redis | 6379 | TCP | Cache |
 | Prometheus | 9091 (host) → 9090 (container) | HTTP | Metrics collection |
@@ -288,7 +279,6 @@ Code defaults → YAML config → Environment variables → Docker Compose env
 | Microservices communication details | [Module 03](03_Microservices_Architecture_and_Communication.md) |
 | Data ingestion pipeline | [Module 04](04_Data_Ingestion_and_Real_Time_Market_Data_Service.md) |
 | Database schema | [Module 05](05_Database_Architecture_and_Time_Series_Storage.md) |
-| ML Training Lab | [Module 06](06_AI_ML_Training_Infrastructure_and_Pipeline.md) |
 | Algo Engine intelligence layer | [Module 07](07_AI_Trading_Brain_Intelligence_Layer.md) |
 | MT5 trade execution | [Module 08](08_MetaTrader5_Integration_and_Trade_Execution_Bridge.md) |
 | Risk management | [Module 09](09_Risk_Management_and_Safety_Systems.md) |
