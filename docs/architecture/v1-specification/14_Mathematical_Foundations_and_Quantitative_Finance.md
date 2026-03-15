@@ -5018,7 +5018,7 @@ $$
 
 ---
 
-## 14.2 Mixture of Experts (MoE)
+## 14.2 Weighted Strategy Ensemble
 
 **Gating Network (softmax):**
 
@@ -5933,8 +5933,8 @@ $$
 | 14.1 | Condorcet Majority | $P(\text{maj}) = \sum \binom{n}{k}p^k(1-p)^{n-k}$ | Algo Engine ensemble |
 | 14.1 | Sharpe Scaling (uncorr.) | $SR_p = \sqrt{N} \cdot SR_s$ | Algo Engine sizing |
 | 14.1 | Sharpe Scaling (corr.) | $SR_p = \frac{\sqrt{N}}{\sqrt{1+(N-1)\bar\rho}} SR_s$ | Algo Engine diversity |
-| 14.2 | MoE Gating | $g_i = \text{softmax}(\mathbf{v}_i^T x)$ | Algo Engine MoE |
-| 14.2 | MoE Output | $y = \sum g_i E_i(x)$ | Algo Engine |
+| 14.2 | Ensemble Gating | $g_i = \text{softmax}(\mathbf{v}_i^T x)$ | Algo Engine ensemble |
+| 14.2 | Ensemble Output | $y = \sum g_i E_i(x)$ | Algo Engine |
 | 14.3 | Net Signal | $s = \sum w_i d_i \cdot \text{str}_i$ | SignalProcessor |
 | 14.3 | MTF Confluence | $\text{score} = \sum w_{tf} s_{tf}$ | SignalProcessor |
 | 14.4 | Stacking Meta-Learner | $\hat{y} = \sigma(\sum \beta_k \hat{y}_k + b)$ | Algo Engine stacking |
