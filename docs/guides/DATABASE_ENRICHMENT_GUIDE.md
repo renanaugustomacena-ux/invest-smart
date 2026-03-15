@@ -1,6 +1,6 @@
 # Guida al Popolamento Database con Dati Reali di Mercato
 
-Questa guida spiega come arricchire il database MONEYMAKER con dati finanziari reali (non mock o sintetici) e come normalizzarli per l'architettura AI/ML.
+Questa guida spiega come arricchire il database MONEYMAKER con dati finanziari reali (non mock o sintetici) e come normalizzarli per l'architettura algoritmica.
 
 ---
 
@@ -12,7 +12,7 @@ Questa guida spiega come arricchire il database MONEYMAKER con dati finanziari r
 4. [Configurazione API Keys](#4-configurazione-api-keys)
 5. [Avvio Servizi Data Ingestion](#5-avvio-servizi-data-ingestion)
 6. [Verifica Flusso Dati](#6-verifica-flusso-dati)
-7. [Normalizzazione per AI/ML](#7-normalizzazione-per-aiml)
+7. [Normalizzazione Dati](#7-normalizzazione-dati)
 8. [Backfill Dati Storici](#8-backfill-dati-storici)
 9. [Monitoring e Troubleshooting](#9-monitoring-e-troubleshooting)
 
@@ -41,7 +41,7 @@ Questa guida spiega come arricchire il database MONEYMAKER con dati finanziari r
 
 ### Risorse Hardware Minime
 
-- **RAM**: 8GB minimo (16GB consigliato per ML)
+- **RAM**: 8GB minimo (16GB consigliato)
 - **Storage**: 50GB+ per dati storici
 - **CPU**: 4 core minimo
 - **Rete**: Connessione stabile per WebSocket
@@ -348,7 +348,7 @@ GET macro:yield_curve
 
 ---
 
-## 7. Normalizzazione per AI/ML
+## 7. Normalizzazione Dati
 
 ### 7.1 Formato Canonico MONEYMAKER
 
@@ -378,35 +378,10 @@ Raw Exchange Data
     ↓
 [6] Feature Pipeline (25+ technical indicators)
     ↓
-[7] Market Vectorizer (60-dim normalized vector)
-    ↓
-ML Models (JEPA, GNN, MLP, Ensemble)
+[7] Algo Engine (regime classification, strategy routing, signal generation)
 ```
 
-### 7.3 Tabelle ML
-
-```sql
--- Registry modelli addestrati
-SELECT model_name, version, model_type, is_active,
-       training_samples, validation_accuracy
-FROM model_registry
-WHERE is_active = true;
-
--- Predizioni ML per feedback loop
-SELECT symbol, model_name, direction, confidence, regime,
-       inference_time_us
-FROM ml_predictions
-WHERE predicted_at > NOW() - INTERVAL '1 hour'
-ORDER BY predicted_at DESC;
-
--- Metriche performance modelli
-SELECT model_name, metric_name, metric_value, recorded_at
-FROM model_metrics
-WHERE recorded_at > NOW() - INTERVAL '24 hours'
-ORDER BY recorded_at DESC;
-```
-
-### 7.4 Feature Engineering
+### 7.3 Feature Engineering
 
 Il servizio Algo Engine calcola automaticamente:
 
@@ -420,18 +395,7 @@ Il servizio Algo Engine calcola automaticamente:
 - Stochastic %K/%D
 - OBV, Donchian, Williams %R, ROC, CCI
 
-**Vettore 60-Dimensionale**:
-```
-[0-5]   Price features (OHLCV + spread)
-[6-15]  Trend indicators (EMA, SMA, MACD)
-[16-25] Momentum oscillators (RSI, Stoch, ROC)
-[26-33] Volatility measures (ATR, BB width)
-[34-40] Volume indicators (OBV, volume ratio)
-[41-50] Context features (time, session, macro)
-[51-59] Market microstructure (spread, tick freq)
-```
-
-### 7.5 Integrazione Dati Macro
+### 7.4 Integrazione Dati Macro
 
 I dati macro vengono integrati come feature aggiuntive:
 
@@ -448,7 +412,7 @@ I dati macro vengono integrati come feature aggiuntive:
 
 ### 8.1 Perche' il Backfill e' Importante
 
-- **ML Training**: Richiede 2+ anni di dati per pattern robusti
+- **Strategy Calibration**: Richiede 2+ anni di dati per pattern robusti
 - **Regime Detection**: Necessita di dati su diversi cicli di mercato
 - **Backtesting**: Validazione strategie su dati storici
 
@@ -616,7 +580,7 @@ if __name__ == "__main__":
 **Finestre Temporali**:
 | Scopo | Periodo Minimo | Ideale |
 |-------|----------------|--------|
-| ML Training | 2 anni | 5 anni |
+| Strategy Calibration | 2 anni | 5 anni |
 | Regime Detection | 3 anni | 7 anni |
 | Backtesting | 1 anno | 3 anni |
 
@@ -743,8 +707,8 @@ python program/services/console/moneymaker_console.py sys db
 # Gap detection
 python program/services/console/moneymaker_console.py data gaps --symbol XAU/USD
 
-# Performance modelli ML
-python program/services/console/moneymaker_console.py ml status
+# Status Algo Engine
+python program/services/console/moneymaker_console.py brain status
 ```
 
 ---
@@ -762,6 +726,7 @@ Dopo aver completato la configurazione, verifica:
 - [ ] Grafana dashboard funzionanti
 - [ ] Nessun gap significativo nei dati (query di verifica)
 - [ ] ZeroMQ pubblica messaggi (Algo Engine riceve dati)
+
 
 ---
 
