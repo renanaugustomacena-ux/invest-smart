@@ -20,7 +20,7 @@
 
 ## 1. Overview
 
-MONEYMAKER V1 runs as a Docker Compose stack with 7 containers (plus an optional ML Training Lab). The target production deployment is on a Proxmox VE bare-metal server with dedicated VMs per service group, but the entire stack can run on a single machine for development.
+MONEYMAKER V1 runs as a Docker Compose stack with 7 containers. The target production deployment is on a Proxmox VE bare-metal server with dedicated VMs per service group, but the entire stack can run on a single machine for development.
 
 **Infrastructure files**: `infra/docker/`
 
@@ -54,8 +54,6 @@ Defined in `infra/docker/docker-compose.yml`:
 | `moneymaker-grafana` | `grafana/grafana:10.3.3` | 3000:3000 | — |
 
 **Note**: Data Ingestion maps host port 8081 to container port 8080 for health checks (the container's health server listens on 8081 internally, calculated as `metrics_port + 1`).
-
-**ML Training Lab** is defined but commented out (lines 96-128). It includes GPU device reservation syntax (`deploy.resources.reservations.devices`) and runs on a separate machine. The Algo Engine's `MLProxyStrategy` falls back to HOLD until this service is running.
 
 ### Dev Override
 
@@ -97,15 +95,7 @@ Three SQL scripts in `infra/docker/init-db/` execute on first container start (a
 | `trade_executions` | Regular table | id BIGSERIAL PK, order_id (UNIQUE), signal_id (FK to trading_signals.signal_id), symbol, direction, **requested_price**, executed_price, quantity, stop_loss, take_profit, status, **slippage_pips** (not slippage), commission, swap, profit, close_price, closed_at, **executed_at** (not created_at), **rejection_reason**. |
 | `audit_log` | Append-only table | id BIGSERIAL PK, created_at, service, action, entity_type, entity_id, details (JSONB), prev_hash, hash. Triggers prevent UPDATE/DELETE. SHA-256 hash chain. |
 
-### 002_ml_tables.sql — ML Tracking (73 lines)
-
-| Table | Type | Key Columns |
-|---|---|---|
-| `model_registry` | Regular table | id BIGSERIAL PK, **model_name** TEXT, **version** TEXT (UNIQUE together), description, **validation_accuracy** NUMERIC (only metric — no precision, recall, or F1), model_path, is_active, created_at, updated_at. |
-| `model_metrics` | Regular table | id BIGSERIAL PK, **model_id BIGINT** (FK to model_registry.id with CASCADE — not model_version TEXT), epoch INTEGER, metric_name, metric_value, recorded_at. |
-| `ml_predictions` | Hypertable (1-day chunks) | **prediction_id UUID** DEFAULT gen_random_uuid(), model_id (FK), symbol, **predicted_at** TIMESTAMPTZ (hypertable column), direction, confidence, actual_direction, actual_price_change, **features_hash** TEXT, **inference_time_us** INTEGER. Compression after 7 days. |
-
-### 003_strategy_tables.sql — Strategy Performance (79 lines)
+### 002_strategy_tables.sql — Strategy Performance (79 lines)
 
 | Table | Type | Key Columns |
 |---|---|---|
@@ -168,9 +158,6 @@ All sensitive values are passed via environment variables. Template: `.env.examp
 | Algo Engine | `BRAIN_MAX_DRAWDOWN_PCT` | — | Max drawdown limit |
 | Algo Engine | `BRAIN_ZMQ_DATA_FEED` | — | ZMQ SUB address (e.g., `tcp://data-ingestion:5555`) |
 | Algo Engine | `BRAIN_MT5_BRIDGE_TARGET` | — | gRPC target (e.g., `mt5-bridge:50055`) |
-| ML | `BRAIN_ML_ENABLED` | `false` | Enable ML integration |
-| ML | `BRAIN_ML_ENDPOINT` | — | ML service gRPC address |
-| ML | `BRAIN_ML_TIMEOUT_MS` | — | ML inference timeout |
 | MT5 | `MT5_ACCOUNT` | — | Broker account number |
 | MT5 | `MT5_PASSWORD` | — | Broker password |
 | MT5 | `MT5_SERVER` | — | Broker server name |
@@ -298,7 +285,6 @@ The target production environment is a Proxmox VE bare-metal server:
 - **CPU**: AMD Ryzen 9 7950X (16 cores / 32 threads)
 - **RAM**: 128 GB DDR5 ECC
 - **Storage**: 2x 2TB NVMe (ZFS RAID1) + 4x 16TB HDD (RAID10)
-- **GPU**: AMD RX 9070 XT (for ML Training Lab, passed through via VFIO)
 - **Network**: VLAN segmentation per service group
 
 Each service group runs in its own VM. Docker Compose orchestrates containers within each VM. The `configs/moneymaker_services.yaml` file provides static service discovery with IPs and ports for cross-VM communication.
