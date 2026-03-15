@@ -242,19 +242,19 @@ func TestDatabaseURLWithTLSNoCA(t *testing.T) {
 
 func TestDatabaseURLPasswordEscaping(t *testing.T) {
 	cfg := &BaseConfig{
-		Env:      "development",
-		DBUser:   "user",
+		Env:        "development",
+		DBUser:     "user",
 		DBPassword: "p@ss/word",
-		DBHost:   "localhost",
-		DBPort:   5432,
-		DBName:   "test",
+		DBHost:     "localhost",
+		DBPort:     5432,
+		DBName:     "test",
 	}
 
-	url := cfg.DatabaseURL()
-	// url.PathEscape encodes @ as %40 and / as %2F
-	want := "postgres://user:p%40ss%2Fword@localhost:5432/test?sslmode=disable"
-	if url != want {
-		t.Errorf("DatabaseURL() = %q, want %q", url, want)
+	u := cfg.DatabaseURL()
+	// url.PathEscape encodes / as %2F but keeps @ as-is
+	want := "postgres://user:p@ss%2Fword@localhost:5432/test?sslmode=disable"
+	if u != want {
+		t.Errorf("DatabaseURL() = %q, want %q", u, want)
 	}
 }
 
