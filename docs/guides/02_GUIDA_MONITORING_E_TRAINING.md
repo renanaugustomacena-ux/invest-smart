@@ -34,10 +34,10 @@
 |---------|-------|------------|----------|
 | **Drawdown** | < 3% | 3-5% | > 5% (kill switch si attiva) |
 | **Win Rate** | > 55% | 45-55% | < 45% (strategia non funziona) |
-| **Signal Confidence (mediana)** | > 0.65 | 0.50-0.65 | < 0.50 (Brain insicuro) |
+| **Signal Confidence (mediana)** | > 0.65 | 0.50-0.65 | < 0.50 (Algo Engine insicuro) |
 | **Signals/Hour** | 2-10 | 0-2 (troppo cauto) | > 20 (overtrading) |
 | **Tick Latency P99** | < 5ms | 5-50ms | > 50ms (dati in ritardo) |
-| **ML Inference Latency** | < 10ms | 10-50ms | > 100ms (modello troppo lento) |
+| **Calcolo Latency** | < 10ms | 10-50ms | > 100ms (elaborazione troppo lenta) |
 | **Order Execution Latency** | < 200ms | 200-500ms | > 1s (broker lento) |
 
 ### Come Leggere l'Equity Curve
@@ -45,7 +45,7 @@
 - **Linea che sale costante**: il sistema sta guadagnando — tutto ok
 - **Linea piatta**: il sistema e' in HOLD — sta aspettando segnali migliori
 - **Piccolo calo e poi recupero**: drawdown normale — il sistema sta gestendo il rischio
-- **Calo costante senza recupero**: qualcosa non va — controlla i log del Brain
+- **Calo costante senza recupero**: qualcosa non va — controlla i log dell'Algo Engine
 
 ---
 
@@ -64,9 +64,6 @@ rate(moneymaker_ticks_received_total[1m])
 # Confidence media dei segnali
 avg(moneymaker_signal_confidence)
 
-# Latenza P95 dell'inferenza ML
-histogram_quantile(0.95, moneymaker_ml_inference_latency_ms)
-
 # Quanti ordini sono stati eseguiti oggi
 increase(moneymaker_mt5_orders_filled_total[24h])
 
@@ -76,72 +73,7 @@ moneymaker_portfolio_drawdown_pct
 
 ---
 
-## 3. TensorBoard — Quando il Training Parte
-
-**URL**: `http://10.0.0.100:6006`
-
-TensorBoard mostrera' dati SOLO quando il ML Lab (VM 102) inizia ad addestrare i modelli. Fino a quel momento la pagina sara' vuota — e' normale.
-
-### Cosa Vedrai Durante il Training
-
-#### Loss Curve (il grafico piu' importante)
-
-```
-Loss
-2.0 │ ████
-    │    ████
-1.0 │        ██████
-    │              ████████
-0.3 │                      ██████████████████████
-    └─────────────────────────────────────────────
-    Epoch 1    10    20    50    100    200
-```
-
-**Come leggerlo**:
-- **Loss che scende**: il modello sta imparando — bene
-- **Loss che oscilla ma il trend scende**: normale, succede sempre
-- **Loss che scende e poi risale**: OVERFITTING — il modello sta memorizzando i dati
-- **Loss piatta dall'inizio**: il modello non sta imparando — problema di learning rate o dati
-
-#### Valori Tipici per Epoch
-
-| Epoch | Loss Attesa | Accuracy Attesa | Cosa Sta Succedendo |
-|-------|-------------|-----------------|---------------------|
-| 1-10 | 1.5 - 2.0 | ~33% (random) | Il modello non sa nulla, sta esplorando |
-| 10-50 | 0.8 - 1.2 | 40-50% | Inizia a distinguere BUY/SELL/HOLD |
-| 50-100 | 0.5 - 0.8 | 50-60% | Migliora, ma ancora instabile |
-| 100-200 | 0.3 - 0.5 | 55-65% | Sta convergendo |
-| 200-500 | 0.2 - 0.4 | 58-68% | Plateau — momento di validare |
-| > 500 | < 0.3 | Se > 75%: sospetto overfitting | Troppo buono = probabilmente fake |
-
-**ATTENZIONE**: Nel trading, un'accuracy del 55-60% e' GIA' ECCELLENTE. Se vedi 80-90%, il modello sta barando (look-ahead bias o overfitting).
-
-#### Metriche che Vedrai in TensorBoard
-
-| Tab | Metrica | Significato |
-|-----|---------|-------------|
-| Scalars | `train/loss` | Errore di training (deve scendere) |
-| Scalars | `val/loss` | Errore di validazione (deve scendere E restare vicino a train/loss) |
-| Scalars | `val/accuracy` | Percentuale predizioni corrette su dati mai visti |
-| Scalars | `val/sharpe` | Sharpe ratio simulato — il piu' importante per il trading |
-| Scalars | `learning_rate` | Velocita' di apprendimento (scende con lo scheduler) |
-| Histograms | `gradients` | Distribuzione dei gradienti (devono NON essere zero) |
-| Histograms | `weights` | Distribuzione dei pesi (non devono esplodere ne' morire) |
-
-#### Come Capire se il Training va Bene
-
-| Segnale | Significato | Azione |
-|---------|-------------|--------|
-| train_loss scende, val_loss scende | Tutto ok | Continua |
-| train_loss scende, val_loss SALE | Overfitting | Ferma, aumenta dropout, riduci complessita' |
-| train_loss piatta | Non impara | Aumenta learning rate o cambia dati |
-| val_sharpe > 1.0 | Il modello genera alpha | Pronto per paper trading |
-| val_sharpe < 0 | Il modello perde soldi | Non deployare, riaddestra |
-| Gradienti tutti zero | Gradient death | Bug nel codice, controlla loss function |
-
----
-
-## 4. Health Checks — Controllare Che Tutto Sia Vivo
+## 3. Health Checks — Controllare Che Tutto Sia Vivo
 
 ### Dalla Linea di Comando (SSH in VM 100)
 
@@ -179,12 +111,12 @@ curl http://localhost:8081/healthz
 | Container "Restarting" | Loop di crash | `docker compose logs macena-brain` per capire l'errore |
 | "unhealthy" | Health check fallisce | Controlla se PostgreSQL/Redis sono up |
 | Nessun tick | `rate(moneymaker_ticks_received_total[1m]) = 0` | Polygon.io API key scaduta o problemi di rete |
-| Nessun segnale | Brain non genera signal | Controlla regime — potrebbe essere HIGH_VOLATILITY (HOLD) |
+| Nessun segnale | Algo Engine non genera signal | Controlla regime — potrebbe essere HIGH_VOLATILITY (HOLD) |
 | Ordini rifiutati | MT5 rejecta gli ordini | Controlla spread, margin, dimensione lotto |
 
 ---
 
-## 5. Console MONEYMAKER — Il Tuo Telecomando
+## 4. Console MONEYMAKER — Il Tuo Telecomando
 
 La console TUI e' lo strumento piu' diretto per controllare il sistema:
 
@@ -209,12 +141,11 @@ python program/services/console/moneymaker_console.py risk
 | `signals` | Ultimi segnali generati (BUY/SELL/HOLD) |
 | `risk` | Drawdown corrente, perdita giornaliera, margine utilizzato |
 | `trades` | Storico esecuzioni con slippage e profitto |
-| `ml status` | Se il ML Lab e' connesso e quale modello sta usando |
 | `test all` | Esegue tutti i 321 test per verificare integrita' |
 
 ---
 
-## 6. Cosa Monitorare Quotidianamente
+## 5. Cosa Monitorare Quotidianamente
 
 ### Check Mattutino (2 minuti)
 
