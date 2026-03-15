@@ -24,7 +24,6 @@
 | Data Ingestion | Go 1.22+ | ZMQ PUB (outbound), HTTP (metrics/health) | Market data pipeline |
 | Algo Engine | Python 3.11+ | ZMQ SUB (inbound), gRPC client (outbound), HTTP (metrics/health) | Signal generation |
 | MT5 Bridge | Python 3.11+ | gRPC server (inbound), HTTP (metrics) | Trade execution |
-| ML Training Lab | Python (placeholder) | gRPC server (inbound) | ML inference |
 | Monitoring | Prometheus + Grafana | HTTP scrape (inbound) | Observability |
 
 **Data flow**: `Data Ingestion --(ZMQ)--> Algo Engine --(gRPC)--> MT5 Bridge --> Broker`
@@ -102,17 +101,6 @@ Five protobuf files in `shared/proto/` define all service interfaces:
 - `StreamTradeUpdates(Empty) returns (stream TradeExecution)`
 - `CheckHealth(HealthCheckRequest) returns (HealthCheckResponse)`
 
-### ml_inference.proto
-
-| Message | Fields | Used By |
-|---|---|---|
-| `PredictionRequest` | symbol, regime, features (map<string,string>), model_version, timestamp | Algo Engine (produces) |
-| `PredictionResponse` | direction, confidence, reasoning, model_version, model_type, metadata, inference_time_us | ML Lab (produces) |
-
-**Service**: `MLInferenceService`
-- `Predict(PredictionRequest) returns (PredictionResponse)`
-- `GetModelInfo(ModelInfoRequest) returns (ModelInfoResponse)`
-
 ### health.proto
 
 | Message | Fields | Used By |
@@ -184,19 +172,11 @@ Location: `shared/go-common/` — imported as Go module.
 
 Location: `shared/proto/` — compiled via `make proto`.
 
-5 `.proto` files defining all inter-service message formats. All financial values encoded as strings in protobuf (never float/double). Generated Python and Go stubs are used by their respective services.
+4 `.proto` files defining all inter-service message formats. All financial values encoded as strings in protobuf (never float/double). Generated Python and Go stubs are used by their respective services.
 
 ---
 
 ## 6. Resilience Patterns
-
-### Circuit Breaker (ML Service)
-
-The `MLProxyStrategy` uses a circuit breaker when calling the ML Training Lab:
-- **Threshold**: 5 consecutive failures
-- **Cooldown**: 60 seconds before retry
-- **Fallback**: Automatic switch to rule-based strategies
-- **Metric**: `moneymaker_brain_ml_fallback_total`
 
 ### Signal Deduplication (MT5 Bridge)
 
