@@ -35,7 +35,7 @@ Ogni tabella del database corrisponde a un tipo specifico di documento che la ba
 
 - **`ohlcv_bars`** sono i **riepiloghi giornalieri**: candele aggregate che condensano migliaia di tick in un singolo record con prezzo di apertura, massimo, minimo, chiusura e volume. Come il rendiconto mensile che la banca invia al correntista, le barre OHLCV offrono una visione sintetica e navigabile di cio' che e' accaduto in un determinato intervallo temporale.
 
-- **`trading_signals`** sono i **moduli d'ordine**: documenti che registrano la decisione presa dal sistema di intelligenza artificiale. Ogni segnale contiene la direzione (BUY, SELL, HOLD), il livello di confidenza, i lotti suggeriti, lo stop-loss e il take-profit. Come un modulo d'ordine compilato dal gestore patrimoniale prima di eseguire un'operazione, il segnale deve essere completo, tracciabile e immutabile.
+- **`trading_signals`** sono i **moduli d'ordine**: documenti che registrano la decisione presa dal motore algoritmico. Ogni segnale contiene la direzione (BUY, SELL, HOLD), il livello di confidenza, i lotti suggeriti, lo stop-loss e il take-profit. Come un modulo d'ordine compilato dal gestore patrimoniale prima di eseguire un'operazione, il segnale deve essere completo, tracciabile e immutabile.
 
 - **`trade_executions`** sono le **transazioni eseguite**: il record che conferma l'effettiva esecuzione dell'ordine sul mercato. Contengono il prezzo richiesto, il prezzo effettivo di esecuzione, lo slippage in pips, il profitto o la perdita. Come la contabile bancaria che certifica un bonifico andato a buon fine, ogni execution registra esattamente cosa e' successo quando l'ordine ha colpito il mercato.
 
@@ -43,7 +43,7 @@ Ogni tabella del database corrisponde a un tipo specifico di documento che la ba
 
 ### Perche' PostgreSQL con TimescaleDB
 
-La scelta di PostgreSQL come motore di database primario non e' casuale. PostgreSQL offre conformita' ACID completa (Atomicita', Consistenza, Isolamento, Durabilita'), supporto nativo per JSON/JSONB, un ecosistema di estensioni maturo e una comunita' che ne garantisce la longevita'. TimescaleDB, costruito come estensione nativa di PostgreSQL, aggiunge capacita' specifiche per serie temporali senza sacrificare la compatibilita' SQL standard. Questa combinazione consente al MONEYMAKER di gestire sia dati relazionali tradizionali (modelli ML, configurazioni, audit) sia flussi di dati temporali ad alta frequenza (tick, barre, predizioni) in un unico motore, eliminando la complessita' operativa di gestire database multipli.
+La scelta di PostgreSQL come motore di database primario non e' casuale. PostgreSQL offre conformita' ACID completa (Atomicita', Consistenza, Isolamento, Durabilita'), supporto nativo per JSON/JSONB, un ecosistema di estensioni maturo e una comunita' che ne garantisce la longevita'. TimescaleDB, costruito come estensione nativa di PostgreSQL, aggiunge capacita' specifiche per serie temporali senza sacrificare la compatibilita' SQL standard. Questa combinazione consente al MONEYMAKER di gestire sia dati relazionali tradizionali (modelli statistici, configurazioni, audit) sia flussi di dati temporali ad alta frequenza (tick, barre, predizioni) in un unico motore, eliminando la complessita' operativa di gestire database multipli.
 
 ### Principio Architetturale: Decimal Precision Everywhere
 
@@ -63,10 +63,10 @@ graph TD
 
     H["Mercato<br/>Exchange"] -->|"tick per tick"| A
     A -->|"aggregazione"| B
-    B -->|"analisi AI"| C
+    B -->|"analisi algoritmica"| C
     C -->|"esecuzione MT5"| D
     D -->|"hash chain"| E
-    C -->|"addestramento"| F
+    C -->|"calibrazione"| F
     D -->|"apprendimento"| G
 
     style A fill:#4CAF50,color:white
@@ -84,9 +84,9 @@ graph TD
 
 ### Visione d'Insieme dello Schema
 
-Lo schema del database MONEYMAKER e' organizzato in tre macro-aree logiche: **dati di mercato** (market_ticks, ohlcv_bars), **pipeline di trading** (trading_signals, trade_executions, trade_records, strategy_performance) e **infrastruttura ML** (model_registry, model_metrics, ml_predictions, model_checkpoints, feature_drift_logs, performance_snapshots). A queste si aggiungono le tabelle di **conoscenza e grafo** (strategy_knowledge, trade_experiences, market_graph_entities, market_graph_relations) e il **registro di audit** (audit_log).
+Lo schema del database MONEYMAKER e' organizzato in tre macro-aree logiche: **dati di mercato** (market_ticks, ohlcv_bars), **pipeline di trading** (trading_signals, trade_executions, trade_records, strategy_performance) e **infrastruttura statistica** (model_registry, model_metrics, ml_predictions, model_checkpoints, feature_drift_logs, performance_snapshots). A queste si aggiungono le tabelle di **conoscenza e grafo** (strategy_knowledge, trade_experiences, market_graph_entities, market_graph_relations) e il **registro di audit** (audit_log).
 
-Le relazioni tra le tabelle seguono un modello prevalentemente gerarchico: i segnali di trading generano esecuzioni, le esecuzioni generano record di trade, i record di trade alimentano le esperienze di apprendimento. I modelli ML producono predizioni e metriche. Il grafo di mercato collega entita' (simboli, regimi, strategie) attraverso relazioni pesate che il sistema utilizza per il ragionamento contestuale.
+Le relazioni tra le tabelle seguono un modello prevalentemente gerarchico: i segnali di trading generano esecuzioni, le esecuzioni generano record di trade, i record di trade alimentano le esperienze di apprendimento. I modelli statistici producono predizioni e metriche. Il grafo di mercato collega entita' (simboli, regimi, strategie) attraverso relazioni pesate che il sistema utilizza per il ragionamento contestuale.
 
 ### Diagramma Entita'-Relazione Completo
 
@@ -283,17 +283,17 @@ La tabella `market_ticks` e' la piu' voluminosa dell'intero sistema. Ogni tick r
 
 **Tabelle Pipeline di Trading:**
 
-La tabella `trading_signals` registra ogni decisione presa dal sistema AI. Il campo `source_tier` indica quale livello del sistema di fallback a 4 tier ha generato il segnale (ML_PRIMARY, COPER_FALLBACK, STATISTICAL, SAFE_DEFAULT). Il campo `regime` registra il regime di mercato identificato al momento della generazione del segnale. Questa informazione e' fondamentale per l'analisi post-hoc delle performance per regime.
+La tabella `trading_signals` registra ogni decisione presa dal motore algoritmico. Il campo `source_tier` indica quale livello del sistema di fallback a 4 tier ha generato il segnale (STATISTICAL_PRIMARY, STATISTICAL_FALLBACK, TECHNICAL, SAFE_DEFAULT). Il campo `regime` registra il regime di mercato identificato al momento della generazione del segnale. Questa informazione e' fondamentale per l'analisi post-hoc delle performance per regime.
 
 La tabella `trade_executions` e' collegata a `trading_signals` tramite `signal_id`. Registra l'esito effettivo dell'esecuzione: prezzo richiesto vs prezzo effettivo, slippage, status dell'ordine (FILLED, PARTIALLY_FILLED, REJECTED, EXPIRED) e profitto risultante. La differenza tra `requested_price` e `executed_price` alimenta direttamente le metriche di qualita' dell'esecuzione.
 
-**Tabelle Infrastruttura ML:**
+**Tabelle Infrastruttura Statistica:**
 
-La tabella `model_registry` funge da catalogo centrale di tutti i modelli addestrati. Ogni modello e' identificato dalla coppia `(model_name, version)`. Il campo `is_active` indica quale versione e' attualmente in produzione. I campi `training_samples` e `validation_accuracy` forniscono metriche di qualita' del modello al momento del training.
+La tabella `model_registry` funge da catalogo centrale di tutti i modelli calibrati. Ogni modello e' identificato dalla coppia `(model_name, version)`. Il campo `is_active` indica quale versione e' attualmente in produzione. I campi `training_samples` e `validation_accuracy` forniscono metriche di qualita' del modello al momento del training.
 
 La tabella `model_metrics` estende il registry con metriche arbitrarie per ogni modello. Questo schema flessibile consente di registrare metriche diverse per modelli diversi senza alterare lo schema della tabella.
 
-La tabella `ml_predictions` memorizza ogni predizione generata dai modelli in produzione. Questa tabella e' una hypertable TimescaleDB con chunk da 1 giorno e compressione attivata dopo 7 giorni.
+La tabella `ml_predictions` memorizza ogni predizione generata dai modelli statistici in produzione. Questa tabella e' una hypertable TimescaleDB con chunk da 1 giorno e compressione attivata dopo 7 giorni.
 
 **Tabelle SQLModel (Algo Engine):**
 
@@ -337,7 +337,7 @@ SELECT create_hypertable('market_ticks', 'time',
     chunk_time_interval => INTERVAL '1 hour');
 ```
 
-**`ml_predictions`** — Chunk da 1 giorno, con compressione automatica dopo 7 giorni. Le predizioni ML vengono generate a frequenza inferiore rispetto ai tick, ma devono essere conservate per l'analisi della calibrazione del modello. La compressione dopo 7 giorni riduce lo spazio su disco dell'80-90% senza impatto sulle query analitiche.
+**`ml_predictions`** — Chunk da 1 giorno, con compressione automatica dopo 7 giorni. Le predizioni statistiche vengono generate a frequenza inferiore rispetto ai tick, ma devono essere conservate per l'analisi della calibrazione del modello. La compressione dopo 7 giorni riduce lo spazio su disco dell'80-90% senza impatto sulle query analitiche.
 
 ```sql
 SELECT create_hypertable('ml_predictions', 'time',
@@ -652,7 +652,7 @@ Se la query restituisce righe, la catena e' compromessa e le voci con `valid = f
 
 ### Filosofia di Ritenzione
 
-Il MONEYMAKER adotta una strategia di ritenzione differenziata basata sulla criticita' e sul valore analitico dei dati nel tempo. I dati di trading operativo (trade_records) vengono conservati per 2 anni completi per supportare analisi di backtesting a lungo termine e audit normativi. I dati di diagnostica ML (feature_drift_logs) hanno una vita utile piu' breve di 90 giorni perche' i pattern di drift sono rilevanti solo nel contesto del modello corrente. Le policy sono implementate sia come configurazione di compressione TimescaleDB sia come job di pruning eseguibili dalla console.
+Il MONEYMAKER adotta una strategia di ritenzione differenziata basata sulla criticita' e sul valore analitico dei dati nel tempo. I dati di trading operativo (trade_records) vengono conservati per 2 anni completi per supportare analisi di backtesting a lungo termine e audit normativi. I dati di diagnostica statistica (feature_drift_logs) hanno una vita utile piu' breve di 90 giorni perche' i pattern di drift sono rilevanti solo nel contesto del modello corrente. Le policy sono implementate sia come configurazione di compressione TimescaleDB sia come job di pruning eseguibili dalla console.
 
 ### Tabella delle Policy
 
@@ -692,7 +692,7 @@ graph TD
 | Tabella | Ritenzione | Compressione | Note |
 |---------|-----------|-------------|------|
 | `trade_records` | 730 giorni (2 anni) | N/A | Dati operativi critici, necessari per backtesting e audit |
-| `trade_experiences` | 365 giorni (1 anno) | N/A | Contesto vettoriale per apprendimento, meno critico dopo retraining |
+| `trade_experiences` | 365 giorni (1 anno) | N/A | Contesto vettoriale per apprendimento, meno critico dopo ricalibrazione |
 | `feature_drift_logs` | 90 giorni | N/A | Rilevante solo per il modello corrente |
 | `performance_snapshots` | 365 giorni (1 anno) | N/A | Report periodici, utili per trend annuali |
 | `market_ticks` | Variabile (per policy) | Dopo 1 giorno | Volume altissimo, compressione aggressiva |
@@ -910,7 +910,7 @@ WHERE is_drifted = true
 ORDER BY ABS(z_score) DESC;
 ```
 
-Un z-score assoluto superiore a 3 indica una deviazione di 3 deviazioni standard dalla media storica, un segnale forte che il modello potrebbe operare su dati fuori dalla distribuzione di training.
+Un z-score assoluto superiore a 3 indica una deviazione di 3 deviazioni standard dalla media storica, un segnale forte che il modello potrebbe operare su dati fuori dalla distribuzione di riferimento.
 
 ### Analisi dello Slippage di Esecuzione
 
@@ -945,7 +945,7 @@ WHERE b.id IS NULL
   AND a.id < (SELECT MAX(id) FROM audit_log);
 ```
 
-### Stato dei Modelli ML
+### Stato dei Modelli Statistici
 
 Questa query mostra tutti i modelli attivi con le loro metriche principali:
 
@@ -980,7 +980,7 @@ graph TD
     subgraph "Consumer"
         DASH["Dashboard Grafana"]
         CON["Console MONEYMAKER"]
-        AI["Algo Engine"]
+        AE["Algo Engine"]
         MON["Alerting Prometheus"]
     end
 
@@ -989,9 +989,9 @@ graph TD
     Q2 --> MON
     Q2 --> CON
     Q3 --> DASH
-    Q3 --> AI
+    Q3 --> AE
     Q4 --> MON
-    Q4 --> AI
+    Q4 --> AE
     Q5 --> DASH
     Q6 --> MON
     Q7 --> CON
