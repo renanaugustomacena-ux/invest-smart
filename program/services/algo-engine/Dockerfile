@@ -1,7 +1,7 @@
 # MONEYMAKER V1 Algo Engine — Pure Algorithmic Trading Engine
 # Build context: program/ (monorepo root)
 
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -26,6 +26,10 @@ COPY shared/proto /app/shared/proto
 # Copy algo-engine service
 COPY services/algo-engine/pyproject.toml /app/
 COPY services/algo-engine/src/ /app/src/
+
+# Create proto gen directory (gitignored, generated at build time)
+RUN mkdir -p /app/shared/proto/gen/moneymaker_proto && \
+    touch /app/shared/proto/gen/__init__.py /app/shared/proto/gen/moneymaker_proto/__init__.py
 
 # Install dependencies: shared libs -> algo-engine
 RUN pip install --no-cache-dir --upgrade pip && \

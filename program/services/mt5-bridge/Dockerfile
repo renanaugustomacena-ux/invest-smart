@@ -4,7 +4,7 @@
 # Note: MetaTrader5 Python package is Windows-only and listed as an
 # optional dependency. The connector handles ImportError gracefully.
 
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -26,6 +26,10 @@ COPY shared/proto /app/shared/proto
 # Copy service files
 COPY services/mt5-bridge/pyproject.toml /app/
 COPY services/mt5-bridge/src/ /app/src/
+
+# Create proto gen directory (gitignored, generated at build time)
+RUN mkdir -p /app/shared/proto/gen/moneymaker_proto && \
+    touch /app/shared/proto/gen/__init__.py /app/shared/proto/gen/moneymaker_proto/__init__.py
 
 # Install dependencies (MetaTrader5 is optional, not installed on Linux)
 RUN pip install --no-cache-dir --upgrade pip && \

@@ -4,6 +4,7 @@
 # ── Stage 1: Builder ─────────────────────────────────────────────────────────
 FROM golang:1.25-alpine AS builder
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /build
@@ -16,10 +17,9 @@ COPY services/data-ingestion/go.mod services/data-ingestion/go.sum* /build/servi
 
 WORKDIR /build/services/data-ingestion
 
-# Adjust the replace directive for the Docker build context.
-RUN go mod edit -replace github.com/moneymaker-v1/shared/go-common=/build/shared/go-common
-
-RUN go mod download
+# Adjust the replace directive for the Docker build context and download deps.
+RUN go mod edit -replace github.com/moneymaker-v1/shared/go-common=/build/shared/go-common && \
+    go mod download
 
 # Copy the full service source code.
 COPY services/data-ingestion/ /build/services/data-ingestion/
@@ -34,6 +34,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM alpine:3.21
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
