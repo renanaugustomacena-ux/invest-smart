@@ -26,9 +26,9 @@
 
 ### 1.1 Che cos'e MONEYMAKER
 
-MONEYMAKER e un ecosistema di trading algoritmico costruito secondo un'architettura a microservizi. L'obiettivo principale del sistema e raccogliere dati di mercato in tempo reale, elaborarli attraverso un cervello di intelligenza artificiale multi-stadio, generare segnali di trading con livelli di confidenza misurabili e, infine, eseguire ordini sul mercato reale tramite MetaTrader 5. Ogni componente del sistema e stato progettato per essere indipendente, testabile in isolamento e sostituibile senza impattare gli altri servizi. L'intero ecosistema vive in container Docker orchestrati da Docker Compose, con monitoraggio continuo garantito da Prometheus e Grafana.
+MONEYMAKER e un ecosistema di trading algoritmico costruito secondo un'architettura a microservizi. L'obiettivo principale del sistema e raccogliere dati di mercato in tempo reale, elaborarli attraverso un motore algoritmico multi-stadio, generare segnali di trading con livelli di confidenza misurabili e, infine, eseguire ordini sul mercato reale tramite MetaTrader 5. Ogni componente del sistema e stato progettato per essere indipendente, testabile in isolamento e sostituibile senza impattare gli altri servizi. L'intero ecosistema vive in container Docker orchestrati da Docker Compose, con monitoraggio continuo garantito da Prometheus e Grafana.
 
-Il nome MONEYMAKER non e casuale: il sistema e concepito per affrontare la complessita dei mercati finanziari con una forza strutturale massiccia, dove ogni "muscolo" e un servizio specializzato che contribuisce alla potenza complessiva dell'organismo. A differenza dei bot di trading monolitici tradizionali, MONEYMAKER separa rigorosamente le responsabilita: la raccolta dati non sa nulla dell'esecuzione ordini, il cervello AI non conosce i dettagli del protocollo MetaTrader, e il bridge di esecuzione non ha alcuna logica di decisione. Questa separazione e la chiave dell'affidabilita e della manutenibilita del sistema.
+Il nome MONEYMAKER non e casuale: il sistema e concepito per affrontare la complessita dei mercati finanziari con una forza strutturale massiccia, dove ogni "muscolo" e un servizio specializzato che contribuisce alla potenza complessiva dell'organismo. A differenza dei bot di trading monolitici tradizionali, MONEYMAKER separa rigorosamente le responsabilita: la raccolta dati non sa nulla dell'esecuzione ordini, il motore algoritmico non conosce i dettagli del protocollo MetaTrader, e il bridge di esecuzione non ha alcuna logica di decisione. Questa separazione e la chiave dell'affidabilita e della manutenibilita del sistema.
 
 ```mermaid
 mindmap
@@ -63,7 +63,7 @@ Per comprendere l'architettura di MONEYMAKER nella sua interezza, immaginiamo di
 
 **Data Ingestion = Reparto Approvvigionamento.** Proprio come il reparto approvvigionamento di una fabbrica automobilistica riceve materie prime da molteplici fornitori (acciaio dalla Germania, gomma dal Brasile, componenti elettronici dal Giappone), il servizio Data Ingestion di MONEYMAKER raccoglie dati da exchange multipli tramite WebSocket. Il reparto approvvigionamento non costruisce automobili: si limita a verificare la qualita delle materie prime, catalogarle, stoccarle nel magazzino (TimescaleDB) e smistarle verso la linea di produzione (ZMQ PUB/SUB). Allo stesso modo, Data Ingestion normalizza i tick di mercato, li valida per anomalie, li persiste nel database e li pubblica sul bus dati. Se un fornitore (exchange) e temporaneamente non raggiungibile, il reparto ha scorte di sicurezza (cache Redis) e procedure di fallback. Il servizio e scritto in Go per sfruttare la concorrenza nativa del linguaggio: le goroutine gestiscono centinaia di connessioni WebSocket simultanee con un overhead di memoria minimo, esattamente come un magazzino automatizzato gestisce piu linee di ricezione merci in parallelo.
 
-**Algo Engine = Centro di Ricerca e Sviluppo.** Il centro R&D della fabbrica e dove avviene tutta l'innovazione. Gli ingegneri analizzano le materie prime ricevute, progettano nuovi modelli, eseguono simulazioni al computer e decidono quale configurazione di veicolo produrre. L'Algo Engine di MONEYMAKER svolge esattamente questo ruolo: riceve i dati di mercato normalizzati, li processa attraverso una pipeline di percezione (MarketPerception), li memorizza in una memoria contestuale (MarketMemory), classifica il regime di mercato corrente (trend, laterale, volatile) e genera segnali di trading attraverso una strategia multi-esperto (MarketStrategy). Il centro R&D non monta fisicamente le automobili, cosi come il Brain non esegue ordini: produce istruzioni dettagliate (TradingSignal) che includono direzione, lotti suggeriti, stop loss, take profit, livello di confidenza e motivazione testuale. Se il laboratorio di ricerca avanzata (ML Training Lab) non e disponibile, il centro R&D ha sempre ingegneri esperti pronti a lavorare con metodi tradizionali: questo e il sistema di fallback a 4 livelli (ML Primary, Technical, Sentiment, Rule-based).
+**Algo Engine = Centro di Ricerca e Sviluppo.** Il centro R&D della fabbrica e dove avviene tutta l'innovazione. Gli ingegneri analizzano le materie prime ricevute, progettano nuovi modelli, eseguono simulazioni al computer e decidono quale configurazione di veicolo produrre. L'Algo Engine di MONEYMAKER svolge esattamente questo ruolo: riceve i dati di mercato normalizzati, li processa attraverso una pipeline di percezione (MarketPerception), li memorizza in una memoria contestuale (MarketMemory), classifica il regime di mercato corrente (trend, laterale, volatile) e genera segnali di trading attraverso una strategia multi-esperto (MarketStrategy). Il centro R&D non monta fisicamente le automobili, cosi come il Brain non esegue ordini: produce istruzioni dettagliate (TradingSignal) che includono direzione, lotti suggeriti, stop loss, take profit, livello di confidenza e motivazione testuale. Il sistema di fallback a 4 livelli (Statistical Primary, Technical, Sentiment, Rule-based) garantisce operativita anche quando i modelli statistici avanzati non sono disponibili.
 
 **MT5 Bridge = Sportello Bancario / Concessionaria.** Lo sportello bancario e il punto dove il cliente finale interagisce con il sistema finanziario. Il cassiere riceve istruzioni precise (un assegno firmato, un ordine di bonifico), le valida, le esegue sul sistema bancario e restituisce una ricevuta. Il MT5 Bridge di MONEYMAKER funziona allo stesso modo: riceve un TradingSignal dal Brain tramite gRPC, lo valida contro i limiti di rischio, lo traduce nelle API native di MetaTrader 5, lo esegue e restituisce un TradeExecution con tutti i dettagli dell'operazione (prezzo eseguito, slippage, commissioni). Lo sportello non decide mai autonomamente se fare un'operazione: si limita a eseguire gli ordini che arrivano dal centro direzionale, con il potere di rifiutare quelli che violano le policy di sicurezza.
 
@@ -79,11 +79,11 @@ L'intero ecosistema MONEYMAKER e stato costruito attorno a cinque principi archi
 
 1. **Precisione Finanziaria Assoluta**: nessun valore monetario viene mai rappresentato come floating-point. Si utilizzano esclusivamente stringhe decimali (`Decimal` in Python, `string` nei protobuf). Questo principio e radicato nella consapevolezza che un errore di arrotondamento su un prezzo dell'oro (XAUUSD) puo causare perdite reali.
 
-2. **Fail-Safe per Default**: quando il sistema e in dubbio, la risposta e sempre HOLD (mantieni posizione). Un segnale con confidenza insufficiente viene scartato. Un modello ML non raggiungibile attiva il fallback. Un ordine che viola i limiti di rischio viene rifiutato. La prudenza e codificata nell'architettura, non delegata alla disciplina umana.
+2. **Fail-Safe per Default**: quando il sistema e in dubbio, la risposta e sempre HOLD (mantieni posizione). Un segnale con confidenza insufficiente viene scartato. Un modello statistico non raggiungibile attiva il fallback. Un ordine che viola i limiti di rischio viene rifiutato. La prudenza e codificata nell'architettura, non delegata alla disciplina umana.
 
 3. **Osservabilita Totale**: ogni decisione, ogni calcolo, ogni errore viene tracciato. I segnali di trading includono un campo `reasoning` che spiega in linguaggio naturale perche il Brain ha preso quella decisione. Ogni trade ha una catena di audit con hash SHA-256. Le metriche Prometheus coprono latenza, throughput e tasso di errore di ogni singolo endpoint.
 
-4. **ML Opzionale con Fallback Deterministico**: il Machine Learning e un acceleratore, non una dipendenza. Se il modello ML e offline, il sistema continua a operare con strategie tecniche, sentiment-based o rule-based. Questo approccio a 4 livelli garantisce che MONEYMAKER non sia mai "cieco".
+4. **Analisi Statistica Opzionale con Fallback Deterministico**: l'analisi statistica avanzata e un acceleratore, non una dipendenza. Se il modello statistico e offline, il sistema continua a operare con strategie tecniche, sentiment-based o rule-based. Questo approccio a 4 livelli garantisce che MONEYMAKER non sia mai "cieco".
 
 5. **Sicurezza Defense-in-Depth**: le credenziali vengono esclusivamente da variabili d'ambiente, mai dal codice. Le connessioni tra servizi utilizzano protocolli autenticati. I log sono protetti da manomissioni. Le API esterne sono rate-limited. Ogni superficie di attacco e stata analizzata secondo OWASP Top 10.
 
@@ -153,7 +153,7 @@ Ogni servizio ha un perimetro di responsabilita rigoroso e ben definito. Nessun 
 
 **Data Ingestion (Go)** gestisce tre responsabilita principali: connessione e mantenimento delle sorgenti dati (reconnect automatico con backoff esponenziale), normalizzazione dei dati grezzi in formato standard (`MarketTick` e `OHLCVBar`), e distribuzione dei dati normalizzati tramite ZMQ PUB/SUB. Il servizio e scritto in Go perche la gestione di centinaia di connessioni WebSocket concorrenti richiede un modello di concorrenza leggero (goroutine + channel). Ogni connessione WebSocket vive in una goroutine dedicata, e i messaggi vengono instradati attraverso una pipeline di channel che implementa validazione, normalizzazione, aggregazione in candele e pubblicazione sul bus ZMQ. Il servizio espone metriche Prometheus dettagliate: numero di tick al secondo per simbolo, latenza media di processamento, numero di reconnect, dimensione delle code interne.
 
-**Algo Engine (Python)** e il cuore decisionale dell'ecosistema. Sottoscrive i dati di mercato dal bus ZMQ, li elabora attraverso una pipeline neurale multi-stadio (MarketPerception -> MarketMemory -> RegimeClassifier -> MarketStrategy -> MarketPedagogy -> MarketRAPCoach) e produce segnali di trading (`TradingSignal`). Il Brain implementa il sistema di fallback a 4 livelli (ML Primary, Technical, Sentiment, Rule-based) che garantisce operativita anche quando i modelli ML non sono disponibili. Ogni segnale generato include un campo `reasoning` che spiega la logica della decisione, un livello di confidenza numerico e l'identificazione della sorgente che ha prodotto il segnale (tramite il campo `source_tier`). Il Brain espone un endpoint gRPC sulla porta 50054 per la comunicazione con il MT5 Bridge e un endpoint REST sulla porta 8080 per health check e interrogazioni diagnostiche.
+**Algo Engine (Python)** e il cuore decisionale dell'ecosistema. Sottoscrive i dati di mercato dal bus ZMQ, li elabora attraverso una pipeline algoritmica multi-stadio (MarketPerception -> MarketMemory -> RegimeClassifier -> MarketStrategy -> MarketPedagogy) e produce segnali di trading (`TradingSignal`). Il Brain implementa il sistema di fallback a 4 livelli (Statistical Primary, Technical, Sentiment, Rule-based) che garantisce operativita anche quando i modelli statistici avanzati non sono disponibili. Ogni segnale generato include un campo `reasoning` che spiega la logica della decisione, un livello di confidenza numerico e l'identificazione della sorgente che ha prodotto il segnale (tramite il campo `source_tier`). Il Brain espone un endpoint gRPC sulla porta 50054 per la comunicazione con il MT5 Bridge e un endpoint REST sulla porta 8080 per health check e interrogazioni diagnostiche.
 
 **MT5 Bridge (Python)** traduce i segnali di trading in ordini MetaTrader 5 reali. Il servizio riceve i `TradingSignal` tramite gRPC, li valida contro i limiti di rischio configurati (esposizione massima, perdita massima giornaliera, correlazione tra posizioni), calcola il dimensionamento della posizione (lot sizing) secondo il criterio di Kelly attenuato, e infine esegue l'ordine tramite le API native di MT5. Dopo l'esecuzione, il Bridge produce un messaggio `TradeExecution` che contiene il prezzo effettivo di esecuzione, lo slippage in pip, le commissioni e lo swap. Questo messaggio viene restituito al Brain come conferma e persistito su TimescaleDB per l'audit trail.
 
@@ -204,9 +204,8 @@ sequenceDiagram
     AB->>AB: MarketMemory (sequential context, dim=188)
     AB->>AB: RegimeClassifier (trend/lateral/volatile/crisis)
     AB->>AB: 4-Tier Fallback Strategy
-    Note over AB: Tier 1: ML Primary (se disponibile)<br/>Tier 2: Technical Analysis<br/>Tier 3: Sentiment Analysis<br/>Tier 4: Rule-based (HOLD)
+    Note over AB: Tier 1: Statistical Primary (se disponibile)<br/>Tier 2: Technical Analysis<br/>Tier 3: Sentiment Analysis<br/>Tier 4: Rule-based (HOLD)
     AB->>AB: MarketPedagogy (confidence calibration)
-    AB->>AB: MarketRAPCoach (final decision)
     AB->>AB: Genera TradingSignal (Protobuf)
     AB->>TS: INSERT trading_signals (audit)
     AB->>RD: SET signal:{symbol}:{id}
@@ -270,7 +269,7 @@ flowchart TB
         DI["data-ingestion\n(Go :5555/:8081/:9090)\ncondition: service_started"]
     end
 
-    subgraph Tier3["Tier 3 - Intelligenza"]
+    subgraph Tier3["Tier 3 - Analisi"]
         AB["algo-engine\n(Python :50054/:8080/:9093)\ncondition: service_started"]
     end
 
@@ -331,7 +330,7 @@ graph LR
         P9091["9091 - HTTP\nPrometheus UI/API"]
         P9093["9093 - HTTP\nAlgo Engine Metrics"]
         P9094["9094 - HTTP\nMT5 Bridge Metrics"]
-        P9095["9095 - HTTP\nML Training Metrics (futuro)"]
+        P9095["9095 - HTTP\nFuturo (placeholder)"]
         P50054["50054 - gRPC\nTradingSignalService"]
         P50055["50055 - gRPC\nExecutionBridgeService"]
         P5432["5432 - TCP\nPostgreSQL/TimescaleDB"]
@@ -349,7 +348,7 @@ graph LR
 | **9091** | Prometheus | HTTP | Esterno -> Prometheus | Interfaccia web Prometheus e API di query PromQL. Mappato da porta interna 9090. |
 | **9093** | Algo Engine | HTTP | Prometheus -> Brain | Endpoint `/metrics`. Metriche: `moneymaker_brain_signals_total`, `moneymaker_brain_confidence_histogram`, ecc. |
 | **9094** | MT5 Bridge | HTTP | Prometheus -> Bridge | Endpoint `/metrics`. Metriche: `moneymaker_mt5_executions_total`, `moneymaker_mt5_slippage_pips`, ecc. |
-| **9095** | ML Training (futuro) | HTTP | Prometheus -> ML | Endpoint `/metrics` del servizio ML Training Lab (attualmente placeholder). |
+| **9095** | Futuro (placeholder) | HTTP | Prometheus -> Futuro | Endpoint `/metrics` riservato per servizi futuri (attualmente placeholder). |
 | **50054** | Algo Engine | gRPC (Protobuf) | Brain -> Bridge | Servizio `TradingSignalService`: `SendSignal(TradingSignal)`, `StreamSignals(stream TradingSignal)`. |
 | **50055** | MT5 Bridge | gRPC (Protobuf) | Bridge -> MT5 | Servizio `ExecutionBridgeService`: `ExecuteTrade(TradingSignal)`, `StreamTradeUpdates(...)`, `CheckHealth(...)`. |
 | **5432** | TimescaleDB | PostgreSQL | Tutti -> DB | Database relazionale con estensione TimescaleDB. Accesso da tutti i servizi applicativi. |
@@ -358,7 +357,7 @@ graph LR
 
 ### 5.2 Regole di Firewall Consigliate
 
-In un ambiente di produzione, le porte dovrebbero essere esposte con le seguenti regole: le porte 3000, 8080, 8081 e 9091 possono essere esposte alla rete locale per accesso operatore. Le porte 5432, 6379 e 5555 dovrebbero essere accessibili solo dalla rete Docker interna. Le porte gRPC (50054, 50055) dovrebbero essere accessibili solo tra i container. Le porte metriche (9090, 9093, 9094, 9095) dovrebbero essere accessibili solo da Prometheus.
+In un ambiente di produzione, le porte dovrebbero essere esposte con le seguenti regole: le porte 3000, 8080, 8081 e 9091 possono essere esposte alla rete locale per accesso operatore. Le porte 5432, 6379 e 5555 dovrebbero essere accessibili solo dalla rete Docker interna. Le porte gRPC (50054, 50055) dovrebbero essere accessibili solo tra i container. Le porte metriche (9090, 9093, 9094) dovrebbero essere accessibili solo da Prometheus.
 
 ---
 
@@ -397,13 +396,13 @@ In Python, ogni modulo che gestisce valori finanziari importa `from decimal impo
 
 ### 6.2 Fail-Safe: HOLD Quando in Dubbio
 
-MONEYMAKER implementa il principio fail-safe attraverso la costante `Direction.DIRECTION_HOLD` definita nel file `trading_signal.proto`. Ogni punto decisionale del sistema ha una clausola di default che produce HOLD. Se il modello ML non e raggiungibile, il fallback produce HOLD. Se la confidenza del segnale e sotto la soglia minima (tipicamente 0.60), il segnale viene convertito in HOLD. Se il risk check rileva una violazione, l'ordine viene rifiutato e la posizione rimane invariata. Se il MT5 Bridge non riesce a connettersi a MetaTrader, tutti i segnali vengono messi in coda e il sistema opera in modalita HOLD fino al ripristino della connessione. Questo approccio garantisce che in nessun caso il sistema prenda una decisione aggressiva in condizioni di incertezza. La perdita di un'opportunita di profitto e sempre preferibile a un trade errato.
+MONEYMAKER implementa il principio fail-safe attraverso la costante `Direction.DIRECTION_HOLD` definita nel file `trading_signal.proto`. Ogni punto decisionale del sistema ha una clausola di default che produce HOLD. Se il modello statistico non e raggiungibile, il fallback produce HOLD. Se la confidenza del segnale e sotto la soglia minima (tipicamente 0.60), il segnale viene convertito in HOLD. Se il risk check rileva una violazione, l'ordine viene rifiutato e la posizione rimane invariata. Se il MT5 Bridge non riesce a connettersi a MetaTrader, tutti i segnali vengono messi in coda e il sistema opera in modalita HOLD fino al ripristino della connessione. Questo approccio garantisce che in nessun caso il sistema prenda una decisione aggressiva in condizioni di incertezza. La perdita di un'opportunita di profitto e sempre preferibile a un trade errato.
 
-### 6.3 ML Opzionale: Fallback a 4 Livelli
+### 6.3 Analisi Statistica Opzionale: Fallback a 4 Livelli
 
 Il sistema di fallback a 4 livelli e uno dei design pattern piu importanti di MONEYMAKER. Garantisce che il Brain produca sempre un segnale, indipendentemente dalla disponibilita dei componenti avanzati. I quattro livelli sono definiti nell'enum `SourceTier` del file `trading_signal.proto` e ogni segnale prodotto dal Brain include l'indicazione di quale livello lo ha generato.
 
-Il **Tier 1 (ML Primary)** e il livello piu avanzato: utilizza modelli di deep learning (JEPA, GNN, ensemble) addestrati sui dati storici per generare predizioni direzionali. Quando il ML Training Lab e operativo e il modello supera le soglie di validazione, questo e il tier preferito.
+Il **Tier 1 (Statistical Primary)** e il livello piu avanzato: utilizza modelli statistici avanzati calibrati sui dati storici per generare predizioni direzionali. Quando il modello statistico e operativo e supera le soglie di validazione, questo e il tier preferito.
 
 Il **Tier 2 (Technical)** utilizza indicatori tecnici classici (RSI, MACD, ATR, Bollinger Bands, EMA crossover) per generare segnali. Questo livello non richiede ML ed e completamente deterministico.
 
@@ -549,24 +548,6 @@ classDiagram
         +string rejection_reason
     }
 
-    class PredictionRequest {
-        +string symbol
-        +string regime
-        +map features
-        +string model_version
-        +int64 timestamp
-    }
-
-    class PredictionResponse {
-        +string direction
-        +string confidence
-        +string reasoning
-        +string model_version
-        +string model_type
-        +map metadata
-        +int64 inference_time_us
-    }
-
     class HealthCheckRequest {
         +string service_name
     }
@@ -583,7 +564,6 @@ classDiagram
     DataEvent --> OHLCVBar : contiene
     TradingSignal --> SignalAck : produce
     TradingSignal --> TradeExecution : genera
-    PredictionRequest --> PredictionResponse : restituisce
     HealthCheckRequest --> HealthCheckResponse : restituisce
 ```
 
@@ -593,7 +573,7 @@ I file proto definiscono diverse enumerazioni condivise tra servizi:
 
 **Direction** (`trading_signal.proto`): definisce le tre possibili direzioni di un segnale di trading. `DIRECTION_UNSPECIFIED (0)` e il valore di default protobuf e non dovrebbe mai apparire in un segnale valido. `DIRECTION_BUY (1)` indica un'operazione long. `DIRECTION_SELL (2)` indica un'operazione short. `DIRECTION_HOLD (3)` indica la decisione di non operare. La presenza esplicita di HOLD come valore dell'enum (anziche l'assenza di segnale) e una scelta architetturale deliberata: il sistema distingue tra "non ho generato un segnale" e "ho generato un segnale che dice di non fare nulla". Quest'ultimo e un atto decisionale positivo che viene registrato nell'audit trail.
 
-**SourceTier** (`trading_signal.proto`): identifica quale livello del sistema di fallback ha prodotto il segnale. `SOURCE_TIER_ML_PRIMARY (1)` e il modello ML principale. `SOURCE_TIER_TECHNICAL (2)` sono gli indicatori tecnici. `SOURCE_TIER_SENTIMENT (3)` e l'analisi del sentiment. `SOURCE_TIER_RULE_BASED (4)` e la strategia difensiva di base. Questa informazione e preziosa per l'analisi delle performance: permette di valutare separatamente l'efficacia di ogni tier e di identificare periodi in cui il sistema ha operato in modalita degradata.
+**SourceTier** (`trading_signal.proto`): identifica quale livello del sistema di fallback ha prodotto il segnale. `SOURCE_TIER_STATISTICAL_PRIMARY (1)` e il modello statistico principale. `SOURCE_TIER_TECHNICAL (2)` sono gli indicatori tecnici. `SOURCE_TIER_SENTIMENT (3)` e l'analisi del sentiment. `SOURCE_TIER_RULE_BASED (4)` e la strategia difensiva di base. Questa informazione e preziosa per l'analisi delle performance: permette di valutare separatamente l'efficacia di ogni tier e di identificare periodi in cui il sistema ha operato in modalita degradata.
 
 **AckStatus** (`trading_signal.proto`): lo stato della conferma di un segnale. `ACK_STATUS_ACCEPTED (1)` indica che il Bridge ha accettato il segnale e procedera con l'esecuzione. `ACK_STATUS_REJECTED (2)` indica che il segnale e stato rifiutato per motivi di rischio o validazione. `ACK_STATUS_ERROR (3)` indica un errore tecnico nell'elaborazione del segnale.
 
@@ -609,8 +589,6 @@ I tre servizi gRPC definiti nell'ecosistema formano la spina dorsale della comun
 
 **ExecutionBridgeService** e il contratto del MT5 Bridge per l'esecuzione degli ordini. La RPC `ExecuteTrade` accetta un `TradingSignal` e restituisce un `TradeExecution` con tutti i dettagli dell'operazione. La RPC `StreamTradeUpdates` permette ai client di ricevere aggiornamenti sullo stato degli ordini in tempo reale. La RPC `CheckHealth` verifica lo stato del Bridge e della connessione a MetaTrader 5.
 
-**MLInferenceService** e il contratto tra Algo Engine e ML Training Lab per le predizioni dei modelli. La RPC `Predict` invia un `PredictionRequest` (con tutte le feature calcolate per un simbolo) e riceve un `PredictionResponse` con la predizione direzionale, il livello di confidenza e i metadati del modello. La RPC `GetModelInfo` restituisce informazioni sul modello attualmente attivo. Questo servizio e attualmente un placeholder nel docker-compose ma i contratti proto sono gia definiti e pronti per l'implementazione.
-
 ### 8.4 Flusso dei Contratti attraverso il Sistema
 
 Il seguente diagramma riassume come i messaggi Protobuf fluiscono attraverso l'intero sistema, dalla sorgente dati all'esecuzione finale.
@@ -621,8 +599,6 @@ flowchart LR
         MT["MarketTick"]
         OB["OHLCVBar"]
         DE["DataEvent"]
-        PR["PredictionRequest"]
-        PP["PredictionResponse"]
         TS["TradingSignal"]
         SA["SignalAck"]
         TE["TradeExecution"]
@@ -633,14 +609,11 @@ flowchart LR
     subgraph Flusso["Flusso Attraverso i Servizi"]
         DI["Data Ingestion"]
         AB["Algo Engine"]
-        ML["ML Training Lab"]
         MB["MT5 Bridge"]
     end
 
     DI -->|"DataEvent(MarketTick)"| AB
     DI -->|"DataEvent(OHLCVBar)"| AB
-    AB -->|"PredictionRequest"| ML
-    ML -->|"PredictionResponse"| AB
     AB -->|"TradingSignal"| MB
     MB -->|"SignalAck"| AB
     MB -->|"TradeExecution"| AB
