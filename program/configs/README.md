@@ -10,11 +10,9 @@ configs/
 ├── development/            # Dev environment overrides
 │   ├── algo-engine.yaml
 │   ├── data-ingestion.yaml
-│   ├── ml-training.yaml
 │   └── mt5-bridge.yaml
 └── production/             # Production environment overrides
     ├── algo-engine.yaml
-    ├── ml-training.yaml
     └── mt5-bridge.yaml
 ```
 

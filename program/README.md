@@ -1,6 +1,6 @@
 # MONEYMAKER V1 — Trading Ecosystem
 
-An AI-powered, microservices-based algorithmic trading system built for high-frequency data ingestion, intelligent signal generation, and automated trade execution on MetaTrader 5.
+A microservices-based algorithmic trading system built for high-frequency data ingestion, rule-based signal generation, and automated trade execution on MetaTrader 5.
 
 ## Architecture
 
@@ -10,23 +10,14 @@ An AI-powered, microservices-based algorithmic trading system built for high-fre
 │  Ingestion   │               │  (Signals)   │               │ (Execution)  │
 │   (Go)       │               │  (Python)    │               │  (Python)    │
 └──────┬───────┘               └──────┬───────┘               └──────┬───────┘
-       │                         ▲    │                              │
-       │                    gRPC │    │                              │
-       │                   ┌─────┴────┘                              │
-       │                   │  ML Training Lab                        │
-       │                   │  (JEPA/GNN/MLP)                         │
-       │                   │  [separate machine]                     │
-       │                   └──────────┘                              │
+       │                              │                              │
        ▼                              ▼                              ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                    TimescaleDB + Redis + Prometheus + Grafana               │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The Algo Engine operates in two modes:
-
-- **Rule-based** (default) — technical analysis strategies route signals based on market regime
-- **ML-augmented** — when the ML Training Lab is deployed, ML predictions are tried first with automatic fallback to rule-based strategies
+The Algo Engine operates with advanced rule-based strategies, routing signals based on market regime detection through a 4-tier cascade (COPER > Hybrid > Knowledge > Conservative).
 
 ## Tech Stack
 
@@ -35,7 +26,6 @@ The Algo Engine operates in two modes:
 | Data Ingestion | Go | 1.22+ |
 | Algo Engine | Python | 3.11+ |
 | MT5 Bridge | Python | 3.11+ |
-| ML Training Lab | Python (JEPA/GNN/MLP) | Separate machine |
 | Database | TimescaleDB (PostgreSQL) | 16 |
 | Cache | Redis | 7 |
 | IPC | ZeroMQ (PUB/SUB) | — |
@@ -93,7 +83,6 @@ program/
 ├── services/
 │   ├── algo-engine/       # Signal generation engine (Python)
 │   ├── data-ingestion/ # Market data pipeline (Go)
-│   ├── ml-training/    # ML inference service (placeholder — separate machine)
 │   ├── external-data/  # Macro data from FRED, CBOE, CFTC (Python)
 │   ├── console/        # MONEYMAKER Console — TUI/CLI (15 categories)
 │   ├── monitoring/     # Grafana dashboards + Prometheus config
@@ -117,8 +106,6 @@ Copy `.env.example` to `.env` and fill in:
 - **Redis**: `MONEYMAKER_REDIS_*` — cache credentials
 - **MT5**: `MT5_ACCOUNT`, `MT5_PASSWORD`, `MT5_SERVER`
 - **Exchange APIs**: `MONEYMAKER_BINANCE_API_KEY`, etc.
-- **ML** (optional): `BRAIN_ML_ENABLED`, `BRAIN_ML_ENDPOINT`
-
 Per-service YAML configs live in `configs/development/` and `configs/production/`.
 
 ## Ports Reference
@@ -143,7 +130,7 @@ Per-service YAML configs live in `configs/development/` and `configs/production/
 - **Fail-safe** — when in doubt, HOLD (do nothing)
 - **Append-only audit** — SHA-256 hash chain for every decision
 - **Credentials from env** — never hardcoded, always `os.environ`
-- **ML is optional** — the system runs fully rule-based; ML augments but never blocks
+- **Pure rule-based** — the system operates entirely with technical analysis and statistical models
 
 ## License
 

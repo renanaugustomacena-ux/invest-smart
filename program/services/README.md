@@ -1,6 +1,6 @@
 # MONEYMAKER Services Ecosystem
 
-This directory contains the core microservices that power the MONEYMAKER trading pipeline. The architecture is designed for high-throughput market data ingestion, intelligent signal generation via a 14-phase AI pipeline, and robust trade execution with multi-layer safety systems.
+This directory contains the core microservices that power the MONEYMAKER trading pipeline. The architecture is designed for high-throughput market data ingestion, intelligent signal generation via a 14-phase rule-based pipeline, and robust trade execution with multi-layer safety systems.
 
 ---
 
@@ -22,7 +22,6 @@ graph TD
 
     subgraph "Intelligence Layer"
         AB[algo-engine: Python]
-        ML[ml-training: Python]
     end
 
     subgraph "Execution Layer"
@@ -39,8 +38,6 @@ graph TD
     ED -- REST/API --> AB
     AB -- gRPC (Port 50055) --> MB
     MB -- API --> MT5
-    ML -- gRPC --> AB
-    
     AB & DI & MB -- Metrics --> MO
     CO -- Control Commands --> AB & DI & MB
 ```
@@ -62,7 +59,6 @@ graph TD
 | **[mt5-bridge](mt5-bridge/)** | Python | 50055, 9094 | Execution | Order routing to MT5 & position management. |
 | **[console](console/)** | Python | — | Control | Unified TUI/CLI for system-wide operations. |
 | **[external-data](external-data/)** | Python | — | Insights | Macro data (FRED, CBOE, CFTC) & Econ Calendar. |
-| **[ml-training](ml-training/)** | Python | — | Learning | Model training, backtesting, and JEPA inference. |
 | **[monitoring](monitoring/)** | Config | 3000, 9091 | Observability | Grafana dashboards & Prometheus metrics. |
 
 ---
@@ -79,8 +75,8 @@ The Brain executes a cascaded logic to ensure reliability even during model drif
 4. **Drift Monitor**: Detects if market distribution has shifted (Z-score analysis).
 5. **Maturity Gating**: Reduces position sizing if the model is in a "Doubt" or "Crisis" state.
 6. **Cascade Advisor**: 
-   - **COPER**: High-confidence ML-primary signals.
-   - **Hybrid**: Combined ML + Rule-based logic.
+   - **COPER**: High-confidence statistical-primary signals.
+   - **Hybrid**: Combined multi-factor analysis.
    - **Knowledge**: Expert-system and rule-based fallback.
    - **Conservative**: Safety-first survival mode.
 7. **Risk Validator**: 10+ checks (Daily loss, Max Drawdown, Correlation, Economic Calendar).
@@ -162,7 +158,7 @@ Most services share common environment variables defined in `program/.env`.
 | **Database** | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `MONEYMAKER_DB_URL` |
 | **Cache/State** | `REDIS_URL` |
 | **Exchange** | `BINANCE_API_KEY`, `BINANCE_API_SECRET` |
-| **Trading** | `MT5_ACCOUNT`, `MT5_PASSWORD`, `MT5_SERVER`, `BRAIN_ML_ENABLED` |
+| **Trading** | `MT5_ACCOUNT`, `MT5_PASSWORD`, `MT5_SERVER` |
 | **Risk** | `MAX_DAILY_LOSS_PCT`, `MAX_DRAWDOWN_PCT`, `MAX_OPEN_POSITIONS` |
 
 > **Note**: For individual service configurations, see the `README.md` and `config.py` within each service directory.

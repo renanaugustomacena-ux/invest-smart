@@ -1,4 +1,4 @@
-# MONEYMAKER V1 --- Ecosistema AI di Trading
+# MONEYMAKER V1 --- Ecosistema di Trading Algoritmico
 
 **Autore:** Renan Augusto Macena
 **Versione:** 1.0
@@ -6,14 +6,13 @@
 
 ---
 
-Sistema di trading algoritmico basato su intelligenza artificiale per MetaTrader 5.
+Sistema di trading algoritmico rule-based per MetaTrader 5.
 Architettura a microservizi con pipeline di segnali a 4 livelli di fallback,
-rete neurale RAP Coach opzionale (JEPA/GNN/MoE), gestione del rischio multi-livello,
+analisi statistica avanzata, gestione del rischio multi-livello,
 e console operativa unificata TUI/CLI con 15 categorie di comandi.
 
-MONEYMAKER opera in due modalita':
-- **Rule-based** (default) --- strategie di analisi tecnica con routing basato sul regime di mercato
-- **ML-augmented** --- quando il ML Training Lab e' deployato, le predizioni ML vengono provate per prime con fallback automatico al rule-based
+MONEYMAKER opera con strategie di analisi tecnica avanzate con routing basato sul regime di mercato,
+cascade a 4 livelli (COPER > Hybrid > Knowledge > Conservative), e validazione rischio a 10 punti.
 
 ---
 
@@ -27,7 +26,7 @@ Ogni guida contiene diagrammi Mermaid, tabelle dettagliate, analogie esplicative
 | 01 | **Architettura del Sistema** | Topologia servizi, flusso dati, protocolli, principi di design, dipendenze Docker | [01_ARCHITETTURA.md](docs/01_ARCHITETTURA.md) |
 | 02 | **Installazione e Avvio** | Prerequisiti, setup Docker e manuale, configurazione .env e YAML, troubleshooting | [02_INSTALLAZIONE_E_AVVIO.md](docs/02_INSTALLAZIONE_E_AVVIO.md) |
 | 03 | **Pipeline di Generazione Segnali** | Loop 24 step, cascade 4-tier, 20 moduli di intelligenza, maturity gate, regime detection | [03_PIPELINE_SEGNALI.md](docs/03_PIPELINE_SEGNALI.md) |
-| 04 | **Training e Apprendimento** | RAP Coach (4 layer), walk-forward validation, shadow engine, feedback loop | [04_TRAINING_E_APPRENDIMENTO.md](docs/04_TRAINING_E_APPRENDIMENTO.md) |
+| 04 | **Backtesting e Ottimizzazione** | Walk-forward validation, Monte Carlo simulation, parametri adattivi | [04_BACKTESTING_E_OTTIMIZZAZIONE.md](docs/04_BACKTESTING_E_OTTIMIZZAZIONE.md) |
 | 05 | **MetaTrader 5 ed Esecuzione** | Flusso ordini, 7 validazioni pre-ordine, trailing stop, kill switch, circuit breaker | [05_METATRADER5_ESECUZIONE.md](docs/05_METATRADER5_ESECUZIONE.md) |
 | 06 | **Console Operativa** | 15 categorie, 80+ comandi, modalita' TUI e CLI, flag, argomenti, esempi | [06_CONSOLE_OPERATIVA.md](docs/06_CONSOLE_OPERATIVA.md) |
 | 07 | **Database e Storage** | Schema ER completo, hypertable TimescaleDB, audit log SHA-256, retention | [07_DATABASE_E_STORAGE.md](docs/07_DATABASE_E_STORAGE.md) |
@@ -50,9 +49,8 @@ graph TB
     end
 
     subgraph BRAIN["Algo Engine (Python)"]
-        LOOP["Main Loop (24 step)"]
+        LOOP["Main Loop (14 step)"]
         CASCADE["4-Tier Cascade"]
-        RAP["RAP Coach NN"]
         RISK["Risk Manager"]
         MATURE["Maturity Gate"]
     end
@@ -78,7 +76,6 @@ graph TB
     DBWR -->|Batch COPY| DB
     ZMPUB -->|ZMQ PUB/SUB| LOOP
     LOOP --> CASCADE
-    CASCADE -.->|ML enabled| RAP
     CASCADE --> RISK
     RISK --> MATURE
     MATURE -->|gRPC :50054| ORD
@@ -112,7 +109,7 @@ graph TB
 | Componente | Tecnologia | Versione | Scopo |
 |-----------|-----------|---------|-------|
 | Data Ingestion | Go | 1.22+ | Pipeline dati ad alte prestazioni |
-| Algo Engine | Python | 3.11+ | Generazione segnali + rete neurale |
+| Algo Engine | Python | 3.11+ | Generazione segnali + analisi statistica |
 | MT5 Bridge | Python | 3.11+ | Esecuzione ordini su MetaTrader 5 |
 | External Data | Python | 3.11+ | Dati macro (FRED, CBOE, CFTC) |
 | Console | Python (Rich) | 3.11+ | Interfaccia operativa TUI/CLI |
@@ -139,8 +136,8 @@ graph TB
 
 ```bash
 # 1. Clona il repository
-git clone https://github.com/renanaugustomacena-ux/trading-ecosystem.git
-cd trading-ecosystem
+git clone https://github.com/renanaugustomacena-ux/invest-smart.git
+cd invest-smart
 
 # 2. Configura le variabili d'ambiente
 cp .env.example .env
@@ -243,11 +240,11 @@ python program/services/console/moneymaker_console.py test all
 |------|-------|---------------|
 | `brain_verify.py` | Gate di deploy: 115 regole su 15 sezioni | 100% (0 failure) |
 | `headless_validator.py` | Guard di regressione: 169 check | >= 98% |
-| `ml_debugger.py` | Diagnostica neurale: stabilita' e qualita' | >= 87% |
+| `ml_debugger.py` | Diagnostica pipeline: stabilita' e qualita' | >= 87% |
 | `dead_code_detector.py` | Scan codice morto: orfani e duplicati | >= 90% |
 | `portability_check.py` | Portabilita' cross-platform | >= 83% |
 | `moneymaker_hospital.py` | Salute sistema: 12 dipartimenti | 0 errori |
-| `backend_validator.py` | Gate produzione: DB, modelli, coaching | >= 82% |
+| `backend_validator.py` | Gate produzione: DB, servizi, integrazioni | >= 82% |
 | `feature_audit.py` | Allineamento METADATA_DIM=60 | 100% |
 | `integrity_manifest.py` | Manifesto SHA-256: drift detection | 100% |
 | `build_tools.py` | Check pre/post-build | Pass |
@@ -289,7 +286,7 @@ python tools/brain_verification/brain_verify.py
 |-------|------|-----------|
 | Algo Engine (pytest) | 321/321 | PASS |
 | MT5 Bridge (pytest) | 5/5 | PASS |
-| brain_verify.py | 113/115 | 98.3% (2 NN red flag senza modello addestrato) |
+| brain_verify.py | 113/115 | 98.3% |
 | headless_validator.py | 167/169 | 98.8% (DB/Redis offline in dev) |
 | ml_debugger.py | 8/8 | 100% |
 | dead_code_detector.py | 10/11 | 90.9% |
@@ -314,7 +311,7 @@ I workflow si attivano su push a `main` e su pull request.
 trading-ecosystem-main/
 |-- program/
 |   |-- services/
-|   |   |-- algo-engine/          # Cervello AI (Python) - Pipeline segnali + RAP Coach NN
+|   |   |-- algo-engine/          # Algo Engine (Python) - Pipeline segnali rule-based
 |   |   |   |-- src/algo_engine/  # Codice sorgente (main.py, 20 moduli)
 |   |   |   |-- tests/         # 321 test (unit + integration + brain verification)
 |   |   |   |-- tools/         # 14 tool diagnostici
@@ -329,7 +326,7 @@ trading-ecosystem-main/
 |   |   |   +-- Dockerfile
 |   |   |-- external-data/     # Dati Macro (FRED, CBOE, CFTC)
 |   |   |-- console/           # MONEYMAKER Console - TUI/CLI (15 categorie)
-|   |   |-- ml-training/       # ML Training Lab (placeholder - macchina separata)
+|   |   |-- dashboard/          # Web Dashboard (FastAPI + React)
 |   |   +-- monitoring/        # Grafana dashboard + Prometheus config
 |   |-- shared/
 |   |   |-- python-common/     # Libreria condivisa Python (logging, config, metrics)
@@ -353,7 +350,7 @@ trading-ecosystem-main/
 
 1. **Decimal, mai float** --- Tutti i valori finanziari usano `decimal.Decimal` (Python) e `shopspring/decimal` (Go) per eliminare errori di arrotondamento
 2. **Fail-safe** --- In caso di dubbio, il sistema tiene (HOLD). Circuit breaker, kill switch e max drawdown automatico proteggono il capitale
-3. **ML opzionale** --- La pipeline di segnali funziona completamente in modalita' rule-based. Il ML augmenta ma non blocca mai il flusso operativo
+3. **Pure rule-based** --- La pipeline di segnali funziona interamente con logica rule-based, analisi tecnica avanzata e modelli statistici
 4. **Observability** --- Ogni servizio espone metriche Prometheus, health check HTTP e logging strutturato JSON
 5. **Immutabilita' dei trade** --- I record di trade sono append-only con hash chain SHA-256. Nessun UPDATE o DELETE e' possibile sulla tabella audit
 6. **Credenziali da ambiente** --- Mai hardcoded. Tutte le credenziali provengono da variabili d'ambiente o file `.env`
@@ -424,7 +421,7 @@ git push origin feature/nome-feature
 ### Per Sviluppatori
 
 - Come funziona la pipeline: [03_PIPELINE_SEGNALI.md](docs/03_PIPELINE_SEGNALI.md)
-- Come funziona il training: [04_TRAINING_E_APPRENDIMENTO.md](docs/04_TRAINING_E_APPRENDIMENTO.md)
+- Come funziona il backtesting: [04_BACKTESTING_E_OTTIMIZZAZIONE.md](docs/04_BACKTESTING_E_OTTIMIZZAZIONE.md)
 - Schema del database: [07_DATABASE_E_STORAGE.md](docs/07_DATABASE_E_STORAGE.md)
 - Come verificare la stabilita': [08_MONITORAGGIO_E_STABILITA.md](docs/08_MONITORAGGIO_E_STABILITA.md)
 
