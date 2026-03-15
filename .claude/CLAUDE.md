@@ -426,7 +426,6 @@ Specialized skill files are stored in `~/.claude/skills/`. You **MUST** check th
 - **Signal Generation**: Activate `moneymaker-signal-generation.md` for the 4-tier fallback, COPER, or confidence gating.
 - **Market Regimes**: Activate `moneymaker-market-regimes.md` for regime classification or strategy routing.
 - **ML Features**: Activate `moneymaker-ml-feature-engineering.md` for feature creation, stationarity, or scaling.
-- **ML Training**: Activate `moneymaker-ml-training-workflow.md` for training loops, validation, or labeling.
 - **ML Architectures**: Activate `moneymaker-model-architectures.md` for model definition or ensemble logic.
 - **MT5 Execution**: Activate `moneymaker-mt5-execution.md` for API calls, connection logic, or error handling.
 - **Order Management**: Activate `moneymaker-order-management.md` for signal processing, idempotency, or reconciliation.
