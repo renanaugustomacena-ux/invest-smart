@@ -30,17 +30,17 @@
 
 Immaginate di sottoporvi a un check-up medico annuale completo in un ospedale all'avanguardia. Il medico di base non si limita a chiedervi "come state?": prescrive una batteria sistematica di esami che coprono ogni aspetto della vostra salute. Si misura la pressione arteriosa, si analizza il sangue con decine di parametri, si eseguono radiografie per guardare oltre la superficie, si consultano specialisti per aree di competenza specifica. Solo quando tutti questi esami convergono su un quadro coerente, il medico puo' dichiarare con confidenza che siete in buona salute — o identificare con precisione dove intervenire.
 
-Il MONEYMAKER Trading Ecosystem adotta esattamente lo stesso approccio alla stabilita' del sistema. Non basta che "il servizio risponda" per dichiararlo sano. Un sistema di trading algoritmico opera con denaro reale in mercati che non perdonano errori. Un modello ML che genera predizioni con confidenza alta ma distribuzione di probabilita' incoerente puo' sembrare funzionante dall'esterno mentre prende decisioni finanziariamente catastrofiche. Un pipeline di dati che perde il 2% dei tick in silenzio puo' far passare mesi senza che nessuno se ne accorga, corrompendo gradualmente tutto il training.
+Il MONEYMAKER Trading Ecosystem adotta esattamente lo stesso approccio alla stabilita' del sistema. Non basta che "il servizio risponda" per dichiararlo sano. Un sistema di trading algoritmico opera con denaro reale in mercati che non perdonano errori. Un modello statistico che genera predizioni con confidenza alta ma distribuzione di probabilita' incoerente puo' sembrare funzionante dall'esterno mentre prende decisioni finanziariamente catastrofiche. Un pipeline di dati che perde il 2% dei tick in silenzio puo' far passare mesi senza che nessuno se ne accorga, corrompendo gradualmente tutta la calibrazione.
 
 Per questo motivo, il MONEYMAKER dispone di una **suite diagnostica completa di 14 strumenti specializzati**, ciascuno progettato per esaminare un aspetto specifico della salute del sistema:
 
-- **`brain_verify.py`** e' la **misurazione della pressione arteriosa**: 115 regole automatiche che verificano l'intelligenza fondamentale del cervello AI, dalla percezione del mercato alla meta-cognizione. Come la pressione arteriosa e' il primo indicatore vitale che si controlla, brain_verify e' il primo test da eseguire per valutare lo stato del sistema decisionale.
+- **`brain_verify.py`** e' la **misurazione della pressione arteriosa**: 115 regole automatiche che verificano l'intelligenza fondamentale del motore algoritmico, dalla percezione del mercato alla meta-cognizione. Come la pressione arteriosa e' il primo indicatore vitale che si controlla, brain_verify e' il primo test da eseguire per valutare lo stato del sistema decisionale.
 
-- **`headless_validator.py`** e' l'**analisi del sangue completa**: 169 controlli che esaminano import dei moduli, schema del database, invarianti di configurazione, smoke test ML e installazione dei proto. Come l'emocromo rivela problemi nascosti che non si manifestano in sintomi evidenti, il validatore headless cattura regressioni invisibili prima che diventino bug in produzione.
+- **`headless_validator.py`** e' l'**analisi del sangue completa**: 169 controlli che esaminano import dei moduli, schema del database, invarianti di configurazione, smoke test statistico e installazione dei proto. Come l'emocromo rivela problemi nascosti che non si manifestano in sintomi evidenti, il validatore headless cattura regressioni invisibili prima che diventino bug in produzione.
 
-- **`ml_debugger.py`** e' la **radiografia (RX)**: 8 controlli che guardano dentro la rete neurale, verificando il contratto METADATA_DIM, le forme degli input, il range delle feature, il determinismo dell'output, la validita' delle probabilita'. Come una radiografia mostra fratture invisibili dall'esterno, l'ML debugger rivela anomalie nelle profondita' della rete che nessun test funzionale potrebbe catturare.
+- **`ml_debugger.py`** e' la **radiografia (RX)**: 8 controlli che guardano dentro il modello statistico, verificando il contratto METADATA_DIM, le forme degli input, il range delle feature, il determinismo dell'output, la validita' delle probabilita'. Come una radiografia mostra fratture invisibili dall'esterno, il debugger rivela anomalie nelle profondita' del modello che nessun test funzionale potrebbe catturare.
 
-- **`moneymaker_hospital.py`** e' la **consultazione specialistica**: 12 dipartimenti che esaminano aspetti specifici del sistema — dal Pronto Soccorso (errori critici) alla Cardiologia (battito del sistema) alla Neurologia (funzioni cognitive AI) all'Oncologia (codice morto che cresce come un tumore). Come un ospedale moderno ha reparti specializzati per ogni patologia, il MONEYMAKER hospital ha dipartimenti dedicati per ogni area di rischio.
+- **`moneymaker_hospital.py`** e' la **consultazione specialistica**: 12 dipartimenti che esaminano aspetti specifici del sistema — dal Pronto Soccorso (errori critici) alla Cardiologia (battito del sistema) alla Neurologia (funzioni cognitive algoritmiche) all'Oncologia (codice morto che cresce come un tumore). Come un ospedale moderno ha reparti specializzati per ogni patologia, il MONEYMAKER hospital ha dipartimenti dedicati per ogni area di rischio.
 
 Questa suite diagnostica non e' opzionale ne' decorativa. E' il meccanismo fondamentale attraverso cui il team garantisce che ogni modifica al codice mantenga o migliori la salute del sistema. Nessun commit viene considerato completo senza il passaggio attraverso le checklist pre e post-modifica documentate nei Capitoli 4 e 5.
 
@@ -53,7 +53,7 @@ graph TD
     subgraph "Analogia: Check-Up Medico Completo"
         PA["Pressione Arteriosa<br/><b>brain_verify.py</b><br/>115 regole, 15 sezioni"]
         AN["Analisi del Sangue<br/><b>headless_validator.py</b><br/>169 controlli"]
-        RX["Radiografia<br/><b>ml_debugger.py</b><br/>8 controlli neurali"]
+        RX["Radiografia<br/><b>ml_debugger.py</b><br/>8 controlli del modello"]
         SP["Consulenze Specialistiche<br/><b>moneymaker_hospital.py</b><br/>12 dipartimenti"]
         DC["Dead Code Detector<br/>Oncologia — tumori codice"]
         PC["Portability Check<br/>Immunologia — compatibilita'"]
@@ -134,7 +134,7 @@ Il servizio Data Ingestion in Go utilizza la libreria `zerolog` con output JSON 
 
 ### Strumenti Diagnostici Python
 
-Oltre ai tre pilastri standard, il MONEYMAKER dispone di 14 script Python diagnostici che eseguono verifiche profonde e specifiche del dominio. Questi strumenti non sono sostituibili da metriche o log: operano a un livello di astrazione superiore, verificando invarianti architetturali, contratti inter-modulo e proprieta' matematiche della rete neurale. Ciascuno e' documentato in dettaglio nel Capitolo 3.
+Oltre ai tre pilastri standard, il MONEYMAKER dispone di 14 script Python diagnostici che eseguono verifiche profonde e specifiche del dominio. Questi strumenti non sono sostituibili da metriche o log: operano a un livello di astrazione superiore, verificando invarianti architetturali, contratti inter-modulo e proprieta' matematiche del modello statistico. Ciascuno e' documentato in dettaglio nel Capitolo 3.
 
 ```mermaid
 graph TB
@@ -199,7 +199,7 @@ graph TB
 
 **Percorso:** `tools/brain_verification/brain_verify.py`
 
-**Scopo:** Gate di deploy con 115 regole automatiche distribuite su 15 sezioni. Questo e' lo strumento piu' completo dell'arsenale diagnostico: verifica che il cervello AI soddisfi i requisiti minimi di intelligenza, sicurezza, adattabilita' e robustezza prima di essere considerato pronto per il deploy.
+**Scopo:** Gate di deploy con 115 regole automatiche distribuite su 15 sezioni. Questo e' lo strumento piu' completo dell'arsenale diagnostico: verifica che il motore algoritmico soddisfi i requisiti minimi di intelligenza, sicurezza, adattabilita' e robustezza prima di essere considerato pronto per il deploy.
 
 **Le 15 Sezioni:**
 
@@ -219,11 +219,11 @@ graph TB
 14. **Benchmarking** — Confronta le performance con benchmark standard: buy&hold, random walk, strategie baseline
 15. **Philosophical Limits** — Verifica che il sistema riconosca i propri limiti: incertezza irriducibile, limiti della predizione, regime inediti
 
-**Target:** >= 98% (113/115 accettabile per modello non addestrato)
+**Target:** >= 98% (113/115 accettabile per modello non calibrato)
 
 **Red flag noti:**
-- **R13** (cosine similarity dopo cambio regime) — Atteso senza modello addestrato, perche' richiede pesi ottimizzati per misurare la distanza nello spazio latente tra regimi diversi
-- **R79** (gradient flow) — Atteso senza modello addestrato, perche' i gradienti hanno senso solo dopo almeno un'epoca di training
+- **R13** (cosine similarity dopo cambio regime) — Atteso senza modello calibrato, perche' richiede pesi ottimizzati per misurare la distanza nello spazio latente tra regimi diversi
+- **R79** (gradient flow) — Atteso senza modello calibrato, perche' i gradienti hanno senso solo dopo almeno un'epoca di ottimizzazione
 
 **Comando:**
 ```bash
@@ -288,7 +288,7 @@ graph TD
 - **Import di moduli** (100+ controlli) — Verifica che ogni modulo Python dell'Algo Engine sia importabile senza errori, che le classi e le funzioni attese esistano, che le firme dei costruttori corrispondano ai contratti documentati
 - **Validazione schema DB** — Controlla che le definizioni SQLModel corrispondano allo schema atteso, che le migrazioni Alembic siano allineate, che gli indici critici esistano
 - **Invarianti di configurazione** — Verifica che METADATA_DIM=60 sia rispettato in tutti i moduli, che le costanti condivise siano coerenti, che i parametri di default siano ragionevoli
-- **Smoke test ML** — Esegue un forward pass con dati sintetici attraverso ogni modulo della rete, verificando che le forme di output siano corrette e che non ci siano NaN o Inf
+- **Smoke test statistico** — Esegue un forward pass con dati sintetici attraverso ogni modulo del modello, verificando che le forme di output siano corrette e che non ci siano NaN o Inf
 - **Installazione proto** — Controlla che i file proto compilati siano presenti, importabili e contengano i messaggi e i servizi attesi
 
 **Target:** >= 98% (167/169, Redis e DB offline accettabili)
@@ -302,7 +302,7 @@ python tools/headless_validator.py
 
 **Percorso:** `tools/ml_debugger.py`
 
-**Scopo:** Diagnostica della rete neurale con 8 controlli mirati che esaminano proprieta' matematiche e contratti del modello ML.
+**Scopo:** Diagnostica del modello statistico con 8 controlli mirati che esaminano proprieta' matematiche e contratti del modello.
 
 **Gli 8 Controlli:**
 
@@ -423,7 +423,7 @@ python tools/portability_check.py
 
 3. **Cardiologia (Cardiology)** — Monitora il "battito cardiaco" del sistema: frequenza dei segnali, latenza del pipeline, throughput dei dati, regolarita' del ciclo operativo. Un cuore sano batte regolarmente; un pipeline sano processa dati a frequenza costante.
 
-4. **Neurologia (Neurology)** — Esamina le "funzioni cognitive" dell'AI: coerenza delle predizioni, stabilita' delle rappresentazioni latenti, qualita' dell'embedding, funzionamento dell'attention mechanism. Come un neurologo testa riflessi e coordinazione, questo dipartimento testa le capacita' cognitive della rete.
+4. **Neurologia (Neurology)** — Esamina le "funzioni cognitive" algoritmiche: coerenza delle predizioni, stabilita' delle rappresentazioni latenti, qualita' dell'embedding, funzionamento dei meccanismi di attenzione. Come un neurologo testa riflessi e coordinazione, questo dipartimento testa le capacita' cognitive del modello.
 
 5. **Oncologia (Oncology)** — Cerca "tumori" nel codice: dead code che cresce, dipendenze inutili che si accumulano, file temporanei che non vengono mai puliti, log che crescono senza rotazione. I tumori del codice, se non rimossi, consumano risorse e complicano la manutenzione.
 
@@ -454,7 +454,7 @@ graph TD
         ER["Pronto Soccorso<br/>Errori critici immediati"]
         PL["Laboratorio Patologia<br/>Complessita' codice"]
         CA["Cardiologia<br/>Battito del sistema"]
-        NE["Neurologia<br/>Funzioni cognitive AI"]
+        NE["Neurologia<br/>Funzioni cognitive algoritmiche"]
         ON["Oncologia<br/>Codice morto"]
         PE["Pediatria<br/>Componenti giovani"]
         ICU["Terapia Intensiva<br/>Circuit breaker, Kill switch"]
@@ -500,7 +500,7 @@ graph TD
 
 **Percorso:** `tools/feature_audit.py`
 
-**Scopo:** Verifica l'allineamento del contratto METADATA_DIM=60 tra il codice Go di ingestione (che produce 40 feature tecniche) e il codice Python del brain (che le consuma). Le 40 feature devono avere lo stesso nome, lo stesso ordine e lo stesso tipo numerico in entrambi i linguaggi. Una discrepanza qui significherebbe che il modello ML viene addestrato e inferisce su feature diverse, con conseguenze catastrofiche sulla qualita' delle predizioni.
+**Scopo:** Verifica l'allineamento del contratto METADATA_DIM=60 tra il codice Go di ingestione (che produce 40 feature tecniche) e il codice Python del brain (che le consuma). Le 40 feature devono avere lo stesso nome, lo stesso ordine e lo stesso tipo numerico in entrambi i linguaggi. Una discrepanza qui significherebbe che il modello statistico viene calibrato e opera su feature diverse, con conseguenze catastrofiche sulla qualita' delle predizioni.
 
 ### 3.9 integrity_manifest.py
 
@@ -653,13 +653,13 @@ python tools/headless_validator.py
 
 Il punteggio deve essere >= 98%. Se il punteggio e' sceso rispetto alla baseline, la modifica ha introdotto un problema che il validatore ha catturato.
 
-**Passaggio 3: Diagnostica ML Perfetta**
+**Passaggio 3: Diagnostica del Modello Perfetta**
 
 ```bash
 python tools/ml_debugger.py
 ```
 
-Il target e' 100% (8/8). Qualsiasi modifica che tocca il codice ML, i modelli, le feature o il preprocessing deve essere seguita da una verifica ML completa.
+Il target e' 100% (8/8). Qualsiasi modifica che tocca il codice del modello, le feature o il preprocessing deve essere seguita da una verifica completa del modello.
 
 **Passaggio 4: Nessun Nuovo Codice Morto**
 
@@ -701,7 +701,7 @@ flowchart TD
 
     P3["Passaggio 3:<br/>python tools/ml_debugger.py"]
     P3C{"8/8<br/>PASS?"}
-    P3F["Problema ML!<br/>Verificare modello"]
+    P3F["Problema modello!<br/>Verificare modello"]
 
     P4["Passaggio 4:<br/>python tools/dead_code_detector.py"]
     P4C{"Nessun nuovo<br/>dead code?"}
@@ -754,7 +754,7 @@ flowchart TD
 
 Il MONEYMAKER espone metriche Prometheus organizzate per microservizio. Tutte le metriche seguono la convenzione di naming Prometheus: `namespace_subsystem_name_unit`, dove il namespace e' sempre `moneymaker`.
 
-### Algo Engine — Metriche del Cervello Decisionale
+### Algo Engine — Metriche del Motore Decisionale
 
 | Metrica | Tipo | Descrizione |
 |---------|------|-------------|
@@ -1103,7 +1103,7 @@ Quando il MONEYMAKER viene deployato con `docker-compose up`, le seguenti dashbo
 - Drawdown corrente vs max drawdown storico
 - Circuit breaker status indicator
 
-**5. ML Model Health** — Salute dei modelli ML:
+**5. Statistical Model Health** — Salute dei modelli statistici:
 - Confidence distribution delle predizioni (istogramma)
 - Prediction accuracy rolling (finestra 100 trade)
 - Feature drift alert timeline
@@ -1130,7 +1130,7 @@ graph TD
         D2["Dashboard: Data Pipeline<br/>Tick rate, Bar rate, Gap detection"]
         D3["Dashboard: Execution Quality<br/>Slippage, Fill rate, Rejection"]
         D4["Dashboard: Risk & PnL<br/>Positions, PnL, Drawdown, Circuit"]
-        D5["Dashboard: ML Model Health<br/>Confidence, Accuracy, Drift, Versions"]
+        D5["Dashboard: Statistical Model Health<br/>Confidence, Accuracy, Drift, Versions"]
     end
 
     subgraph "Pannelli Critici"
