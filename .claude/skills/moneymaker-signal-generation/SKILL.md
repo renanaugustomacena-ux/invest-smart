@@ -14,18 +14,18 @@ Activate this skill whenever:
 ---
 
 ## The 4-Tier Fallback Hierarchy
-1. **Tier 1: COPER** (Experience). Highest conviction. Matches historical episodes.
-2. **Tier 2: ML Model** (Prediction). High conviction. Must pass **all** Confidence Gates.
+1. **Tier 1: COPER** (Statistical-primary). Highest conviction. Matches historical episodes via statistical pattern matching.
+2. **Tier 2: Multi-Factor** (Composite). High conviction. Combines regime, technical, and macro signals.
 3. **Tier 3: Technical Signals** (Heuristic). Medium conviction. Weighted sum of indicators.
 4. **Tier 4: Conservative** (Safety). Lowest conviction. Minimal position or HOLD.
 
-## Confidence Gating (ML Filters)
-- **Maturity Gate**: Caps confidence for new models (<50 preds: 50% cap).
-- **Drift Detector**: Monitors KL Divergence & Accuracy. Suppresses ML if drifting.
+## Confidence Gating
+- **Maturity Gate**: Caps confidence for recently calibrated strategies.
+- **Drift Detector**: Monitors statistical divergence. Suppresses signals if drifting.
 - **Silence Rule**: Suppresses if Low Confidence (<0.35) or Ambiguous (<0.08 gap).
 
 ## Checklist
 - [ ] Are Tiers evaluated in order (1 -> 2 -> 3 -> 4)?
-- [ ] Is the ML output gated before use?
+- [ ] Is the signal output gated before use?
 - [ ] Does Tier 4 default to safety (HOLD/Small)?
 - [ ] Is the Source Tier recorded in the signal?
