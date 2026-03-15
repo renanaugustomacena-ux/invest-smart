@@ -107,9 +107,9 @@ moneymaker-v1/
 |   |   |   +-- algo_engine/
 |   |   |       |-- __init__.py
 |   |   |       |-- main.py
-|   |   |       |-- inference/
+|   |   |       |-- evaluation/
 |   |   |       |   |-- engine.py
-|   |   |       |   |-- model_loader.py
+|   |   |       |   |-- strategy_loader.py
 |   |   |       |   +-- ensemble.py
 |   |   |       |-- strategies/
 |   |   |       |   |-- base.py
@@ -132,16 +132,6 @@ moneymaker-v1/
 |   |   |-- Dockerfile
 |   |   +-- README.md
 |   |
-|   |-- ml-training/                 # Python service -- GPU workload
-|   |   |-- src/
-|   |   |   +-- ml_training/
-|   |   |       |-- __init__.py
-|   |   |       |-- train.py
-|   |   |       |-- models/
-|   |   |       |-- datasets/
-|   |   |       |-- validation/
-|   |   |       |-- registry/
-|   |   |       +-- config.py
 |   |   |-- notebooks/               # Jupyter research notebooks
 |   |   |-- pyproject.toml
 |   |   |-- Dockerfile
@@ -254,7 +244,7 @@ moneymaker-v1/
 |   |   +-- conftest.py
 |   |-- performance/                 # Load and stress tests
 |   |   |-- locustfile.py
-|   |   +-- benchmark_inference.py
+|   |   +-- benchmark_strategy.py
 |   |-- backtesting/                 # Historical validation
 |   |   |-- test_walk_forward.py
 |   |   |-- test_regime_detection.py
@@ -314,7 +304,7 @@ moneymaker-v1/
 
 ### Naming Conventions
 
-All directories use lowercase with hyphens for separation: `data-ingestion`, `risk-manager`, `ml-training`. Python packages within `src/` use underscores: `algo_engine`, `risk_manager`, `ml_training`. This follows the standard Python packaging convention where the installable package name (hyphenated) differs from the importable module name (underscored).
+All directories use lowercase with hyphens for separation: `data-ingestion`, `risk-manager`, `algo-engine`. Python packages within `src/` use underscores: `algo_engine`, `risk_manager`. This follows the standard Python packaging convention where the installable package name (hyphenated) differs from the importable module name (underscored).
 
 Test files mirror the source structure. If `services/risk-manager/src/risk_manager/position_sizer.py` contains the position sizing logic, its tests live at `services/risk-manager/tests/unit/test_position_sizer.py`. Integration tests for the same service live at `services/risk-manager/tests/integration/test_position_sizer_integration.py`.
 
@@ -342,7 +332,7 @@ Every developer working on MONEYMAKER must have a local environment that can run
 
 ### Virtual Environment Isolation
 
-Each Python service maintains its own virtual environment. This is non-negotiable. The Algo Engine has different dependencies than the Risk Manager, which has different dependencies than the ML Training Lab. Sharing a virtual environment between services leads to version conflicts, especially around heavyweight dependencies like PyTorch and its CUDA/ROCm bindings.
+Each Python service maintains its own virtual environment. This is non-negotiable. The Algo Engine has different dependencies than the Risk Manager. Sharing a virtual environment between services leads to version conflicts.
 
 The `pyproject.toml` for each service specifies its dependencies precisely:
 
@@ -649,7 +639,6 @@ MONEYMAKER_REDIS_PORT=6379
 
 # Algo Engine
 MONEYMAKER_MODEL_PATH=./models/latest
-MONEYMAKER_INFERENCE_DEVICE=cpu
 
 # MT5 Bridge
 MONEYMAKER_MT5_MOCK=true
@@ -892,7 +881,7 @@ Types:
 
 Scopes:
   risk-manager, algo-engine, mt5-bridge, data-ingestion,
-  ml-training, monitoring, shared, infra, docs
+  monitoring, shared, infra, docs
 
 Examples:
   feat(risk-manager): add correlated exposure check across instrument groups
@@ -1588,7 +1577,7 @@ Testcontainers automatically pull the required Docker images, start containers o
 
 ### Full Ecosystem Testing
 
-End-to-end (E2E) tests validate the entire MONEYMAKER ecosystem working together. They start every service -- Data Ingestion, Algo Engine, Risk Manager, MT5 Bridge, Database, Redis, Monitoring -- and verify that data flows correctly from ingestion through inference through risk checking through execution. These tests are the final gate before deployment.
+End-to-end (E2E) tests validate the entire MONEYMAKER ecosystem working together. They start every service -- Data Ingestion, Algo Engine, Risk Manager, MT5 Bridge, Database, Redis, Monitoring -- and verify that data flows correctly from ingestion through signal generation through risk checking through execution. These tests are the final gate before deployment.
 
 E2E tests run in a dedicated Docker Compose environment that mirrors production as closely as possible:
 
@@ -1635,7 +1624,6 @@ services:
     environment:
       MONEYMAKER_ENV: test
       MONEYMAKER_MODEL_PATH: /models/test-model
-      MONEYMAKER_INFERENCE_DEVICE: cpu
     depends_on:
       redis:
         condition: service_healthy
@@ -1919,7 +1907,7 @@ async def test_soak_one_hour(e2e_ecosystem: EcosystemFixture) -> None:
 
 Backtesting is the process of running the trading strategy against historical market data to evaluate its performance. In MONEYMAKER, backtesting is not a separate system -- it uses the same Algo Engine and Risk Manager code that runs in production, but feeds it historical data instead of live data. This ensures that the backtesting results accurately reflect the behavior of the production system.
 
-The backtesting framework replays historical data bar-by-bar through the full pipeline: feature engineering, model inference, signal generation, risk checking, and simulated execution. Each step uses the same code path as live trading, with only the data source and execution layer swapped out.
+The backtesting framework replays historical data bar-by-bar through the full pipeline: feature engineering, signal generation, risk checking, and simulated execution. Each step uses the same code path as live trading, with only the data source and execution layer swapped out.
 
 ```python
 class BacktestEngine:
@@ -2108,7 +2096,7 @@ class TransactionCostModel:
 
 ### Data Snooping Prevention
 
-Data snooping -- the unconscious or deliberate use of future information in model training and evaluation -- is one of the most insidious threats to backtest validity. MONEYMAKER implements several safeguards:
+Data snooping -- the unconscious or deliberate use of future information in strategy calibration and evaluation -- is one of the most insidious threats to backtest validity. MONEYMAKER implements several safeguards:
 
 **Strict temporal ordering.** The feature engineering pipeline enforces that features at time T are computed using only data available at or before time T. No future values are used, even accidentally. This is validated by a test that checks for look-ahead bias in every feature computation.
 
@@ -2271,7 +2259,7 @@ jobs:
 
       - name: Run mypy
         run: |
-          for service in algo-engine risk-manager mt5-bridge monitoring ml-training; do
+          for service in algo-engine risk-manager mt5-bridge monitoring; do
             echo "::group::mypy services/$service"
             cd services/$service
             pip install -e ".[dev]" --quiet
@@ -2319,7 +2307,6 @@ jobs:
           - algo-engine
           - risk-manager
           - mt5-bridge
-          - ml-training
           - monitoring
     steps:
       - uses: actions/checkout@v4
@@ -2435,7 +2422,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          for service in algo-engine risk-manager mt5-bridge ml-training monitoring; do
+          for service in algo-engine risk-manager mt5-bridge monitoring; do
             pip install -e "services/$service[dev]" --quiet
           done
           pip install -e shared/python-common --quiet
@@ -2486,7 +2473,7 @@ jobs:
       - name: Run Safety (dependency vulnerability check)
         run: |
           pip install safety
-          for service in algo-engine risk-manager mt5-bridge ml-training monitoring; do
+          for service in algo-engine risk-manager mt5-bridge monitoring; do
             echo "::group::Safety check: $service"
             cd services/$service
             pip install -e . --quiet
@@ -2514,7 +2501,6 @@ jobs:
           - algo-engine
           - risk-manager
           - mt5-bridge
-          - ml-training
           - monitoring
     steps:
       - uses: actions/checkout@v4
@@ -2625,7 +2611,7 @@ For single-instance services (which is the case in MONEYMAKER V1, where each ser
 
 ### Blue-Green Deployments
 
-For high-risk deployments -- changes to the Risk Manager, MT5 Bridge, or core Algo Engine inference logic -- we use blue-green deployments. Two complete environments exist: Blue (currently serving) and Green (receiving the update). Traffic is switched from Blue to Green only after Green passes all health checks, smoke tests, and a manual verification step.
+For high-risk deployments -- changes to the Risk Manager, MT5 Bridge, or core Algo Engine strategy logic -- we use blue-green deployments. Two complete environments exist: Blue (currently serving) and Green (receiving the update). Traffic is switched from Blue to Green only after Green passes all health checks, smoke tests, and a manual verification step.
 
 ```
 Before deployment:
@@ -2976,7 +2962,6 @@ services:
       MONEYMAKER_DB_HOST: postgres
       MONEYMAKER_REDIS_HOST: redis
       MONEYMAKER_MODEL_PATH: /models/production
-      MONEYMAKER_INFERENCE_DEVICE: cpu
     volumes:
       - moneymaker_models:/models:ro
     deploy:
@@ -3179,10 +3164,7 @@ Proxmox VE Host (bare metal)
 |   |-- Risk Manager
 |   +-- MT5 Bridge
 |
-|-- VM 102: moneymaker-ml            (8 vCPU, 32GB RAM, GPU passthrough)
-|   +-- ML Training Lab
-|
-|-- VM 103: moneymaker-ingestion     (4 vCPU, 8GB RAM)
+|-- VM 102: moneymaker-ingestion     (4 vCPU, 8GB RAM)
 |   +-- Data Ingestion Service (Go)
 |
 |-- VM 104: moneymaker-monitor       (4 vCPU, 8GB RAM)
@@ -3577,10 +3559,6 @@ class AIBrainConfig(BaseSettings):
         default="/models/production/latest",
         description="Path to the production model directory",
     )
-    inference_device: str = Field(
-        default="cpu",
-        description="Device for inference: cpu, cuda, rocm",
-    )
     ensemble_method: str = Field(
         default="weighted_average",
         description="Method to combine ensemble predictions",
@@ -3608,9 +3586,9 @@ class AIBrainConfig(BaseSettings):
         description="TTL for cached feature computations",
         ge=60,
     )
-    max_concurrent_inferences: int = Field(
+    max_concurrent_evaluations: int = Field(
         default=4,
-        description="Maximum parallel inference requests",
+        description="Maximum parallel strategy evaluation requests",
         ge=1,
     )
 ```
@@ -3762,7 +3740,7 @@ The top-level Makefile provides a unified interface for all development tasks. D
 
 SHELL := /bin/bash
 PYTHON := python3.11
-SERVICES := algo-engine risk-manager mt5-bridge ml-training monitoring
+SERVICES := algo-engine risk-manager mt5-bridge monitoring
 
 # ─── Help ──────────────────────────────────────────────
 help: ## Show this help message
@@ -3897,7 +3875,7 @@ The `scripts/` directory contains utilities that are too complex for Makefile ta
 
 **`scripts/dev/setup-local.sh`** -- One-command local environment setup. Installs system dependencies, creates virtual environments, starts Docker containers, runs migrations, seeds the database, and verifies that everything works.
 
-**`scripts/dev/seed-db.sh`** -- Populates the development database with realistic test data: historical OHLCV candles for the configured symbols, sample trades, model registry entries, and configuration snapshots.
+**`scripts/dev/seed-db.sh`** -- Populates the development database with realistic test data: historical OHLCV candles for the configured symbols, sample trades, strategy configuration entries, and configuration snapshots.
 
 **`scripts/dev/generate-protos.sh`** -- Compiles `.proto` files to Python and Go source code. Handles the installation of `protoc` and the required plugins if they are not already installed.
 
@@ -3907,7 +3885,7 @@ The `scripts/` directory contains utilities that are too complex for Makefile ta
 
 When performance is a concern, we use specialized profiling tools:
 
-**py-spy** for CPU profiling. py-spy attaches to a running Python process (even inside a Docker container) and generates flame graphs without modifying the application or adding instrumentation. It is the go-to tool for identifying hot spots in the inference pipeline or risk checking logic.
+**py-spy** for CPU profiling. py-spy attaches to a running Python process (even inside a Docker container) and generates flame graphs without modifying the application or adding instrumentation. It is the go-to tool for identifying hot spots in the signal generation pipeline or risk checking logic.
 
 ```bash
 # Generate a flame graph for the Algo Engine process
