@@ -211,7 +211,7 @@ graph TB
 6. **Monitoring** — Verifica che il sistema emetta metriche e log sufficienti per il monitoraggio in produzione
 7. **Market Domain** — Controlla la comprensione del dominio specifico: regimi di mercato, correlazioni tra asset, impatto degli eventi macroeconomici
 8. **Human Interaction** — Verifica le interfacce per l'interazione umana: chiarezza dei report, interpretabilita' delle decisioni, qualita' degli alert
-9. **Continuous Improvement** — Controlla i meccanismi di miglioramento continuo: feedback loop, retraining automatico, A/B testing
+9. **Continuous Improvement** — Controlla i meccanismi di miglioramento continuo: feedback loop, ricalibrazione automatica, A/B testing
 10. **Meta-Level Reasoning** — Valuta la capacita' del sistema di ragionare sul proprio ragionamento: calibrazione della confidenza, riconoscimento dei limiti
 11. **Ethical Trading** — Verifica conformita' con principi etici: no manipolazione di mercato, no front-running, rispetto delle regolamentazioni
 12. **Specialized Capabilities** — Controlla capacita' specializzate: gestione multi-timeframe, analisi cross-asset, integrazione notizie
@@ -306,21 +306,21 @@ python tools/headless_validator.py
 
 **Gli 8 Controlli:**
 
-1. **Contratto METADATA_DIM** — Verifica che il valore `METADATA_DIM=60` sia coerente tra la definizione del modello, la configurazione e i dati di input. Una discrepanza qui causerebbe errori di dimensione nei tensori, o peggio, un modello che opera su feature sbagliate senza errore esplicito.
+1. **Contratto METADATA_DIM** — Verifica che il valore `METADATA_DIM=60` sia coerente tra la definizione del modello, la configurazione e i dati di input. Una discrepanza qui causerebbe errori di dimensione nei vettori, o peggio, un modello che opera su feature sbagliate senza errore esplicito.
 
-2. **Forma dell'Input** — Controlla che la forma del tensore di input (batch_size, sequence_length, features) corrisponda all'architettura attesa. Verifica ogni stream: price (6 canali), indicator (34 canali), change e metadata.
+2. **Forma dell'Input** — Controlla che la forma del vettore di input (batch_size, sequence_length, features) corrisponda all'architettura attesa. Verifica ogni stream: price (6 canali), indicator (34 canali), change e metadata.
 
 3. **Range delle Feature** — Verifica che le feature pre-processate cadano nel range atteso. Feature fuori range (es. prezzi negativi, volumi astronomici) indicano problemi nel preprocessing o dati corrotti.
 
-4. **Determinismo dell'Output** — Con lo stesso input e lo stesso seed random, il modello deve produrre lo stesso output. La non-riproducibilita' indica operazioni non deterministiche (dropout attivo in eval mode, batch normalization con statistiche running non frozen).
+4. **Determinismo dell'Output** — Con lo stesso input e lo stesso seed random, il modello deve produrre lo stesso output. La non-riproducibilita' indica operazioni non deterministiche (componenti stocastiche attive in modalita' di valutazione, normalizzazione con statistiche non congelate).
 
-5. **Varianza tra Seed** — Con seed diversi durante il training, le predizioni devono mostrare varianza ragionevole. Varianza zero indica che il modello ha collassato (produce la stessa predizione per ogni input). Varianza eccessiva indica instabilita' nel training.
+5. **Varianza tra Seed** — Con seed diversi durante la calibrazione, le predizioni devono mostrare varianza ragionevole. Varianza zero indica che il modello ha collassato (produce la stessa predizione per ogni input). Varianza eccessiva indica instabilita' nella calibrazione.
 
 6. **Validita' delle Probabilita' del Segnale** — Le probabilita' di output (BUY, SELL, HOLD) devono essere nell'intervallo [0, 1] e la loro somma deve approssimare 1.0. Violazioni indicano un softmax non applicato o corrotto.
 
 7. **Limiti del Position Sizing** — I lotti suggeriti devono essere nell'intervallo configurato (tipicamente 0.01 - 10.0). Valori fuori range indicano un bug nel layer di sizing o un overflow numerico.
 
-8. **Assenza di NaN e Inf** — Nessun tensore nell'intero forward pass deve contenere valori NaN o Infinito. La presenza di NaN e' quasi sempre indice di instabilita' numerica (divisione per zero, logaritmo di valore negativo, gradiente esploso).
+8. **Assenza di NaN e Inf** — Nessun vettore nell'intero forward pass deve contenere valori NaN o Infinito. La presenza di NaN e' quasi sempre indice di instabilita' numerica (divisione per zero, logaritmo di valore negativo, gradiente esploso).
 
 **Target:** 100% (8/8) — Nessun controllo puo' fallire.
 
@@ -339,7 +339,7 @@ graph LR
         C5["5. Varianza Seeds<br/>0 < var < soglia"]
         C6["6. Probabilita'<br/>[0,1] sum ~= 1"]
         C7["7. Position Sizing<br/>0.01 - 10.0 lotti"]
-        C8["8. No NaN/Inf<br/>tutti i tensori"]
+        C8["8. No NaN/Inf<br/>tutti i vettori"]
     end
 
     IN["Input Sintetico<br/>batch=4, seq=60, feat=60"] --> C1
