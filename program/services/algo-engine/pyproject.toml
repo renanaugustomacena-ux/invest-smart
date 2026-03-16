@@ -62,6 +62,7 @@ addopts = [
     "--strict-markers",
     "--tb=short",
     "-v",
+    "--benchmark-disable",
 ]
 markers = [
     "slow: tests taking >5s (deselect with -m 'not slow')",
@@ -75,5 +76,4 @@ filterwarnings = [
     "error",
     "ignore::DeprecationWarning:google.protobuf.*",
     "ignore::DeprecationWarning:pkg_resources.*",
-    "ignore::pytest_benchmark.fixture.PytestBenchmarkWarning",
 ]
