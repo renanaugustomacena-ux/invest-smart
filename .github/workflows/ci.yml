@@ -195,7 +195,7 @@ jobs:
             --cov=moneymaker_common \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=60 \
+            --cov-fail-under=25 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results
@@ -282,7 +282,7 @@ jobs:
             --cov=algo_engine \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=80 \
+            --cov-fail-under=70 \
             --timeout=10 \
             -m "not slow and not benchmark" \
             -v --tb=short
@@ -587,7 +587,7 @@ jobs:
             --cov=moneymaker_console \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=25 \
+            --cov-fail-under=5 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results

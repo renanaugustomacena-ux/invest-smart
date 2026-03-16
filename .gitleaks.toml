@@ -1,0 +1,12 @@
+[extend]
+
+[[rules]]
+id = "allow-test-pem-files"
+description = "Allow dummy PEM data in test files"
+regex = '''.*'''
+path = '''tests/test_grpc_credentials_real\.py'''
+
+[allowlist]
+paths = [
+    '''tests/test_grpc_credentials_real\.py''',
+]
