@@ -95,7 +95,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
     # --- 6. Drawdown enforcer (algo-engine lines 217-223) ---
     drawdown_enforcer = DrawdownEnforcer(
         kill_switch=kill_switch,
-        max_drawdown_pct=settings.algo_max_drawdown_pct,
+        max_drawdown_pct=Decimal(str(settings.algo_max_drawdown_pct)),
     )
     logger.info(
         "Drawdown Enforcer initialized",
@@ -150,8 +150,8 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
 
     # --- 12. Position sizer (algo-engine lines 268-273) ---
     position_sizer = PositionSizer(
-        risk_per_trade_pct=settings.algo_risk_per_trade_pct,
-        default_equity=settings.algo_default_equity,
+        risk_per_trade_pct=Decimal(str(settings.algo_risk_per_trade_pct)),
+        default_equity=Decimal(str(settings.algo_default_equity)),
         min_lots=Decimal("0.01"),
         max_lots=Decimal(str(settings.algo_max_lots)),
     )
@@ -171,17 +171,17 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         from algo_engine.features.economic_calendar import EconomicCalendarFilter
 
         calendar_filter = EconomicCalendarFilter(
-            calendar_file=settings.algo_calendar_file,
-            blackout_before_min=settings.algo_calendar_blackout_before_min,
-            blackout_after_min=settings.algo_calendar_blackout_after_min,
+            events_file=settings.algo_calendar_file,
+            blackout_minutes_before=settings.algo_calendar_blackout_before_min,
+            blackout_minutes_after=settings.algo_calendar_blackout_after_min,
         )
         logger.info("Economic calendar loaded", file=settings.algo_calendar_file)
 
     validator = SignalValidator(
         max_open_positions=settings.algo_max_open_positions,
-        max_drawdown_pct=settings.algo_max_drawdown_pct,
-        max_daily_loss_pct=settings.algo_max_daily_loss_pct,
-        min_confidence=settings.algo_confidence_threshold,
+        max_drawdown_pct=Decimal(str(settings.algo_max_drawdown_pct)),
+        max_daily_loss_pct=Decimal(str(settings.algo_max_daily_loss_pct)),
+        min_confidence=Decimal(str(settings.algo_confidence_threshold)),
         correlation_checker=correlation_checker,
         session_classifier=session_classifier,
         calendar_filter=calendar_filter,
@@ -328,11 +328,12 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
                 continue
 
             # Auto-check kill switch with current metrics (algo-engine lines 956-969)
+            _state = portfolio_manager.get_state()
             await kill_switch.auto_check(
-                daily_loss_pct=portfolio_manager.get_state()["daily_loss_pct"],
-                max_daily_loss_pct=settings.algo_max_daily_loss_pct,
-                drawdown_pct=portfolio_manager.get_state()["current_drawdown_pct"],
-                max_drawdown_pct=settings.algo_max_drawdown_pct,
+                daily_loss_pct=Decimal(str(_state["daily_loss_pct"])),
+                max_daily_loss_pct=Decimal(str(settings.algo_max_daily_loss_pct)),
+                drawdown_pct=Decimal(str(_state["current_drawdown_pct"])),
+                max_drawdown_pct=Decimal(str(settings.algo_max_drawdown_pct)),
             )
             _ks_active, _ks_reason = await kill_switch.is_active()
             if _ks_active:
@@ -447,8 +448,8 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             portfolio_state = portfolio_manager.get_state()
             try:
                 await drawdown_enforcer.check(
-                    current_equity=portfolio_state.get("equity", Decimal("1000")),
-                    peak_equity=portfolio_state.get("peak_equity", Decimal("1000")),
+                    current_equity=Decimal(str(portfolio_state.get("equity", "1000"))),
+                    peak_equity=Decimal(str(portfolio_state.get("peak_equity", "1000"))),
                 )
             except (ValueError, Exception) as exc:
                 logger.debug("Drawdown enforcer error: %s", exc)
@@ -469,7 +470,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         zmq_sub.close()
     if bridge_client is not None:
         await bridge_client.close()
-    audit.stop_periodic_flush()
+    await audit.close()
     SERVICE_UP.labels(service=settings.algo_service_name).set(0)
 
 

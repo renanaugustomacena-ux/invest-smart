@@ -16,7 +16,10 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN groupadd --gid 1000 moneymaker && \
+RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 1000 moneymaker && \
     useradd --uid 1000 --gid moneymaker --shell /bin/bash --create-home moneymaker
 
 WORKDIR /app

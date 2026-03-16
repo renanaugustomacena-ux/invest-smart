@@ -244,7 +244,7 @@ class TestMt5Disconnect:
         mock_run.return_value = subprocess.CompletedProcess(
             args=["docker"], returncode=0, stdout="stopped\n", stderr=""
         )
-        result = _mt5_disconnect()
+        _mt5_disconnect()
         assert mock_run.called
 
 

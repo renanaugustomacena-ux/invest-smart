@@ -16,7 +16,10 @@ import asyncio
 import json
 import time
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from algo_engine.kill_switch import KillSwitch
 
 from moneymaker_common.decimal_utils import ZERO
 from moneymaker_common.logging import get_logger
@@ -221,7 +224,7 @@ class DrawdownEnforcer:
 
     def __init__(
         self,
-        kill_switch: object,  # KillSwitch — evita import circolare
+        kill_switch: KillSwitch,
         max_drawdown_pct: Decimal,
     ) -> None:
         self._kill_switch = kill_switch

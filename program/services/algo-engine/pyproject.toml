@@ -75,4 +75,5 @@ filterwarnings = [
     "error",
     "ignore::DeprecationWarning:google.protobuf.*",
     "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore::pytest_benchmark.fixture.PytestBenchmarkWarning",
 ]

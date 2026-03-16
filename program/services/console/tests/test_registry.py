@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -13,7 +12,7 @@ _console_src = Path(__file__).resolve().parent.parent / "src"
 if str(_console_src) not in sys.path:
     sys.path.insert(0, str(_console_src))
 
-from moneymaker_console.registry import CommandRegistry
+from moneymaker_console.registry import CommandRegistry  # noqa: E402
 
 
 @pytest.fixture()

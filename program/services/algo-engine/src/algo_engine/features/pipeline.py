@@ -53,8 +53,8 @@ try:
     MACRO_FEATURES_AVAILABLE = True
 except ImportError:
     MACRO_FEATURES_AVAILABLE = False
-    MacroFeatureProvider = None
-    MacroFeatures = None
+    MacroFeatureProvider = None  # type: ignore[assignment, misc]
+    MacroFeatures = None  # type: ignore[assignment, misc]
 
 logger = get_logger(__name__)
 

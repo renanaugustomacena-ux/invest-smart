@@ -346,8 +346,8 @@ class AlgoEngine:
 
         # --- Step 8: Position sizing ---
         portfolio_state = self._portfolio_manager.get_state()
-        equity = portfolio_state.get("equity", Decimal("1000"))
-        drawdown_pct = portfolio_state.get("current_drawdown_pct", Decimal("0"))
+        equity = Decimal(str(portfolio_state.get("equity", "1000")))
+        drawdown_pct = Decimal(str(portfolio_state.get("current_drawdown_pct", "0")))
 
         if self._advanced_sizer is not None:
             # CVaR + Half-Kelly sizing

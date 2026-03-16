@@ -60,7 +60,7 @@ class KillSwitch:
 
     def __init__(self, redis_url: str = "redis://localhost:6379", cache_ttl: float = 1.0) -> None:
         self._redis_url = redis_url
-        self._redis = None
+        self._redis: Any = None
         self._cached_active: bool = True  # Fail-CLOSED: blocca trading fino a conferma Redis
         self._cached_reason: str = ""
         self._cache_ts: float = 0.0

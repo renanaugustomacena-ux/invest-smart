@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-from io import StringIO
-from unittest.mock import patch
 
 import pytest
 
@@ -67,7 +65,7 @@ class TestRunCli:
         assert "duration_ms" in payload
 
     def test_json_error_output(self, reg, capsys):
-        code = run_cli(reg, ["--json", "svc", "fail"])
+        run_cli(reg, ["--json", "svc", "fail"])
         captured = capsys.readouterr()
         payload = json.loads(captured.out)
         assert payload["exit_code"] == EXIT_ERROR

@@ -16,9 +16,9 @@ if _console_root in sys.path:
     sys.path.remove(_console_root)
     sys.path.append(_console_root)
 
-import pytest
+import pytest  # noqa: E402
 
-from moneymaker_console.registry import CommandRegistry
+from moneymaker_console.registry import CommandRegistry  # noqa: E402
 
 
 @pytest.fixture()

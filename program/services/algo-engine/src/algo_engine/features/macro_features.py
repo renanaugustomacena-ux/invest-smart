@@ -246,7 +246,7 @@ class MacroFeatureProvider:
             Dict parsato o None
         """
         full_key = self.REDIS_KEYS.get(key_name)
-        if not full_key:
+        if not full_key or self.redis is None:
             return None
 
         try:

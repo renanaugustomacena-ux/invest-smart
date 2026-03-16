@@ -30,6 +30,7 @@ if _PROTO_GEN.exists() and str(_PROTO_GEN) not in sys.path:
 
 def main():
     from moneymaker_console.app import main as app_main
+
     app_main()
 
 

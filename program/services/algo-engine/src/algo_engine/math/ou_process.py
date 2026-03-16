@@ -124,7 +124,7 @@ class OrnsteinUhlenbeck:
         a = beta[1]
 
         # Residuals for sigma and r-squared
-        residuals = dy - X_mat @ beta
+        residuals: np.ndarray = dy - X_mat @ beta
         sigma_eps = float(np.std(residuals, ddof=0))
 
         # R-squared: 1 - SS_res / SS_tot

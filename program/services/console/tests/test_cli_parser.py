@@ -6,7 +6,6 @@ import pytest
 
 from moneymaker_console import __version__
 from moneymaker_console.cli.parser import build_cli_parser
-from moneymaker_console.registry import CommandRegistry
 
 
 @pytest.fixture()

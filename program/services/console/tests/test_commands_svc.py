@@ -47,7 +47,7 @@ class TestSvcCommands:
 
     def test_restart_with_service(self, mock_cf, mock_docker):
         mock_cf.get_docker.return_value = mock_docker
-        result = _svc_restart("postgres")
+        _svc_restart("postgres")
         mock_docker.restart.assert_called_with("postgres")
 
     def test_status(self, mock_cf, mock_docker):
@@ -62,7 +62,7 @@ class TestSvcCommands:
 
     def test_logs_with_service(self, mock_cf, mock_docker):
         mock_cf.get_docker.return_value = mock_docker
-        result = _svc_logs("algo-engine")
+        _svc_logs("algo-engine")
         mock_docker.logs.assert_called_with("algo-engine", tail=50, follow=False)
 
     def test_logs_with_follow(self, mock_cf, mock_docker):
@@ -135,17 +135,17 @@ class TestSvcRunTool:
 
     def test_inspect_with_service(self, mock_run):
         mock_run.return_value = "[success] json output"
-        result = _svc_inspect("algo-engine")
+        _svc_inspect("algo-engine")
         assert mock_run.called
 
     def test_prune(self, mock_run):
         mock_run.return_value = "[success] pruned"
-        result = _svc_prune()
+        _svc_prune()
         assert mock_run.called
 
     def test_health(self, mock_run):
         mock_run.return_value = "[success] healthy"
-        result = _svc_health()
+        _svc_health()
         assert mock_run.called
 
 

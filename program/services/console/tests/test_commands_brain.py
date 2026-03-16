@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from moneymaker_console.commands.brain import (
     _brain_checkpoint,
@@ -39,7 +39,7 @@ class TestBrainCommands:
 
     def test_stop_graceful(self, mock_cf, mock_docker):
         mock_cf.get_docker.return_value = mock_docker
-        result = _brain_stop()
+        _brain_stop()
         mock_docker.restart.assert_called()
 
     def test_stop_force(self, mock_cf, mock_docker):
@@ -50,7 +50,7 @@ class TestBrainCommands:
             mock_run.return_value = subprocess.CompletedProcess(
                 args=["docker"], returncode=0, stdout="killed\n", stderr=""
             )
-            result = _brain_stop("--force")
+            _brain_stop("--force")
             assert mock_run.called
 
     def test_pause_success(self, mock_cf, mock_redis_client):

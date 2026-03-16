@@ -27,49 +27,49 @@ class TestBuildServices:
         mock_docker = MagicMock()
         mock_docker.build.return_value = "[success] built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_all()
+        _build_all()
         mock_docker.build.assert_called_with(no_cache=False)
 
     def test_build_all_no_cache(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "[success] built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_all("--no-cache")
+        _build_all("--no-cache")
         mock_docker.build.assert_called_with(no_cache=True)
 
     def test_build_brain(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_brain()
+        _build_brain()
         mock_docker.build.assert_called_with("algo-engine", no_cache=False)
 
     def test_build_ingestion(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_ingestion()
+        _build_ingestion()
         mock_docker.build.assert_called_with("data-ingestion", no_cache=False)
 
     def test_build_bridge(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_bridge()
+        _build_bridge()
         mock_docker.build.assert_called_with("mt5-bridge", no_cache=False)
 
     def test_build_dashboard(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_dashboard()
+        _build_dashboard()
         mock_docker.build.assert_called_with("dashboard", no_cache=False)
 
     def test_build_external(self, mock_cf):
         mock_docker = MagicMock()
         mock_docker.build.return_value = "built"
         mock_cf.get_docker.return_value = mock_docker
-        result = _build_external()
+        _build_external()
         mock_docker.build.assert_called_with("external-data", no_cache=False)
 
     def test_build_error(self, mock_cf):
@@ -115,7 +115,7 @@ class TestBuildPush:
     @patch("moneymaker_console.commands.build.run_tool_live")
     def test_push_service(self, mock_run):
         mock_run.return_value = "pushed"
-        result = _build_push("algo-engine")
+        _build_push("algo-engine")
         assert mock_run.called
 
 

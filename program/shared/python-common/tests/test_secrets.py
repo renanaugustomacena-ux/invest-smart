@@ -1,7 +1,7 @@
 """Tests for moneymaker_common.secrets — Secrets management module."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from pathlib import Path
 
 from moneymaker_common.secrets import (
@@ -190,15 +190,19 @@ class TestLoadSecret:
 
     def test_load_from_docker_secret(self, monkeypatch):
         monkeypatch.delenv("MY_SECRET", raising=False)
-        with patch.object(Path, "exists", return_value=True), \
-             patch.object(Path, "read_text", return_value="Xr9$kL2@mNpQ7vZwABCD\n"):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "read_text", return_value="Xr9$kL2@mNpQ7vZwABCD\n"),
+        ):
             result = load_secret("db_password", "MY_SECRET", min_length=16)
         assert result == "Xr9$kL2@mNpQ7vZwABCD"
 
     def test_docker_secret_read_failure_falls_back_to_env(self, monkeypatch):
         monkeypatch.setenv("MY_SECRET", "Xr9$kL2@mNpQ7vZwABCD")
-        with patch.object(Path, "exists", return_value=True), \
-             patch.object(Path, "read_text", side_effect=OSError("Permission denied")):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "read_text", side_effect=OSError("Permission denied")),
+        ):
             result = load_secret("db_password", "MY_SECRET", min_length=16)
         assert result == "Xr9$kL2@mNpQ7vZwABCD"
 
@@ -238,9 +242,7 @@ class TestLoadSecret:
         # Only lowercase+digits, but check_complexity=False
         monkeypatch.setenv("MY_SECRET", "abcdefghijklmnop1234")
         with patch.object(Path, "exists", return_value=False):
-            result = load_secret(
-                "db_password", "MY_SECRET", min_length=16, check_complexity=False
-            )
+            result = load_secret("db_password", "MY_SECRET", min_length=16, check_complexity=False)
         assert result == "abcdefghijklmnop1234"
 
     def test_default_min_length_from_name(self, monkeypatch):

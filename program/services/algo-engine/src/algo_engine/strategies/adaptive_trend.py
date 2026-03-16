@@ -81,7 +81,7 @@ class AdaptiveTrendStrategy(TradingStrategy):
         # --- 1. Resolve dominant cycle --------------------------------
         dominant_cycle = features.get("dominant_cycle")
         cycle_detected = dominant_cycle is not None
-        cycle = int(dominant_cycle) if cycle_detected else self._default_cycle
+        cycle = int(dominant_cycle) if dominant_cycle is not None else self._default_cycle
 
         # --- 2. Compute adaptive periods ------------------------------
         rsi_period = _clamp(round(cycle / 2), self._min_rsi, self._max_rsi)

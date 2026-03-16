@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from external_data.scheduler import MacroDataScheduler
 
@@ -58,9 +57,8 @@ class TestMacroDataScheduler:
         scheduler = MacroDataScheduler()
         scheduler.add_job("test_job", AsyncMock(), interval_seconds=60)
 
-        # Simulate a running task
-        mock_task = AsyncMock()
-        mock_task.cancel = AsyncMock()
+        # Simulate a running task — cancel() is sync on asyncio.Task
+        mock_task = MagicMock()
         scheduler._tasks["test_job"] = mock_task
 
         result = scheduler.remove_job("test_job")

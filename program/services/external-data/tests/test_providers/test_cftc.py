@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
 
 import httpx
 import pytest
 import respx
 
-from external_data.providers.cftc import CFTCProvider, COTReport, MARKET_MAPPINGS
+from external_data.providers.cftc import CFTCProvider
 
 
 @pytest.fixture()

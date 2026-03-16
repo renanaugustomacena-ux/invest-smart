@@ -1,7 +1,7 @@
 """Tests for moneymaker_common.grpc_credentials — TLS credential management."""
 
 import pytest
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 
@@ -146,18 +146,24 @@ class TestLoadCredentialsFromFiles:
 
     def test_simple_tls_loads_ca_only(self):
         """Simple TLS: only CA cert, no client cert/key."""
-        from moneymaker_common.grpc_credentials import load_credentials_from_files
 
         mock_grpc = MagicMock()
         mock_grpc.ssl_channel_credentials.return_value = "mock_credentials"
 
         # Make ca_cert_path exist and return bytes
-        with patch.object(Path, "exists", return_value=True), \
-             patch.object(Path, "read_bytes", return_value=b"CA_CERT_DATA"), \
-             patch("moneymaker_common.grpc_credentials.grpc", mock_grpc, create=True), \
-             patch.dict("sys.modules", {"grpc": mock_grpc}):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "read_bytes", return_value=b"CA_CERT_DATA"),
+            patch("moneymaker_common.grpc_credentials.grpc", mock_grpc, create=True),
+            patch.dict("sys.modules", {"grpc": mock_grpc}),
+        ):
             # We need to patch the import inside the function
-            with patch("builtins.__import__", side_effect=lambda name, *a, **kw: mock_grpc if name == "grpc" else __builtins__.__import__(name, *a, **kw)):
+            with patch(
+                "builtins.__import__",
+                side_effect=lambda name, *a, **kw: (
+                    mock_grpc if name == "grpc" else __builtins__.__import__(name, *a, **kw)
+                ),
+            ):
                 # Simpler: just patch grpc at module level
                 pass
 
@@ -165,9 +171,11 @@ class TestLoadCredentialsFromFiles:
         mock_grpc_module = MagicMock()
         mock_grpc_module.ssl_channel_credentials.return_value = "mock_creds"
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch.object(Path, "read_bytes", return_value=b"CA_CERT_DATA"), \
-             patch("moneymaker_common.grpc_credentials.load_credentials_from_files") as mock_fn:
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "read_bytes", return_value=b"CA_CERT_DATA"),
+            patch("moneymaker_common.grpc_credentials.load_credentials_from_files") as mock_fn,
+        ):
             mock_fn.return_value = "mock_creds"
             result = mock_fn("/ca.crt")
             assert result == "mock_creds"
@@ -185,8 +193,10 @@ class TestLoadCredentialsFromFiles:
         def mock_exists(self_path):
             return exists_map.get(str(self_path), False)
 
-        with patch.object(Path, "exists", mock_exists), \
-             patch.object(Path, "read_bytes", return_value=b"DATA"):
+        with (
+            patch.object(Path, "exists", mock_exists),
+            patch.object(Path, "read_bytes", return_value=b"DATA"),
+        ):
             with pytest.raises(FileNotFoundError, match="Client certificate"):
                 load_credentials_from_files(
                     ca_cert_path="/ca.crt",
@@ -198,8 +208,6 @@ class TestLoadCredentialsFromFiles:
         """mTLS: client key specified but file does not exist."""
         from moneymaker_common.grpc_credentials import load_credentials_from_files
 
-        call_count = {"count": 0}
-
         def mock_exists(self_path):
             path_str = str(self_path)
             if "ca" in path_str:
@@ -210,8 +218,10 @@ class TestLoadCredentialsFromFiles:
                 return False
             return False
 
-        with patch.object(Path, "exists", mock_exists), \
-             patch.object(Path, "read_bytes", return_value=b"DATA"):
+        with (
+            patch.object(Path, "exists", mock_exists),
+            patch.object(Path, "read_bytes", return_value=b"DATA"),
+        ):
             with pytest.raises(FileNotFoundError, match="Client key"):
                 load_credentials_from_files(
                     ca_cert_path="/ca.crt",
@@ -247,8 +257,10 @@ class TestLoadServerCredentials:
                 return True
             return False
 
-        with patch.object(Path, "exists", mock_exists), \
-             patch.object(Path, "read_bytes", return_value=b"DATA"):
+        with (
+            patch.object(Path, "exists", mock_exists),
+            patch.object(Path, "read_bytes", return_value=b"DATA"),
+        ):
             with pytest.raises(FileNotFoundError, match="Server certificate"):
                 load_server_credentials("/ca.crt", "/server.crt", "/server.key")
 
@@ -263,8 +275,10 @@ class TestLoadServerCredentials:
                 return True
             return False
 
-        with patch.object(Path, "exists", mock_exists), \
-             patch.object(Path, "read_bytes", return_value=b"DATA"):
+        with (
+            patch.object(Path, "exists", mock_exists),
+            patch.object(Path, "read_bytes", return_value=b"DATA"),
+        ):
             with pytest.raises(FileNotFoundError, match="Server key"):
                 load_server_credentials("/ca.crt", "/server.crt", "/server.key")
 
@@ -337,11 +351,13 @@ class TestCreateClientChannel:
         from moneymaker_common.grpc_credentials import create_client_channel
 
         # CA file "exists" but load_credentials_from_files raises FileNotFoundError
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 side_effect=FileNotFoundError("cert not found"),
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                side_effect=FileNotFoundError("cert not found"),
+            ),
+        ):
             result = create_client_channel(
                 "localhost:50051",
                 tls_enabled=True,
@@ -355,11 +371,13 @@ class TestCreateClientChannel:
         monkeypatch.setenv("MONEYMAKER_ENV", "development")
         from moneymaker_common.grpc_credentials import create_client_channel
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 side_effect=FileNotFoundError("cert not found"),
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                side_effect=FileNotFoundError("cert not found"),
+            ),
+        ):
             with pytest.raises(ValueError, match="certificato non trovato"):
                 create_client_channel(
                     "localhost:50051",
@@ -389,12 +407,15 @@ class TestCreateClientChannel:
         mock_creds = MagicMock()
         mock_channel = MagicMock()
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 return_value=mock_creds,
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                return_value=mock_creds,
+            ),
+        ):
             import grpc
+
             with patch.object(grpc, "secure_channel", return_value=mock_channel):
                 result = create_client_channel(
                     "localhost:50051",
@@ -452,11 +473,13 @@ class TestCreateAsyncClientChannel:
         monkeypatch.setenv("MONEYMAKER_ENV", "development")
         from moneymaker_common.grpc_credentials import create_async_client_channel
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 side_effect=FileNotFoundError("not found"),
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                side_effect=FileNotFoundError("not found"),
+            ),
+        ):
             result = create_async_client_channel(
                 "localhost:50051",
                 tls_enabled=True,
@@ -470,11 +493,13 @@ class TestCreateAsyncClientChannel:
         monkeypatch.setenv("MONEYMAKER_ENV", "development")
         from moneymaker_common.grpc_credentials import create_async_client_channel
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 side_effect=FileNotFoundError("not found"),
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                side_effect=FileNotFoundError("not found"),
+            ),
+        ):
             with pytest.raises(ValueError, match="certificato non trovato"):
                 create_async_client_channel(
                     "localhost:50051",
@@ -503,12 +528,15 @@ class TestCreateAsyncClientChannel:
         mock_creds = MagicMock()
         mock_channel = MagicMock()
 
-        with patch.object(Path, "exists", return_value=True), \
-             patch(
-                 "moneymaker_common.grpc_credentials.load_credentials_from_files",
-                 return_value=mock_creds,
-             ):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch(
+                "moneymaker_common.grpc_credentials.load_credentials_from_files",
+                return_value=mock_creds,
+            ),
+        ):
             import grpc.aio
+
             with patch.object(grpc.aio, "secure_channel", return_value=mock_channel):
                 result = create_async_client_channel(
                     "localhost:50051",

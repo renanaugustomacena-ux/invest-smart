@@ -167,7 +167,7 @@ class TestMaintSubprocessCmds:
     @patch("moneymaker_console.commands.maint.run_tool_live")
     def test_migrate(self, mock_run):
         mock_run.return_value = "[success] migration complete"
-        result = _maint_migrate()
+        _maint_migrate()
         assert mock_run.called
 
     @patch("moneymaker_console.commands.maint.run_tool_live")

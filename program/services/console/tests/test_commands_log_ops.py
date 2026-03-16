@@ -35,7 +35,7 @@ class TestLogView:
         mock_docker = MagicMock()
         mock_docker.logs.return_value = "output"
         mock_cf.get_docker.return_value = mock_docker
-        result = _log_view("algo-engine", "--tail", "10")
+        _log_view("algo-engine", "--tail", "10")
         mock_docker.logs.assert_called_with("algo-engine", tail=10)
 
     @patch("moneymaker_console.clients.ClientFactory")

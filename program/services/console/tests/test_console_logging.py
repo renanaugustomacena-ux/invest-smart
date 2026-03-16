@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from moneymaker_console.console_logging import (
     _SECRET_PATTERN,

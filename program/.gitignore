@@ -42,5 +42,5 @@ models/*.onnx
 .DS_Store
 Thumbs.db
 
-# Protobuf generated
-shared/proto/gen/
+# Protobuf generated (kept in VCS — all Python services depend on these)
+# shared/proto/gen/

@@ -137,8 +137,8 @@ class MonteCarloValidator:
         # Compute raw strategy Sharpe for flag checks
         arr = np.array([float(r) for r in returns])
         raw_sharpe = Decimal(str(round(self._sharpe(arr), 6)))
-        gross_profit = sum(r for r in returns if r > ZERO)
-        gross_loss = abs(sum(r for r in returns if r < ZERO))
+        gross_profit = sum((r for r in returns if r > ZERO), ZERO)
+        gross_loss = abs(sum((r for r in returns if r < ZERO), ZERO))
         profit_factor = gross_profit / gross_loss if gross_loss != ZERO else Decimal("999")
 
         return {

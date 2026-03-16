@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from moneymaker_console.commands.risk import (
     _risk_circuit_breaker,
