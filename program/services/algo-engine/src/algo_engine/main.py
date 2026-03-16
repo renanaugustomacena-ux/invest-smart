@@ -110,9 +110,11 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         redis_client = aioredis.from_url(settings.algo_redis_url, decode_responses=True)
         await redis_client.ping()
         logger.info("Redis connected for portfolio persistence (async)")
+        _rc = redis_client
+        assert _rc is not None
         health.register_check(
             "redis",
-            lambda: redis_client.connection_pool.get_encoding(),
+            lambda: _rc.connection_pool.get_encoding(),
         )
     except Exception as e:
         logger.warning("Redis unavailable for portfolio", error=str(e))
