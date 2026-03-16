@@ -364,9 +364,7 @@ class TestRedisRateLimiterReal:
     @pytest.mark.asyncio
     async def test_create_rate_limiter_with_real_redis_returns_redis_limiter(self):
         """create_rate_limiter with a valid Redis URL returns RedisRateLimiter."""
-        limiter = await create_rate_limiter(
-            redis_url=REDIS_TEST_URL, service_name="test"
-        )
+        limiter = await create_rate_limiter(redis_url=REDIS_TEST_URL, service_name="test")
         assert isinstance(limiter, RedisRateLimiter)
         # Cleanup the Redis client created by the factory
         await limiter._redis.flushdb()
