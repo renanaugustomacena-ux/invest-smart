@@ -16,7 +16,6 @@ from moneymaker_common.grpc_credentials import (
     load_server_credentials,
 )
 
-
 # ------------------------------------------------------------------
 # Self-signed PEM content for testing
 # ------------------------------------------------------------------
