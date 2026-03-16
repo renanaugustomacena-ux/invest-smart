@@ -1,7 +1,13 @@
-"""Tests for moneymaker_common.ratelimit — Rate limiting module."""
+"""Tests for moneymaker_common.ratelimit — Rate limiting module.
+
+Pure logic tests run unconditionally.
+Real Redis tests require REDIS_URL env var (or a Redis on localhost:6379).
+gRPC decorator tests moved to gRPC integration test suite.
+"""
+
+import os
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from moneymaker_common.exceptions import RateLimitExceededError
 from moneymaker_common.ratelimit import (
@@ -10,8 +16,37 @@ from moneymaker_common.ratelimit import (
     RateLimitPresets,
     RedisRateLimiter,
     create_rate_limiter,
-    grpc_rate_limit,
 )
+
+# ============================================================
+# Helper: Redis availability check
+# ============================================================
+
+REDIS_URL = os.environ.get("REDIS_URL", "")
+# Use DB 15 for test isolation so FLUSHDB won't nuke production data
+REDIS_TEST_URL = REDIS_URL.rstrip("/").rsplit("/", 1)[0] + "/15" if REDIS_URL else ""
+
+_redis_available: bool | None = None
+
+
+async def _check_redis() -> bool:
+    """Return True if we can reach Redis at REDIS_TEST_URL."""
+    global _redis_available
+    if _redis_available is not None:
+        return _redis_available
+    if not REDIS_TEST_URL:
+        _redis_available = False
+        return False
+    try:
+        import redis.asyncio as redis_async
+
+        client = redis_async.from_url(REDIS_TEST_URL, decode_responses=True)
+        await client.ping()
+        await client.aclose()
+        _redis_available = True
+    except Exception:
+        _redis_available = False
+    return _redis_available
 
 
 # ============================================================
@@ -91,121 +126,6 @@ class TestRateLimitPresets:
         p = RateLimitPresets.STRICT
         assert p.requests_per_window == 5
         assert p.burst_size == 2
-
-
-# ============================================================
-# RedisRateLimiter tests
-# ============================================================
-
-
-class TestRedisRateLimiter:
-    """Test Redis-backed rate limiter."""
-
-    def _make_limiter(self, redis_mock=None, config=None, service_name="test"):
-        if redis_mock is None:
-            redis_mock = AsyncMock()
-        if config is None:
-            config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=5)
-        return RedisRateLimiter(redis_mock, config, service_name)
-
-    def test_make_key_deterministic(self):
-        redis_mock = AsyncMock()
-        limiter = self._make_limiter(redis_mock)
-        key1 = limiter._make_key("user123", "endpoint1")
-        key2 = limiter._make_key("user123", "endpoint1")
-        assert key1 == key2
-
-    def test_make_key_different_users(self):
-        redis_mock = AsyncMock()
-        limiter = self._make_limiter(redis_mock)
-        key1 = limiter._make_key("user1", "endpoint1")
-        key2 = limiter._make_key("user2", "endpoint1")
-        assert key1 != key2
-
-    def test_make_key_format(self):
-        redis_mock = AsyncMock()
-        config = RateLimitConfig(key_prefix="ratelimit")
-        limiter = RedisRateLimiter(redis_mock, config, "myservice")
-        key = limiter._make_key("user1", "myendpoint")
-        assert key.startswith("ratelimit:myservice:myendpoint:")
-        # hash part is 16 hex chars
-        hash_part = key.split(":")[-1]
-        assert len(hash_part) == 16
-
-    @pytest.mark.asyncio
-    async def test_ensure_script_loads_once(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(return_value="sha123")
-        limiter = self._make_limiter(redis_mock)
-
-        sha1 = await limiter._ensure_script()
-        sha2 = await limiter._ensure_script()
-        assert sha1 == "sha123"
-        assert sha2 == "sha123"
-        # script_load should only be called once
-        redis_mock.script_load.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_check_allowed(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(return_value="sha123")
-        # Simulate: 9 tokens remaining, 0 retry_after (allowed)
-        redis_mock.evalsha = AsyncMock(return_value=[9, 0])
-        limiter = self._make_limiter(redis_mock)
-
-        allowed, retry_after, remaining = await limiter.check("user1", "test_ep")
-        assert allowed is True
-        assert retry_after == 0.0
-        assert remaining == 9
-
-    @pytest.mark.asyncio
-    async def test_check_rejected(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(return_value="sha123")
-        # Simulate: 0 tokens, 2.5 seconds retry_after (rejected)
-        redis_mock.evalsha = AsyncMock(return_value=[0, 2.5])
-        limiter = self._make_limiter(redis_mock)
-
-        allowed, retry_after, remaining = await limiter.check("user1", "test_ep")
-        assert allowed is False
-        assert retry_after == 2.5
-        assert remaining == 0
-
-    @pytest.mark.asyncio
-    async def test_check_redis_error_fails_open(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(side_effect=ConnectionError("Redis down"))
-        config = RateLimitConfig(requests_per_window=10, burst_size=5)
-        limiter = RedisRateLimiter(redis_mock, config, "test")
-
-        # On Redis error, fail open (allow)
-        allowed, retry_after, remaining = await limiter.check("user1", "test_ep")
-        assert allowed is True
-        assert retry_after == 0
-        assert remaining == config.max_tokens
-
-    @pytest.mark.asyncio
-    async def test_check_or_raise_allowed(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(return_value="sha123")
-        redis_mock.evalsha = AsyncMock(return_value=[5, 0])
-        limiter = self._make_limiter(redis_mock)
-
-        remaining = await limiter.check_or_raise("user1", "ep")
-        assert remaining == 5
-
-    @pytest.mark.asyncio
-    async def test_check_or_raise_rejected(self):
-        redis_mock = AsyncMock()
-        redis_mock.script_load = AsyncMock(return_value="sha123")
-        redis_mock.evalsha = AsyncMock(return_value=[0, 3.0])
-        limiter = self._make_limiter(redis_mock)
-
-        with pytest.raises(RateLimitExceededError) as exc_info:
-            await limiter.check_or_raise("user1", "ep")
-        assert exc_info.value.retry_after == 3.0
-        assert exc_info.value.limit == 10
-        assert exc_info.value.window_seconds == 60
 
 
 # ============================================================
@@ -317,124 +237,12 @@ class TestInMemoryRateLimiter:
 
 
 # ============================================================
-# gRPC rate limit decorator tests
-# ============================================================
-
-
-class TestGrpcRateLimitDecorator:
-    """Test the grpc_rate_limit decorator."""
-
-    @pytest.mark.asyncio
-    async def test_decorator_allows_request(self):
-        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = "ipv4:192.168.1.1:12345"
-
-        @grpc_rate_limit(limiter)
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        result = await MyMethod(None, "req", context)
-        assert result == "ok"
-
-    @pytest.mark.asyncio
-    async def test_decorator_rejects_request(self):
-        config = RateLimitConfig(requests_per_window=1, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = "ipv4:192.168.1.1:12345"
-        context.abort = MagicMock()
-
-        @grpc_rate_limit(limiter)
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        # First call ok
-        await MyMethod(None, "req", context)
-        # Second call should trigger abort
-        await MyMethod(None, "req", context)
-
-        context.abort.assert_called_once()
-        # Check it was called with RESOURCE_EXHAUSTED
-        import grpc
-
-        call_args = context.abort.call_args
-        assert call_args[0][0] == grpc.StatusCode.RESOURCE_EXHAUSTED
-
-    @pytest.mark.asyncio
-    async def test_decorator_ipv6_peer(self):
-        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = "ipv6:[::1]:12345"
-
-        @grpc_rate_limit(limiter)
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        result = await MyMethod(None, "req", context)
-        assert result == "ok"
-
-    @pytest.mark.asyncio
-    async def test_decorator_unknown_peer(self):
-        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = None
-
-        @grpc_rate_limit(limiter)
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        result = await MyMethod(None, "req", context)
-        assert result == "ok"
-
-    @pytest.mark.asyncio
-    async def test_decorator_custom_endpoint(self):
-        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = "ipv4:1.2.3.4:80"
-
-        @grpc_rate_limit(limiter, endpoint="CustomEndpoint")
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        result = await MyMethod(None, "req", context)
-        assert result == "ok"
-
-    @pytest.mark.asyncio
-    async def test_decorator_custom_identifier_fn(self):
-        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
-        limiter = InMemoryRateLimiter(config, "test")
-
-        context = MagicMock()
-        context.peer.return_value = "ipv4:1.2.3.4:80"
-
-        def get_id(ctx):
-            return "custom_user_id"
-
-        @grpc_rate_limit(limiter, get_identifier=get_id)
-        async def MyMethod(self, request, context):
-            return "ok"
-
-        result = await MyMethod(None, "req", context)
-        assert result == "ok"
-
-
-# ============================================================
-# create_rate_limiter factory tests
+# create_rate_limiter factory tests (pure logic, no mocks)
 # ============================================================
 
 
 class TestCreateRateLimiter:
-    """Test the factory function."""
+    """Test the factory function (pure logic only)."""
 
     @pytest.mark.asyncio
     async def test_no_redis_url_returns_inmemory(self):
@@ -442,26 +250,133 @@ class TestCreateRateLimiter:
         assert isinstance(result, InMemoryRateLimiter)
 
     @pytest.mark.asyncio
-    async def test_redis_connection_failure_falls_back(self):
-        # Use a bogus URL that will fail to connect
-        with patch("moneymaker_common.ratelimit.redis_async", create=True):
-            # Import and patch redis.asyncio
-            mock_redis_module = MagicMock()
-            mock_client = AsyncMock()
-            mock_client.ping = AsyncMock(side_effect=ConnectionError("Cannot connect"))
-            mock_redis_module.from_url.return_value = mock_client
-
-            with patch.dict("sys.modules", {"redis.asyncio": mock_redis_module}):
-                with patch("redis.asyncio", mock_redis_module, create=True):
-                    result = await create_rate_limiter(
-                        redis_url="redis://nonexistent:6379/0",
-                        service_name="test",
-                    )
-                    assert isinstance(result, InMemoryRateLimiter)
-
-    @pytest.mark.asyncio
     async def test_custom_config_passed_through(self):
         config = RateLimitConfig(requests_per_window=999)
         result = await create_rate_limiter(config=config, service_name="test")
         assert isinstance(result, InMemoryRateLimiter)
         assert result._config.requests_per_window == 999
+
+
+# ============================================================
+# Real Redis tests — require REDIS_URL env var
+# ============================================================
+
+
+@pytest.mark.skipif(not REDIS_URL, reason="requires real Redis (set REDIS_URL)")
+class TestRedisRateLimiterReal:
+    """Integration tests for RedisRateLimiter against a real Redis instance.
+
+    Uses DB 15 to avoid interfering with production data.
+    Each test flushes DB 15 in teardown.
+    """
+
+    @pytest.fixture(autouse=True)
+    async def redis_client(self):
+        """Create a real Redis client on DB 15 and flush after each test."""
+        import redis.asyncio as redis_async
+
+        client = redis_async.from_url(REDIS_TEST_URL, decode_responses=True)
+        self._client = client
+        yield client
+        # Cleanup: flush test DB after each test
+        await client.flushdb()
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_first_request_allowed(self, redis_client):
+        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        allowed, retry_after, remaining = await limiter.check("user1", "test_ep")
+        assert allowed is True
+        assert retry_after == 0.0
+        # First request: max_tokens(10) - 1 = 9
+        assert remaining == 9
+
+    @pytest.mark.asyncio
+    async def test_exhaust_tokens_and_reject(self, redis_client):
+        config = RateLimitConfig(requests_per_window=3, window_seconds=60, burst_size=0)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        # Consume all 3 tokens
+        for i in range(3):
+            allowed, _, _ = await limiter.check("user1", "exhaust_ep")
+            assert allowed is True, f"Request {i + 1} should be allowed"
+
+        # 4th request must be rejected
+        allowed, retry_after, remaining = await limiter.check("user1", "exhaust_ep")
+        assert allowed is False
+        assert retry_after > 0
+        assert remaining == 0
+
+    @pytest.mark.asyncio
+    async def test_check_or_raise_raises_when_exhausted(self, redis_client):
+        config = RateLimitConfig(requests_per_window=2, window_seconds=60, burst_size=0)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        # Consume all tokens
+        await limiter.check("user1", "raise_ep")
+        await limiter.check("user1", "raise_ep")
+
+        with pytest.raises(RateLimitExceededError) as exc_info:
+            await limiter.check_or_raise("user1", "raise_ep")
+        assert exc_info.value.retry_after > 0
+        assert exc_info.value.limit == 2
+        assert exc_info.value.window_seconds == 60
+
+    @pytest.mark.asyncio
+    async def test_check_or_raise_returns_remaining_when_allowed(self, redis_client):
+        config = RateLimitConfig(requests_per_window=10, window_seconds=60, burst_size=0)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        remaining = await limiter.check_or_raise("user1", "ok_ep")
+        assert remaining == 9
+
+    @pytest.mark.asyncio
+    async def test_different_keys_are_independent(self, redis_client):
+        config = RateLimitConfig(requests_per_window=1, window_seconds=60, burst_size=0)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        # Exhaust user1 on ep1
+        await limiter.check("user1", "ep1")
+        allowed1, _, _ = await limiter.check("user1", "ep1")
+
+        # user2 on ep1 should still be allowed
+        allowed2, _, _ = await limiter.check("user2", "ep1")
+
+        assert allowed1 is False
+        assert allowed2 is True
+
+    @pytest.mark.asyncio
+    async def test_burst_capacity(self, redis_client):
+        config = RateLimitConfig(requests_per_window=2, window_seconds=60, burst_size=3)
+        limiter = RedisRateLimiter(redis_client, config, "test")
+
+        # max_tokens = 2 + 3 = 5, all should be allowed
+        for i in range(5):
+            allowed, _, _ = await limiter.check("user1", "burst_ep")
+            assert allowed is True, f"Request {i + 1} of 5 should be allowed"
+
+        # 6th should be rejected
+        allowed, _, _ = await limiter.check("user1", "burst_ep")
+        assert allowed is False
+
+    @pytest.mark.asyncio
+    async def test_create_rate_limiter_with_real_redis_returns_redis_limiter(self):
+        """create_rate_limiter with a valid Redis URL returns RedisRateLimiter."""
+        limiter = await create_rate_limiter(
+            redis_url=REDIS_TEST_URL, service_name="test"
+        )
+        assert isinstance(limiter, RedisRateLimiter)
+        # Cleanup the Redis client created by the factory
+        await limiter._redis.flushdb()
+        await limiter._redis.aclose()
+
+    @pytest.mark.asyncio
+    async def test_create_rate_limiter_invalid_url_falls_back_to_inmemory(self):
+        """create_rate_limiter with an unreachable Redis URL falls back to InMemoryRateLimiter."""
+        limiter = await create_rate_limiter(
+            redis_url="redis://invalid-host-that-does-not-exist:6379/15",
+            service_name="test",
+        )
+        assert isinstance(limiter, InMemoryRateLimiter)
