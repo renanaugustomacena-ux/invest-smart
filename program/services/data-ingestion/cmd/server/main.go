@@ -62,17 +62,17 @@ func main() {
 	dbCfg.DSN = baseCfg.DatabaseURL()
 	// Legge parametri opzionali da variabili ambiente
 	if batchSize := os.Getenv("MONEYMAKER_DB_BATCH_SIZE"); batchSize != "" {
-		if bs, err := parseIntEnv(batchSize); err == nil && bs > 0 {
+		if bs, parseErr := parseIntEnv(batchSize); parseErr == nil && bs > 0 {
 			dbCfg.BatchSize = bs
 		}
 	}
 	if flushMs := os.Getenv("MONEYMAKER_DB_FLUSH_INTERVAL_MS"); flushMs != "" {
-		if fi, err := parseIntEnv(flushMs); err == nil && fi > 0 {
+		if fi, parseErr := parseIntEnv(flushMs); parseErr == nil && fi > 0 {
 			dbCfg.FlushInterval = time.Duration(fi) * time.Millisecond
 		}
 	}
 	if workers := os.Getenv("MONEYMAKER_DB_WRITER_WORKERS"); workers != "" {
-		if w, err := parseIntEnv(workers); err == nil && w > 0 {
+		if w, parseErr := parseIntEnv(workers); parseErr == nil && w > 0 {
 			dbCfg.WorkerCount = w
 		}
 	}

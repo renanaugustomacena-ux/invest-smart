@@ -239,8 +239,8 @@ func (n *Normalizer) normalizePolygonTrade(raw connectors.RawMessage, normalizeT
 		Symbol:             canonicalSymbol,
 		EventType:          "trade",
 		Price:              price,
-		Quantity:           decimal.Zero, // Forex ticks non hanno volume significativo
-		Side:               "",           // Forex ticks non hanno side
+		Quantity:           decimal.Zero,              // Forex ticks non hanno volume significativo
+		Side:               "",                        // Forex ticks non hanno side
 		ExchangeTimestamp:  msg.Timestamp * 1_000_000, // ms -> ns
 		IngestTimestamp:    raw.Timestamp,
 		NormalizeTimestamp: normalizeTS,

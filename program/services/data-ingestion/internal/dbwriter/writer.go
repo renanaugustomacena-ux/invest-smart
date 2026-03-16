@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/moneymaker-v1/services/data-ingestion/internal/normalizer"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/moneymaker-v1/services/data-ingestion/internal/normalizer"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )

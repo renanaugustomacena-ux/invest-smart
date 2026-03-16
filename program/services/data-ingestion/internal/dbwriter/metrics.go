@@ -20,11 +20,11 @@ type Metrics struct {
 	flushErrors   uint64
 
 	// Statistiche con lock
-	mu              sync.RWMutex
-	lastFlushTime   time.Time
-	lastFlushCount  int
+	mu               sync.RWMutex
+	lastFlushTime    time.Time
+	lastFlushCount   int
 	totalFlushTimeNs int64
-	flushCount      int64
+	flushCount       int64
 
 	// Per tipo di errore
 	errorCounts map[string]uint64

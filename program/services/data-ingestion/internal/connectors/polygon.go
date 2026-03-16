@@ -516,7 +516,7 @@ func (p *PolygonConnector) parseEventType(eventType string, data json.RawMessage
 			return quote.Pair, "quote"
 		}
 	}
-	return "unknown", "unknown"
+	return unknownValue, unknownValue
 }
 
 // pingLoop invia ping frames periodici per mantenere viva la connessione.

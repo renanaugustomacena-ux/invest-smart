@@ -466,7 +466,7 @@ func (b *BinanceConnector) parseStreamEnvelope(data []byte) (symbol, channel str
 		if len(parts) == 2 {
 			return parts[0], parts[1]
 		}
-		return envelope.Stream, "unknown"
+		return envelope.Stream, unknownValue
 	}
 
 	// Tentativo 2: formato raw senza involucro {"e":"trade","s":"BTCUSDT",...}
@@ -478,5 +478,5 @@ func (b *BinanceConnector) parseStreamEnvelope(data []byte) (symbol, channel str
 		return strings.ToLower(raw.Symbol), raw.EventType
 	}
 
-	return "unknown", "unknown"
+	return unknownValue, unknownValue
 }

@@ -197,4 +197,3 @@ func (s *PublishStats) recordError(err error) {
 //   - moneymaker_publisher_bytes_total (counter, labels: topic, exchange)
 //   - moneymaker_publisher_errors_total (counter, labels: topic, error_type)
 //   - moneymaker_publisher_latency_seconds (histogram, labels: topic)
-

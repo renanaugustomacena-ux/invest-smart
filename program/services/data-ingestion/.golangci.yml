@@ -1,6 +1,6 @@
 run:
   timeout: 5m
-  go: "1.22"
+  go: "1.25"
 
 linters:
   enable:
@@ -26,6 +26,19 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 4
+  misspell:
+    ignore-words:
+      - coordinare
+      - automatico
+      - acquisito
+      - simulatore
+      - possibile
+      - accumulare
+      - correnti
+      - responsabile
+      - configurato
+      - combinato
+      - simulato
 
 issues:
   max-issues-per-linter: 50

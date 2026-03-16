@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// unknownValue is the default fallback for unidentified symbols or channels.
+const unknownValue = "unknown"
+
 // RawMessage rappresenta un messaggio non elaborato ricevuto da un exchange.
 // Porta con sé i dati grezzi e i metadati sulla sua origine.
 type RawMessage struct {
