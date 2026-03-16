@@ -43,3 +43,7 @@ linters-settings:
 issues:
   max-issues-per-linter: 50
   max-same-issues: 5
+  exclude-rules:
+    - source: "^\\s*//"
+      linters:
+        - misspell
