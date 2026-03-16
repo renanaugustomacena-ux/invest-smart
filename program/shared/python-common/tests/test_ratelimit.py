@@ -24,7 +24,18 @@ from moneymaker_common.ratelimit import (
 
 REDIS_URL = os.environ.get("REDIS_URL", "")
 # Use DB 15 for test isolation so FLUSHDB won't nuke production data
-REDIS_TEST_URL = REDIS_URL.rstrip("/").rsplit("/", 1)[0] + "/15" if REDIS_URL else ""
+if REDIS_URL:
+    _base = REDIS_URL.rstrip("/")
+    # If URL already has a DB number (redis://host:port/0), replace it
+    # Otherwise append /15
+    parts = _base.split("/")
+    if len(parts) >= 4 and parts[-1].isdigit():
+        parts[-1] = "15"
+        REDIS_TEST_URL = "/".join(parts)
+    else:
+        REDIS_TEST_URL = _base + "/15"
+else:
+    REDIS_TEST_URL = ""
 
 _redis_available: bool | None = None
 
