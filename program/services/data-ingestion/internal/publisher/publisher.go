@@ -1,3 +1,6 @@
+// Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+// Licensed under Proprietary License. See LICENSE file in the project root.
+
 // Package publisher provides a ZeroMQ PUB socket wrapper for broadcasting
 // normalized market data to downstream MONEYMAKER services. Topics are used
 // to allow subscribers to filter by exchange, symbol, or event type.

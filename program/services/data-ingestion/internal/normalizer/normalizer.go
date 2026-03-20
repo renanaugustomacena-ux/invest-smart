@@ -1,3 +1,6 @@
+// Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+// Licensed under Proprietary License. See LICENSE file in the project root.
+
 // Il pacchetto normalizer trasforma i messaggi grezzi degli exchange nel
 // formato canonico di MONEYMAKER. Ogni exchange ha schemi JSON e convenzioni
 // differenti; il Normalizzatore astrae queste differenze dietro un modello unico.
