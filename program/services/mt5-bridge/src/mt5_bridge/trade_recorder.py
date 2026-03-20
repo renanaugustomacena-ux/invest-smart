@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Trade Recorder — persiste i trade chiusi nel database per il feedback loop.
 
 Come l'"archivista" della filiale: registra ogni operazione completata

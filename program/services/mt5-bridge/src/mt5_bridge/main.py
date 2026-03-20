@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Punto di ingresso per il servizio MONEYMAKER MT5 Bridge.
 
 Il MT5 Bridge è lo "sportello bancario" — il livello di esecuzione.

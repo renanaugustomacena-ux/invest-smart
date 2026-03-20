@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Gestore Ordini — traduce i segnali di trading in ordini MT5.
 
 Come il "cassiere dello sportello bancario": riceve l'ordine di pagamento

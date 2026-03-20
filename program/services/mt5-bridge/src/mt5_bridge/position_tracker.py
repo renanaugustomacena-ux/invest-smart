@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Tracciatore Posizioni — monitora le posizioni aperte in tempo reale.
 
 Come il "direttore di filiale" che sorveglia tutte le operazioni in corso:
