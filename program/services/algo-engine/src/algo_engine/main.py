@@ -301,15 +301,26 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
 
     # --- Main loop (algo-engine lines 494-1133, ML sections removed) ---
     bar_counter: int = 0
+    _loop_iter: int = 0
 
     while True:
         try:
+            _loop_iter += 1
+
             # 0. Kill switch check first (algo-engine lines 497-501)
             _ks_active, _ks_reason = await kill_switch.is_active()
             if _ks_active:
-                logger.debug("Kill switch active, pausing", reason=_ks_reason)
+                if _loop_iter <= 3 or _loop_iter % 100 == 0:
+                    logger.warning(
+                        "Kill switch ACTIVE — blocking bar processing",
+                        reason=_ks_reason,
+                        iteration=_loop_iter,
+                    )
                 await asyncio.sleep(5)
                 continue
+
+            if _loop_iter == 1:
+                logger.info("Main loop: kill switch check passed, waiting for ZMQ bars")
 
             # ZMQ receive (algo-engine lines 503-513)
             if zmq_sub is not None:
@@ -330,6 +341,13 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             bar_counter += 1
             loop_start = time.monotonic()
 
+            if bar_counter <= 5 or bar_counter % 10 == 0:
+                logger.info(
+                    "Bar received",
+                    topic=topic,
+                    bar_count=bar_counter,
+                )
+
             # Parse bar (algo-engine line 526)
             symbol, timeframe, bar = parse_bar_message(payload)
 
@@ -337,6 +355,13 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
             trading_signal = await engine.process_bar(symbol, timeframe, bar)
 
             if trading_signal is None:
+                if bar_counter <= 5 or bar_counter % 10 == 0:
+                    logger.info(
+                        "Bar processed (no signal — warmup or no edge)",
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        bar_count=bar_counter,
+                    )
                 continue
 
             # Auto-check kill switch with current metrics (algo-engine lines 956-969)
