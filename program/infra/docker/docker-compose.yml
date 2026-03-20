@@ -158,6 +158,7 @@ services:
       - MONEYMAKER_DB_PASSWORD=${ALGO_DB_PASSWORD:-${MONEYMAKER_DB_PASSWORD:?required}}
       - MONEYMAKER_REDIS_HOST=redis
       - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - ALGO_REDIS_URL=redis://:${MONEYMAKER_REDIS_PASSWORD:?required}@redis:6379/0
       - ALGO_ZMQ_DATA_FEED=tcp://data-ingestion:5555
       - ALGO_MT5_BRIDGE_TARGET=mt5-bridge:50055
       # TLS Configuration (for DB/Redis connections)
