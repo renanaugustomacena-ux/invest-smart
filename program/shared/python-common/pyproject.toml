@@ -1,9 +1,10 @@
 [project]
 name = "moneymaker-common"
-version = "0.1.0"
+version = "1.0.0"
 description = "MONEYMAKER V1 Shared Python Utilities"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
+authors = [{name = "Renan Augusto Macena"}]
 
 dependencies = [
     "pydantic>=2.5,<3.0",
