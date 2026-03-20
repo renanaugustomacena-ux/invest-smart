@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Integration tests for the dashboard /health endpoint.
 
 Tests the real FastAPI app through a real httpx.AsyncClient using
