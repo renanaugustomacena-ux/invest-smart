@@ -7,7 +7,7 @@
 #
 # Required environment variables (set in docker-compose.yml):
 #   - DI_DB_PASSWORD: Password for data_ingestion_svc
-#   - BRAIN_DB_PASSWORD: Password for algo_engine_svc
+#   - ALGO_DB_PASSWORD: Password for algo_engine_svc
 #   - MT5_DB_PASSWORD: Password for mt5_bridge_svc
 #   - ADMIN_DB_PASSWORD: Password for moneymaker_admin (optional)
 #
@@ -47,10 +47,10 @@ else
 fi
 
 # Algo Engine Service
-if [ -n "$BRAIN_DB_PASSWORD" ]; then
-    set_role_password "algo_engine_svc" "$BRAIN_DB_PASSWORD" "Algo Engine Service"
+if [ -n "$ALGO_DB_PASSWORD" ]; then
+    set_role_password "algo_engine_svc" "$ALGO_DB_PASSWORD" "Algo Engine Service"
 else
-    echo "[SKIP] BRAIN_DB_PASSWORD not set - algo_engine_svc has no password"
+    echo "[SKIP] ALGO_DB_PASSWORD not set - algo_engine_svc has no password"
 fi
 
 # MT5 Bridge Service

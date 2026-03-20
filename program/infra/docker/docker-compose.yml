@@ -24,7 +24,7 @@ services:
       # RBAC: Service passwords for per-service database users
       # Set these to enable least-privilege access control
       DI_DB_PASSWORD: ${DI_DB_PASSWORD:-}
-      BRAIN_DB_PASSWORD: ${BRAIN_DB_PASSWORD:-}
+      ALGO_DB_PASSWORD: ${ALGO_DB_PASSWORD:-}
       MT5_DB_PASSWORD: ${MT5_DB_PASSWORD:-}
       ADMIN_DB_PASSWORD: ${ADMIN_DB_PASSWORD:-}
     # TLS Configuration: enabled via command when MONEYMAKER_TLS_ENABLED=true
@@ -44,6 +44,11 @@ services:
       retries: 5
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
 
   redis:
     image: redis:7-alpine
@@ -68,6 +73,11 @@ services:
       retries: 3
     networks:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   # === MONEYMAKER Services ===
   data-ingestion:
@@ -93,6 +103,7 @@ services:
       - MONEYMAKER_REDIS_PORT=6379
       - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
       - MONEYMAKER_ZMQ_PUB_ADDR=tcp://*:5555
+      - MONEYMAKER_DATA_CONNECTOR=${MONEYMAKER_DATA_CONNECTOR:-binance}
       - POLYGON_API_KEY=${POLYGON_API_KEY:-}
       - MONEYMAKER_BINANCE_API_KEY=${MONEYMAKER_BINANCE_API_KEY:-}
       - MONEYMAKER_BINANCE_API_SECRET=${MONEYMAKER_BINANCE_API_SECRET:-}
@@ -276,6 +287,47 @@ services:
     networks:
       - backend
       - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # === External Data (Macro Feeds: VIX, FRED, CFTC) ===
+  external-data:
+    build:
+      context: ../..
+      dockerfile: services/external-data/Dockerfile
+    container_name: macena-external-data
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "${EXTERNAL_DATA_METRICS_PORT:-9095}:9095"
+    environment:
+      - MONEYMAKER_ENV=${MONEYMAKER_ENV:-development}
+      - MONEYMAKER_DB_HOST=postgres
+      - MONEYMAKER_DB_PORT=5432
+      - MONEYMAKER_DB_NAME=${MONEYMAKER_DB_NAME:-moneymaker}
+      - MONEYMAKER_DB_USER=${MONEYMAKER_DB_USER:-moneymaker}
+      - MONEYMAKER_DB_PASSWORD=${MONEYMAKER_DB_PASSWORD:?required}
+      - MONEYMAKER_REDIS_HOST=redis
+      - MONEYMAKER_REDIS_PORT=6379
+      - MONEYMAKER_REDIS_PASSWORD=${MONEYMAKER_REDIS_PASSWORD:?required}
+      - FRED_API_KEY=${FRED_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9095/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
     deploy:
       resources:
         limits:

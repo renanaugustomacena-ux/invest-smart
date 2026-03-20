@@ -35,4 +35,10 @@ scrape_configs:
 
   - job_name: "prometheus"
     static_configs:
-      - targets: ["localhost:9090"]
+      - targets: ["prometheus:9090"]
+
+  - job_name: "external-data"
+    static_configs:
+      - targets: ["external-data:9095"]
+        labels:
+          service: "external_data"
