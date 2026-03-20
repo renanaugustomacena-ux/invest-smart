@@ -235,7 +235,14 @@ class TradeRecorder:
         profit_str = str(trade_result.get("profit", "0"))
         try:
             profit = Decimal(profit_str)
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                "trade_profit_conversion_failed_defaulting_zero",
+                raw_value=profit_str,
+                ticket=trade_result.get("ticket"),
+                symbol=trade_result.get("symbol"),
+                error=str(exc),
+            )
             profit = Decimal("0")
 
         if profit > self._breakeven_threshold:

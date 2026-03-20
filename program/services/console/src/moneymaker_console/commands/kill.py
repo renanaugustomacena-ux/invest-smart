@@ -6,8 +6,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import datetime, timezone
+
+_logger = logging.getLogger(__name__)
 
 from moneymaker_console.clients import ClientFactory
 from moneymaker_console.console_logging import log_event
@@ -65,8 +68,11 @@ def _persist_to_audit_log(action: str, details: dict | None = None) -> None:
             ),
         )
     except Exception:
-        # Best-effort — file log already captured the event
-        pass
+        _logger.error(
+            "Kill switch audit persistence to PostgreSQL failed "
+            "(file-based log_event already captured the event)",
+            exc_info=True,
+        )
 
 
 def _kill_status(*args: str) -> str:

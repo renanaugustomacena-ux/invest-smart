@@ -170,8 +170,12 @@ class PositionTracker:
                     return Decimal("0.0001")
                 else:  # 5 digits (standard for most forex)
                     return Decimal("0.0001")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "pip_size_lookup_failed_using_heuristic",
+                symbol=symbol,
+                error=str(exc),
+            )
 
         # Fallback euristica per quando MT5 non è disponibile
         if "JPY" in symbol or "XAU" in symbol or "XAG" in symbol:

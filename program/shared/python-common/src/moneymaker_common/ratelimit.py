@@ -32,6 +32,9 @@ import grpc
 from prometheus_client import Counter, Histogram
 
 from moneymaker_common.exceptions import RateLimitExceededError
+from moneymaker_common.logging import get_logger
+
+logger = get_logger(__name__)
 
 # ============================================================
 # Metriche
@@ -54,6 +57,12 @@ RATE_LIMIT_LATENCY = Histogram(
     "Latenza del controllo rate limit",
     ["service"],
     buckets=(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05),
+)
+
+RATE_LIMIT_FAILOPEN = Counter(
+    "moneymaker_ratelimit_failopen_total",
+    "Rate limit checks that failed open due to Redis errors",
+    ["service"],
 )
 
 
@@ -231,9 +240,16 @@ class RedisRateLimiter:
 
             return allowed, retry_after, tokens_remaining
 
-        except Exception:
-            # In caso di errore Redis, permetti la richiesta (fail-open)
-            # ma logga l'errore
+        except Exception as exc:
+            # Redis failure: fail-open to avoid blocking trading.
+            # Availability trumps rate-limit enforcement.
+            logger.error(
+                "redis_ratelimit_check_failed_failopen",
+                service=self._service_name,
+                endpoint=endpoint,
+                error=str(exc),
+            )
+            RATE_LIMIT_FAILOPEN.labels(service=self._service_name).inc()
             return True, 0, self._config.max_tokens
 
         finally:
@@ -534,8 +550,12 @@ async def create_rate_limiter(
             # Test connessione
             await client.ping()
             return RedisRateLimiter(client, cfg, service_name)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "redis_ratelimit_connection_failed_using_inmemory",
+                redis_url=redis_url,
+                error=str(exc),
+            )
 
     # Fallback a in-memory
     return InMemoryRateLimiter(cfg, service_name)
