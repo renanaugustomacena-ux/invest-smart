@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Subprocess runners for executing external tools.
 
 Provides ``run_tool`` (capture output) and ``run_tool_live`` (stream output).

@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """CLI dispatch logic with JSON output mode and standardized exit codes."""
 
 from __future__ import annotations

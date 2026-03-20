@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Real-time market data poller via ZMQ SUB socket.
 
 Subscribes to the Data Ingestion ZMQ PUB socket on port 5555

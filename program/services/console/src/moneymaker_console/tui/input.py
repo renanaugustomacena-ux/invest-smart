@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Platform-specific non-blocking keyboard input for the TUI."""
 
 from __future__ import annotations

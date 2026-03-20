@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """TUI renderer with 8-panel Rich Layout and dirty-flag rendering."""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """JSON structured logging for the MONEYMAKER console.
 
 Every command execution is logged as a JSON line to logs/console_YYYYMMDD.json.

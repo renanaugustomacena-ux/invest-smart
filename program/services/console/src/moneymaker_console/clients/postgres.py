@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Lazy PostgreSQL client for direct TimescaleDB queries.
 
 Uses the ADMIN_DB_PASSWORD for full read access across all tables.
