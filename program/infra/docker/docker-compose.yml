@@ -131,6 +131,7 @@ services:
         condition: service_healthy
     networks:
       - backend
+      - egress
       - monitoring
     deploy:
       resources:
@@ -328,6 +329,7 @@ services:
         condition: service_healthy
     networks:
       - backend
+      - egress
       - monitoring
     deploy:
       resources:
@@ -398,11 +400,14 @@ services:
 networks:
   frontend:
     driver: bridge
-    # External-facing services (Grafana)
+    # External-facing services (Grafana, Dashboard)
   backend:
     driver: bridge
     internal: true
-    # Internal services (DB, Redis, MONEYMAKER services) — no external access
+    # Internal services (DB, Redis, algo-engine, mt5-bridge) — no external access
+  egress:
+    driver: bridge
+    # Outbound-only: services that need external API access (Binance, Polygon, FRED)
   monitoring:
     driver: bridge
     # Metrics collection network
