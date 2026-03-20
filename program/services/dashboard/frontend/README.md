@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# MONEYMAKER Dashboard (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The **Dashboard Frontend** is the real-time monitoring and visualization interface for the MONEYMAKER trading ecosystem. Built with React, TypeScript, and Vite, it provides live views of system health, trading performance, risk metrics, and market data.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **System Overview**: Service status, uptime, active positions
+- **Trading Monitor**: Signal history, open/closed trades, P&L tracking
+- **Risk Dashboard**: Drawdown gauges, kill switch status, spiral protection state
+- **Market Data**: Live prices, regime classification, indicator values
+- **Strategy Performance**: Per-strategy win rates, attribution charts
+- **WebSocket Streams**: Real-time updates without polling
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Source Layout
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── api/            # Backend API client and WebSocket handlers
+├── components/     # Reusable UI components (charts, gauges, tables)
+├── pages/          # Route-level page components
+├── hooks/          # Custom React hooks
+├── types/          # TypeScript type definitions
+├── utils/          # Helper functions
+├── App.tsx         # Root component and router
+└── main.tsx        # Entry point
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Development
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+
+- Node.js 18+ and npm
+
+### Setup
+
+```bash
+cd program/services/dashboard/frontend
+npm install
+npm run dev
 ```
+
+The dev server starts at `http://localhost:5173` with hot module replacement.
+
+### Build
+
+```bash
+npm run build
+```
+
+Output goes to `dist/` and is served by the backend FastAPI application in production.
+
+### Lint
+
+```bash
+npm run lint
+```
+
+---
+
+## Backend Integration
+
+The frontend communicates with the Dashboard backend (FastAPI) at the configured API base URL. In Docker, the backend serves the built frontend as static files on port 8888.
+
+API routes: `/api/overview`, `/api/trading`, `/api/risk`, `/api/market-data`, `/api/strategy`, `/api/system`
+
+WebSocket: `/ws/stream` for real-time metric updates.
