@@ -58,9 +58,9 @@ class TestSpiralProtection:
         # Fast-forward 61 minutes
         sp._cooldown_start = time.monotonic() - 3660
         assert sp.is_in_cooldown() is False
-        # After cooldown, consecutive_losses is kept at threshold (not reset to 0)
-        # so sizing resumes at reduction_factor level (0.50)
-        assert sp.get_sizing_multiplier() == Decimal("0.50")
+        # After cooldown expires, consecutive_losses resets to 0 (clean slate)
+        # so sizing returns to full (1.0) — correct safety behavior
+        assert sp.get_sizing_multiplier() == Decimal("1.0")
 
     def test_reset_clears_everything(self):
         sp = SpiralProtection(max_consecutive_loss=2)

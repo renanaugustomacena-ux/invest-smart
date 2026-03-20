@@ -86,16 +86,19 @@ class RegimeClassifier:
         classification = classifier.classify(features)
     """
 
-    def __init__(self, atr_window: int = 50) -> None:
+    def __init__(self, atr_window: int = 50, hysteresis_bars: int = 3) -> None:
         """Inizializza il classificatore di regime.
 
         Args:
             atr_window: Numero di osservazioni ATR da mediare per
                         il rilevamento della volatilità.
+            hysteresis_bars: Consecutive bars required to confirm a regime
+                             change.  Default 3 prevents flip-flopping.
         """
         self._atr_history: deque[Decimal] = deque(maxlen=atr_window)
         self._prev_adx: Decimal | None = None
         # Hysteresis state
+        self._hysteresis_bars = hysteresis_bars
         self._current_regime: MarketRegime = MarketRegime.RANGING
         self._candidate_regime: MarketRegime | None = None
         self._candidate_count: int = 0
@@ -181,7 +184,7 @@ class RegimeClassifier:
             self._candidate_regime = raw_regime
             self._candidate_count = 1
 
-        if self._candidate_count >= _HYSTERESIS_BARS:
+        if self._candidate_count >= self._hysteresis_bars:
             # Confirmed: switch regime
             self._current_regime = raw_regime
             self._candidate_regime = None

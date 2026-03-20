@@ -26,7 +26,7 @@ class TestRegimeClassifier:
 
     def test_trending_up(self):
         """ADX > 25 + EMA fast > slow → TRENDING_UP."""
-        classifier = RegimeClassifier()
+        classifier = RegimeClassifier(hysteresis_bars=1)
         features = self._make_features(
             adx=Decimal("35"),
             ema_fast=Decimal("110"),
@@ -39,7 +39,7 @@ class TestRegimeClassifier:
 
     def test_trending_down(self):
         """ADX > 25 + EMA fast < slow → TRENDING_DOWN."""
-        classifier = RegimeClassifier()
+        classifier = RegimeClassifier(hysteresis_bars=1)
         features = self._make_features(
             adx=Decimal("30"),
             ema_fast=Decimal("90"),
@@ -66,7 +66,7 @@ class TestRegimeClassifier:
 
     def test_high_volatility(self):
         """ATR > 2x average ATR → HIGH_VOLATILITY (overrides trending)."""
-        classifier = RegimeClassifier(atr_window=5)
+        classifier = RegimeClassifier(atr_window=5, hysteresis_bars=1)
 
         # Seed with normal ATR values
         for _ in range(5):
@@ -85,7 +85,7 @@ class TestRegimeClassifier:
 
     def test_reversal_adx_declining_rsi_extreme(self):
         """ADX declining from >40 + RSI extreme → REVERSAL."""
-        classifier = RegimeClassifier()
+        classifier = RegimeClassifier(hysteresis_bars=1)
 
         # First call: establish high previous ADX
         classifier.classify(
@@ -106,7 +106,7 @@ class TestRegimeClassifier:
 
     def test_reversal_with_oversold_rsi(self):
         """ADX declining from >40 + RSI oversold → REVERSAL."""
-        classifier = RegimeClassifier()
+        classifier = RegimeClassifier(hysteresis_bars=1)
 
         # Establish high previous ADX
         classifier.classify(
@@ -127,7 +127,7 @@ class TestRegimeClassifier:
 
     def test_no_reversal_when_rsi_normal(self):
         """ADX declining but RSI normal → no REVERSAL, falls to trend/range."""
-        classifier = RegimeClassifier()
+        classifier = RegimeClassifier(hysteresis_bars=1)
 
         # Establish high previous ADX
         classifier.classify(
@@ -168,7 +168,7 @@ class TestRegimeClassifier:
 
     def test_volatility_overrides_trending(self):
         """HIGH_VOLATILITY has highest priority, overrides even trending signals."""
-        classifier = RegimeClassifier(atr_window=3)
+        classifier = RegimeClassifier(atr_window=3, hysteresis_bars=1)
 
         # Build ATR history
         for _ in range(3):
@@ -183,3 +183,71 @@ class TestRegimeClassifier:
         )
         result = classifier.classify(features)
         assert result.regime == MarketRegime.HIGH_VOLATILITY
+
+
+class TestRegimeHysteresis:
+    """Tests for hysteresis (consecutive-bar confirmation) logic."""
+
+    def _make_features(self, **overrides) -> dict:
+        base = {
+            "adx": Decimal("15"),
+            "atr": Decimal("5"),
+            "rsi": Decimal("50"),
+            "ema_fast": Decimal("100"),
+            "ema_slow": Decimal("100"),
+            "bb_width": Decimal("0.05"),
+        }
+        base.update(overrides)
+        return base
+
+    def test_regime_change_requires_consecutive_bars(self):
+        """With default hysteresis_bars=3, regime must be confirmed 3 times."""
+        classifier = RegimeClassifier(hysteresis_bars=3)
+        trending_features = self._make_features(
+            adx=Decimal("35"),
+            ema_fast=Decimal("110"),
+            ema_slow=Decimal("100"),
+        )
+
+        # First two bars: raw says TRENDING_UP, but hysteresis keeps RANGING
+        r1 = classifier.classify(trending_features)
+        assert r1.regime == MarketRegime.RANGING
+
+        r2 = classifier.classify(trending_features)
+        assert r2.regime == MarketRegime.RANGING
+
+        # Third bar: confirmed → switch to TRENDING_UP
+        r3 = classifier.classify(trending_features)
+        assert r3.regime == MarketRegime.TRENDING_UP
+
+    def test_interrupted_candidate_resets_count(self):
+        """If a different regime appears mid-count, the counter resets."""
+        classifier = RegimeClassifier(hysteresis_bars=3)
+        trending_up = self._make_features(
+            adx=Decimal("35"),
+            ema_fast=Decimal("110"),
+            ema_slow=Decimal("100"),
+        )
+        ranging = self._make_features(adx=Decimal("15"))
+
+        # Two bars of trending
+        classifier.classify(trending_up)
+        classifier.classify(trending_up)
+
+        # Interrupted by ranging (matches current regime → resets candidate)
+        classifier.classify(ranging)
+
+        # Trending again — counter restarts from 1
+        r = classifier.classify(trending_up)
+        assert r.regime == MarketRegime.RANGING  # only 1 bar, not yet confirmed
+
+    def test_hysteresis_bars_one_means_immediate(self):
+        """hysteresis_bars=1 gives immediate regime switching (no delay)."""
+        classifier = RegimeClassifier(hysteresis_bars=1)
+        features = self._make_features(
+            adx=Decimal("35"),
+            ema_fast=Decimal("110"),
+            ema_slow=Decimal("100"),
+        )
+        result = classifier.classify(features)
+        assert result.regime == MarketRegime.TRENDING_UP
