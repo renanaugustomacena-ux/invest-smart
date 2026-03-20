@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Validatore di rischio per i segnali di trading.
 
 L'ultimo cancello prima che un segnale raggiunga il MT5 Bridge — come

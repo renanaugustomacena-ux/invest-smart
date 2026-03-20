@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Feature Scorer — unified multi-dimensional market assessment.
 
 Extracted from GOLIATH V1 vision (Chapter 10.2), implemented as pure

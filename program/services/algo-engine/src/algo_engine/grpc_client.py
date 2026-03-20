@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Client gRPC per inviare segnali di trading validati al MT5 Bridge.
 
 Funziona come un servizio postale: prende il segnale (la lettera),

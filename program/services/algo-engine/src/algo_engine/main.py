@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Algo Engine — Async entry point.
 
 Maps to algo-engine/main.py run_brain() (lines 172-380 init, lines 494+ loop)

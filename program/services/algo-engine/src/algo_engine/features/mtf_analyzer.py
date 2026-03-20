@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Multi-Timeframe Analyzer — osservare il mercato da più angolazioni.
 
 Come guardare una mappa a diversi livelli di zoom: M5 per i dettagli,

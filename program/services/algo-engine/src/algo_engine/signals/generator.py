@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Generatore di segnali di trading.
 
 Converte un SignalSuggestion da una strategia in un segnale TradingSignal

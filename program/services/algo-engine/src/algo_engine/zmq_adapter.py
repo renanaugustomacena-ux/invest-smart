@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Adattatore ZMQ — ponte tra il formato Go data-ingestion e la pipeline Algo Engine.
 
 Come un traduttore simultaneo all'ONU: il servizio Go pubblica dati in un

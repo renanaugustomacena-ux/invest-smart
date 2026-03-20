@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Session-Aware Trading — il "fuso orario" del mercato forex.
 
 Il mercato forex ha personalità diverse in base all'ora del giorno:

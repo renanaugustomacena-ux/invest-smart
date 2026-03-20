@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Volatility-Scaled Time-Series Momentum strategy.
 
 Based on Moskowitz, Ooi & Pedersen (2012) — "Time Series Momentum".

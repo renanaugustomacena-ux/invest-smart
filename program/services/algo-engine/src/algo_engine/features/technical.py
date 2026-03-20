@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Calcolo indicatori tecnici con aritmetica Decimal.
 
 VINCOLO ARCHITETTURALE: Tutti i calcoli su prezzi e indicatori usano

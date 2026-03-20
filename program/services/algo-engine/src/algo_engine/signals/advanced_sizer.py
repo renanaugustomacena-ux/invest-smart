@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """CVaR-based position sizing with Half-Kelly criterion.
 
 Extends the basic risk-per-trade sizer with two additional layers:

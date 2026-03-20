@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Strategia di trend-following — "segui la corrente".
 
 Come un surfista che cavalca l'onda: attivata per i regimi TRENDING_UP
