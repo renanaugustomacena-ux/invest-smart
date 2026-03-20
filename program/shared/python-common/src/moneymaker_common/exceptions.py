@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Gerarchia delle eccezioni condivise per i servizi MONEYMAKER.
 
 Come i "codici di errore" di un'ambulanza: ogni tipo di eccezione

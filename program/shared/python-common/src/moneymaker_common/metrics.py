@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Helper metriche Prometheus per i servizi MONEYMAKER.
 
 Come i "contatori di produzione" della fabbrica: ogni servizio espone

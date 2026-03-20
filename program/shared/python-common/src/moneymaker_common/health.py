@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Protocollo di controllo salute per i servizi MONEYMAKER.
 
 Come il "dottore di bordo" di una nave: controlla periodicamente
