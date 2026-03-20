@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Configurazione del servizio External Data.
 
 Gestisce API keys e parametri per i vari provider di dati macro.

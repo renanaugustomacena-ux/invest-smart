@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026 Renan Augusto Macena. All rights reserved.
+# Licensed under Proprietary License. See LICENSE file in the project root.
+
 """Scheduler per il fetch periodico dei dati macro.
 
 Usa APScheduler per gestire job periodici con diverse frequenze:
