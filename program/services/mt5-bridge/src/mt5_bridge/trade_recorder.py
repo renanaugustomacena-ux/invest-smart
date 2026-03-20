@@ -280,7 +280,15 @@ class TradeRecorder:
 
             return pips.quantize(Decimal("0.01"))
 
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "pnl_pips_calculation_failed",
+                symbol=trade_result.get("symbol"),
+                direction=trade_result.get("direction"),
+                price_open=str(trade_result.get("price_open")),
+                price_close=str(trade_result.get("price_close")),
+                error=str(exc),
+            )
             return None
 
     async def _publish_trade_event(
