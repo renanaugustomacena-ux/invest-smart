@@ -80,17 +80,11 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
     logger.info("Metrics server started", port=settings.algo_metrics_port)
 
     # --- 4. Kill switch — Redis-backed emergency stop (algo-engine lines 204-206) ---
-    # Build Redis URL from individual settings to avoid URL-encoding issues
-    # with special characters (/, +, =) in passwords.
-    _redis_host = settings.moneymaker_redis_host
-    _redis_port = settings.moneymaker_redis_port
-    _redis_pass = settings.moneymaker_redis_password
-    if _redis_pass:
-        from urllib.parse import quote
-        _safe_redis_url = f"redis://:{quote(_redis_pass, safe='')}@{_redis_host}:{_redis_port}/0"
-    else:
-        _safe_redis_url = f"redis://{_redis_host}:{_redis_port}/0"
-    kill_switch = KillSwitch(redis_url=_safe_redis_url)
+    kill_switch = KillSwitch(
+        host=settings.moneymaker_redis_host,
+        port=settings.moneymaker_redis_port,
+        password=settings.moneymaker_redis_password,
+    )
     await kill_switch.connect()
     logger.info("Kill Switch initialized")
 
@@ -117,7 +111,13 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
     try:
         import redis.asyncio as aioredis
 
-        redis_client = aioredis.from_url(_safe_redis_url, decode_responses=True)
+        redis_client = aioredis.Redis(
+            host=settings.moneymaker_redis_host,
+            port=settings.moneymaker_redis_port,
+            password=settings.moneymaker_redis_password or None,
+            db=0,
+            decode_responses=True,
+        )
         await redis_client.ping()
         logger.info("Redis connected for portfolio persistence (async)")
         _rc = redis_client

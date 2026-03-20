@@ -8,16 +8,18 @@ from algo_engine.kill_switch import KillSwitch
 
 
 class TestKillSwitch:
-    def test_constructor_accepts_only_redis_url(self):
-        """KillSwitch constructor only takes redis_url, not risk params."""
-        ks = KillSwitch(redis_url="redis://localhost:6379")
-        assert ks._redis_url == "redis://localhost:6379"
+    def test_constructor_accepts_redis_params(self):
+        """KillSwitch constructor takes host/port/password, not risk params."""
+        ks = KillSwitch(host="redis", port=6379, password="secret")
+        assert ks._redis_host == "redis"
+        assert ks._redis_port == 6379
+        assert ks._redis_password == "secret"
 
     def test_constructor_rejects_unexpected_kwargs(self):
         """Passing max_daily_loss_pct to constructor must raise TypeError."""
         with pytest.raises(TypeError):
             KillSwitch(
-                redis_url="redis://localhost:6379",
+                host="redis",
                 max_daily_loss_pct=Decimal("2.0"),
                 max_drawdown_pct=Decimal("5.0"),
             )

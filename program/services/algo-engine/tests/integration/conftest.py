@@ -100,7 +100,7 @@ def build_engine(
     KillSwitch runs in local-only mode (no Redis).
     """
     if kill_switch is None:
-        kill_switch = KillSwitch(redis_url="redis://nonexistent:6379")
+        kill_switch = KillSwitch(host="nonexistent", port=6379)
 
     if spiral_protection is None:
         spiral_protection = SpiralProtection(

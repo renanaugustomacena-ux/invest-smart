@@ -63,9 +63,6 @@ class AlgoEngineSettings(MoneyMakerBaseSettings):
     algo_spiral_max_losses: int = 5
     algo_spiral_cooldown_minutes: int = 60
 
-    # --- Redis ---
-    algo_redis_url: str = "redis://localhost:6379/0"
-
     # --- Telegram alerting ---
     algo_telegram_bot_token: str = ""
     algo_telegram_chat_id: str = ""

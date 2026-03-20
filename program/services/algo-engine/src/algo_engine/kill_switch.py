@@ -8,7 +8,7 @@ Attivazione automatica quando:
 - Il drawdown supera il limite configurato
 
 Utilizzo:
-    kill_switch = KillSwitch(redis_url="redis://localhost:6379")
+    kill_switch = KillSwitch(host="redis", port=6379, password="secret")
     await kill_switch.connect()
     await kill_switch.check_or_raise()  # Lancia eccezione se attivo
 """
@@ -58,8 +58,18 @@ class KillSwitch:
 
     _MAX_AUDIT_ENTRIES = 200  # Max audit entries kept in Redis list
 
-    def __init__(self, redis_url: str = "redis://localhost:6379", cache_ttl: float = 1.0) -> None:
-        self._redis_url = redis_url
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        password: str = "",
+        db: int = 0,
+        cache_ttl: float = 1.0,
+    ) -> None:
+        self._redis_host = host
+        self._redis_port = port
+        self._redis_password = password
+        self._redis_db = db
         self._redis: Any = None
         self._cached_active: bool = True  # Fail-CLOSED: blocca trading fino a conferma Redis
         self._cached_reason: str = ""
@@ -72,11 +82,21 @@ class KillSwitch:
         try:
             import redis.asyncio as aioredis
 
-            self._redis = aioredis.from_url(self._redis_url, decode_responses=True)
+            self._redis = aioredis.Redis(
+                host=self._redis_host,
+                port=self._redis_port,
+                password=self._redis_password or None,
+                db=self._redis_db,
+                decode_responses=True,
+            )
             await self._redis.ping()
             self._cached_active = False  # Redis raggiungibile, sicuro per il trading
             self._cache_ts = time.monotonic()
-            logger.info("Kill switch connesso a Redis", url=self._redis_url)
+            logger.info(
+                "Kill switch connesso a Redis",
+                host=self._redis_host,
+                port=self._redis_port,
+            )
         except Exception as exc:
             logger.warning(
                 "Kill switch: Redis non disponibile, operazione locale",
