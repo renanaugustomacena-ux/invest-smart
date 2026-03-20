@@ -113,6 +113,10 @@ type DBWriter struct {
 	tickBuffer *TickBuffer
 	barBuffer  *BarBuffer
 
+	// Lifecycle context — cancelled on Close() to abort in-flight DB ops
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// Canali per coordinazione worker
 	tickFlushCh chan []TickRecord
 	barFlushCh  chan []BarRecord
@@ -161,12 +165,16 @@ func New(ctx context.Context, cfg Config, logger *zap.Logger) (*DBWriter, error)
 		return nil, fmt.Errorf("dbwriter: failed to ping database: %w", err)
 	}
 
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+
 	w := &DBWriter{
 		pool:        pool,
 		config:      cfg,
 		logger:      logger,
 		tickBuffer:  NewTickBuffer(cfg.BatchSize),
 		barBuffer:   NewBarBuffer(cfg.BatchSize),
+		ctx:         workerCtx,
+		cancel:      workerCancel,
 		tickFlushCh: make(chan []TickRecord, cfg.WorkerCount),
 		barFlushCh:  make(chan []BarRecord, cfg.WorkerCount),
 		stopCh:      make(chan struct{}),
@@ -212,7 +220,7 @@ func (w *DBWriter) tickWorker(id int) {
 				continue
 			}
 			start := time.Now()
-			if err := w.insertTicks(context.Background(), batch); err != nil {
+			if err := w.insertTicks(w.ctx, batch); err != nil {
 				w.logger.Error("failed to insert ticks",
 					zap.Int("worker", id),
 					zap.Int("count", len(batch)),
@@ -244,7 +252,7 @@ func (w *DBWriter) barWorker(id int) {
 				continue
 			}
 			start := time.Now()
-			if err := w.insertBars(context.Background(), batch); err != nil {
+			if err := w.insertBars(w.ctx, batch); err != nil {
 				w.logger.Error("failed to insert bars",
 					zap.Int("worker", id),
 					zap.Int("count", len(batch)),
@@ -324,7 +332,7 @@ func (w *DBWriter) WriteTick(tick *normalizer.NormalizedTick) {
 		default:
 			// Canale pieno, flush sincrono come fallback
 			w.logger.Warn("tick flush channel full, performing sync flush")
-			if err := w.insertTicks(context.Background(), batch); err != nil {
+			if err := w.insertTicks(w.ctx, batch); err != nil {
 				w.logger.Error("sync tick flush failed", zap.Error(err))
 			}
 		}
@@ -360,7 +368,7 @@ func (w *DBWriter) WriteBar(symbol string, timeframe string, openTime time.Time,
 		case w.barFlushCh <- batch:
 		default:
 			w.logger.Warn("bar flush channel full, performing sync flush")
-			if err := w.insertBars(context.Background(), batch); err != nil {
+			if err := w.insertBars(w.ctx, batch); err != nil {
 				w.logger.Error("sync bar flush failed", zap.Error(err))
 			}
 		}
@@ -378,7 +386,7 @@ func (w *DBWriter) FlushTicks() {
 		select {
 		case w.tickFlushCh <- batch:
 		default:
-			if err := w.insertTicks(context.Background(), batch); err != nil {
+			if err := w.insertTicks(w.ctx, batch); err != nil {
 				w.logger.Error("forced tick flush failed", zap.Error(err))
 			}
 		}
@@ -396,7 +404,7 @@ func (w *DBWriter) FlushBars() {
 		select {
 		case w.barFlushCh <- batch:
 		default:
-			if err := w.insertBars(context.Background(), batch); err != nil {
+			if err := w.insertBars(w.ctx, batch); err != nil {
 				w.logger.Error("forced bar flush failed", zap.Error(err))
 			}
 		}
@@ -418,6 +426,9 @@ func (w *DBWriter) Close() error {
 	}
 
 	w.logger.Info("DBWriter shutting down, flushing remaining data...")
+
+	// Cancel context to abort in-flight DB operations in workers
+	w.cancel()
 
 	// Segnala lo stop ai worker
 	close(w.stopCh)
