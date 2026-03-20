@@ -7,6 +7,10 @@ from __future__ import annotations
 
 import asyncpg
 
+from moneymaker_common.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 async def get_strategy_daily_summary(pool: asyncpg.Pool) -> list[dict]:
     """Fetch strategy daily summary from materialized view."""
@@ -21,6 +25,7 @@ async def get_strategy_daily_summary(pool: asyncpg.Pool) -> list[dict]:
             """)
         return [dict(r) for r in rows]
     except Exception:
+        logger.exception("strategy_daily_summary_query_failed")
         return []
 
 

@@ -7,6 +7,10 @@ from __future__ import annotations
 
 import asyncpg
 
+from moneymaker_common.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 async def get_macro_snapshot(pool: asyncpg.Pool) -> dict | None:
     """Fetch the latest macro snapshot from the materialized view."""
@@ -14,6 +18,7 @@ async def get_macro_snapshot(pool: asyncpg.Pool) -> dict | None:
         row = await pool.fetchrow("SELECT * FROM macro_snapshot LIMIT 1")
         return dict(row) if row else None
     except Exception:
+        logger.exception("macro_snapshot_query_failed")
         return None
 
 

@@ -9,7 +9,11 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from moneymaker_common.logging import get_logger
+
 from backend.config import settings
+
+logger = get_logger(__name__)
 from backend.db.connection import get_pool
 from backend.db.queries.trading import get_daily_pnl, get_recent_signals, get_signals_today_count
 from backend.redis_client.client import get_json_key, redis_health
@@ -51,6 +55,7 @@ async def ws_overview(websocket: WebSocket) -> None:
                     }
                 )
             except Exception:
+                logger.exception("ws_overview_data_fetch_failed")
                 await websocket.send_json(
                     {"type": "error", "data": {"message": "Data fetch failed"}}
                 )
@@ -92,6 +97,7 @@ async def ws_trading(websocket: WebSocket) -> None:
                     }
                 )
             except Exception:
+                logger.exception("ws_trading_data_fetch_failed")
                 await websocket.send_json(
                     {"type": "error", "data": {"message": "Data fetch failed"}}
                 )

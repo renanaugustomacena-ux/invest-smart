@@ -10,6 +10,10 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from moneymaker_common.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 class ConnectionManager:
     """Manages active WebSocket connections."""
@@ -38,6 +42,7 @@ class ConnectionManager:
             try:
                 await ws.send_text(message)
             except Exception:
+                logger.debug("ws_client_send_failed", channel=channel)
                 disconnected.append(ws)
         for ws in disconnected:
             self.disconnect(channel, ws)
