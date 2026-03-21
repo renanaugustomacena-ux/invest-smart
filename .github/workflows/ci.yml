@@ -22,19 +22,19 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      algo-engine: ${{ steps.filter.outputs.algo-engine }}
-      mt5-bridge: ${{ steps.filter.outputs.mt5-bridge }}
-      data-ingestion: ${{ steps.filter.outputs.data-ingestion }}
-      dashboard-backend: ${{ steps.filter.outputs.dashboard-backend }}
-      dashboard-frontend: ${{ steps.filter.outputs.dashboard-frontend }}
-      console: ${{ steps.filter.outputs.console }}
-      python-common: ${{ steps.filter.outputs.python-common }}
-      proto: ${{ steps.filter.outputs.proto }}
-      go-common: ${{ steps.filter.outputs.go-common }}
-      docker: ${{ steps.filter.outputs.docker }}
-      external-data: ${{ steps.filter.outputs.external-data }}
-      any-python: ${{ steps.filter.outputs.any-python }}
-      any-go: ${{ steps.filter.outputs.any-go }}
+      algo-engine: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.algo-engine }}
+      mt5-bridge: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.mt5-bridge }}
+      data-ingestion: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.data-ingestion }}
+      dashboard-backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.dashboard-backend }}
+      dashboard-frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.dashboard-frontend }}
+      console: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.console }}
+      python-common: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.python-common }}
+      proto: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.proto }}
+      go-common: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.go-common }}
+      docker: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.docker }}
+      external-data: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.external-data }}
+      any-python: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.any-python }}
+      any-go: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.any-go }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
