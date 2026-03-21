@@ -5,7 +5,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from moneymaker_console.registry import CommandRegistry
+
+_logger = logging.getLogger(__name__)
 
 
 def _market_regime(*args: str) -> str:
@@ -28,8 +32,8 @@ def _market_regime(*args: str) -> str:
                 else:
                     lines.append(f"  Regime: {regime}")
                 return "\n".join(lines)
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.debug("Redis regime lookup failed, falling back to DB: %s", exc)
 
         # Fallback to DB
         db = ClientFactory.get_postgres()

@@ -192,8 +192,8 @@ class GRPCExecutionServicer:
                     return peer.split(":")[1]
                 elif peer.startswith("ipv6:"):
                     return peer.split("[")[1].split("]")[0]
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("grpc_peer_extraction_failed", error=str(exc))
         return "unknown"
 
     async def ExecuteTrade(self, request: Any, context: Any) -> Any:

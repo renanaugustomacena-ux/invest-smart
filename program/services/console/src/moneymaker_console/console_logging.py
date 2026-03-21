@@ -59,5 +59,6 @@ def log_event(event: str, **kwargs: object) -> None:
     try:
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, default=str) + "\n")
-    except OSError:
-        pass
+    except OSError as exc:
+        import sys
+        print(f"[console_logging] Failed to write audit log: {exc}", file=sys.stderr)

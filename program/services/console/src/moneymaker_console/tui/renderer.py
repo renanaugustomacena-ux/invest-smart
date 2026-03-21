@@ -13,8 +13,11 @@ from moneymaker_console import __version__
 try:
     from rich.layout import Layout
     from rich.panel import Panel
-except ImportError:
-    pass
+except ImportError as _exc:
+    raise ImportError(
+        "The 'rich' package is required for the TUI renderer. "
+        "Install it with: pip install rich"
+    ) from _exc
 
 
 class TUIRenderer:

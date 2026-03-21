@@ -58,8 +58,8 @@ def _data_status(*args: str) -> str:
         )
         if row:
             lines.append(f"  Ticks (5m): {row[0]}")
-    except Exception:
-        pass
+    except Exception as exc:
+        lines.append(f"  Ticks (5m): [error] {exc}")
 
     return "\n".join(lines)
 
