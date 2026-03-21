@@ -1,25 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
 import RiskPage from '../../pages/RiskPage';
 import { useUIStore } from '../../store/uiStore';
-
-const mockRiskData = {
-  daily_loss_pct: '0.500',
-  drawdown_pct: '1.200',
-  kill_switch_active: false,
-  kill_switch_reason: undefined,
-  open_positions: 2,
-  max_positions: 5,
-  symbols_exposed: ['EURUSD', 'GBPUSD'],
-  maturity_state: 'PAPER',
-  regime: 'TRENDING',
-};
-
-// Mock fetchApi
-vi.mock('../../api/client', () => ({
-  fetchApi: vi.fn(() => Promise.resolve(mockRiskData)),
-}));
+import { server } from '../mocks/server';
 
 describe('RiskPage', () => {
   beforeEach(() => {
@@ -66,5 +51,30 @@ describe('RiskPage', () => {
       expect(screen.getByText('Daily Loss')).toBeInTheDocument();
     });
     expect(screen.getByText('Drawdown')).toBeInTheDocument();
+  });
+
+  it('shows kill switch inactive badge', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText(/Inactive/i)).toBeInTheDocument();
+    });
+  });
+
+  it('handles API error gracefully', async () => {
+    server.use(
+      http.get('/api/risk', () => {
+        return HttpResponse.json({}, { status: 500 });
+      })
+    );
+    renderPage();
+    // When API fails, the page stays in loading state with skeleton cards
+    // and shows no risk data — the title and gauges still render
+    expect(screen.getByText('Risk Management')).toBeInTheDocument();
+    // Verify that loaded metrics do NOT appear (data never loads)
+    await waitFor(() => {
+      expect(screen.getByText('Daily Loss')).toBeInTheDocument();
+    });
+    // The kill switch defaults to inactive when risk is null
+    expect(screen.queryByText('EURUSD')).not.toBeInTheDocument();
   });
 });

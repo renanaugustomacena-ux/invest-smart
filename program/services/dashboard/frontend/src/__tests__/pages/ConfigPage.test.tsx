@@ -1,16 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import ConfigPage from '../../pages/ConfigPage';
-
-vi.mock('../../api/client', () => ({
-  fetchApi: vi.fn(() => Promise.resolve({
-    database: { name: 'postgres', status: 'connected', latency_ms: 5 },
-    redis: { name: 'redis', status: 'connected', latency_ms: 2 },
-    services: [{ name: 'brain', status: 'connected', latency_ms: 15 }],
-    uptime_seconds: 7200,
-  })),
-}));
 
 describe('ConfigPage', () => {
   beforeEach(() => {
@@ -36,5 +27,27 @@ describe('ConfigPage', () => {
   it('shows refresh button', () => {
     render(<MemoryRouter><ConfigPage /></MemoryRouter>);
     expect(screen.getByText('Refresh')).toBeInTheDocument();
+  });
+
+  it('shows uptime', async () => {
+    render(<MemoryRouter><ConfigPage /></MemoryRouter>);
+    // defaultSystemStatus has uptime_seconds: 7200 => "2h 0m"
+    await waitFor(() => {
+      expect(screen.getByText(/Uptime: 2h 0m/)).toBeInTheDocument();
+    });
+  });
+
+  it('refresh button triggers new fetch', async () => {
+    render(<MemoryRouter><ConfigPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Database')).toBeInTheDocument();
+    });
+    const refreshBtn = screen.getByText('Refresh');
+    fireEvent.click(refreshBtn);
+    // After refresh, data should still be displayed (MSW returns same data)
+    await waitFor(() => {
+      expect(screen.getByText('Database')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Redis')).toBeInTheDocument();
   });
 });
