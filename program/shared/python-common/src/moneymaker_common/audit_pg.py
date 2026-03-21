@@ -23,9 +23,17 @@ import json
 import logging
 from typing import Any
 
+from prometheus_client import Counter
+
 from moneymaker_common.audit import AuditEntry, AuditTrail
 
 logger = logging.getLogger(__name__)
+
+AUDIT_BUFFER_DROPS = Counter(
+    "moneymaker_audit_buffer_drops_total",
+    "Number of audit entries dropped due to buffer overflow",
+    labelnames=["service"],
+)
 
 
 class PostgresAuditTrail(AuditTrail):
@@ -94,6 +102,7 @@ class PostgresAuditTrail(AuditTrail):
         """
         if len(self._buffer) >= self._max_buffer_size:
             self._buffer.pop(0)
+            AUDIT_BUFFER_DROPS.labels(service=self.service_name).inc()
             logger.warning("Buffer audit pieno, voce più vecchia scartata")
         self._buffer.append(entry)
 
