@@ -135,6 +135,17 @@ jobs:
           mypy --ignore-missing-imports \
             program/services/algo-engine/src/ \
             program/shared/python-common/src/
+      - name: Ban unittest.mock (MagicMock, AsyncMock, @patch)
+        run: |
+          echo "Checking for banned mock imports in test files..."
+          FOUND=$(grep -rn "from unittest.mock import\|from unittest import mock\|import unittest.mock" \
+            --include="*.py" program/ || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::unittest.mock imports found — use real objects, freezegun, or test doubles instead:"
+            echo "$FOUND"
+            exit 1
+          fi
+          echo "No unittest.mock imports found — clean"
 
   # ─── Test: python-common ──────────────────────────────────────────────────
   test-python-common:
