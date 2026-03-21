@@ -23,6 +23,9 @@ on:
     - cron: '0 6 * * 1'   # Every Monday at 06:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true

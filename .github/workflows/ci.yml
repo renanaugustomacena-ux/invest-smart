@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -76,9 +82,11 @@ jobs:
               - 'program/services/dashboard/backend/**'
               - 'program/services/external-data/**'
               - 'program/shared/python-common/**'
+              - '.github/workflows/**'
             any-go:
               - 'program/services/data-ingestion/**'
               - 'program/shared/go-common/**'
+              - '.github/workflows/**'
 
   # ─── Python Lint ──────────────────────────────────────────────────────────
   lint-python:
@@ -167,7 +175,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Cache pip
         uses: actions/cache@v4
@@ -251,7 +262,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Cache pip
         uses: actions/cache@v4
@@ -360,7 +374,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Cache pip
         uses: actions/cache@v4
@@ -447,7 +464,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Cache pip
         uses: actions/cache@v4
@@ -516,13 +536,9 @@ jobs:
         run: npm run lint
       - name: Test
         working-directory: program/services/dashboard/frontend
-        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile=reports/junit.xml
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-results
-          path: program/services/dashboard/frontend/reports/
+        run: |
+          mkdir -p reports
+          npm run test:coverage
 
   # ─── Test: console ────────────────────────────────────────────────────────
   test-console:
@@ -563,7 +579,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Install
         run: |
@@ -683,7 +702,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
       - name: Cache pip
         uses: actions/cache@v4
@@ -796,13 +818,15 @@ jobs:
     name: Docker Build (${{ matrix.service }})
     needs: changes
     if: >-
-      needs.changes.outputs.docker == 'true' ||
-      needs.changes.outputs.algo-engine == 'true' ||
-      needs.changes.outputs.data-ingestion == 'true' ||
-      needs.changes.outputs.mt5-bridge == 'true' ||
-      needs.changes.outputs.dashboard-backend == 'true' ||
-      needs.changes.outputs.dashboard-frontend == 'true' ||
-      needs.changes.outputs.external-data == 'true'
+      github.event_name == 'push' && (
+        needs.changes.outputs.docker == 'true' ||
+        needs.changes.outputs.algo-engine == 'true' ||
+        needs.changes.outputs.data-ingestion == 'true' ||
+        needs.changes.outputs.mt5-bridge == 'true' ||
+        needs.changes.outputs.dashboard-backend == 'true' ||
+        needs.changes.outputs.dashboard-frontend == 'true' ||
+        needs.changes.outputs.external-data == 'true'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -853,20 +877,6 @@ jobs:
           image: moneymaker-${{ matrix.service }}:ci
           artifact-name: sbom-${{ matrix.service }}
 
-  # ─── Security Scan ────────────────────────────────────────────────────────
-  security-scan:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # ─── PR Labeler ───────────────────────────────────────────────────────────
   label-pr:
     name: Label PR
@@ -898,7 +908,6 @@ jobs:
       - lint-and-test-go
       - verify-proto
       - docker-build
-      - security-scan
     steps:
       - name: Check all required jobs
         run: |
@@ -915,7 +924,6 @@ jobs:
           echo "  lint-and-test-go:     ${{ needs.lint-and-test-go.result }}"
           echo "  verify-proto:         ${{ needs.verify-proto.result }}"
           echo "  docker-build:         ${{ needs.docker-build.result }}"
-          echo "  security-scan:        ${{ needs.security-scan.result }}"
 
           # Fail if any required job failed (skipped is OK due to path filtering)
           RESULTS='${{ toJSON(needs.*.result) }}'

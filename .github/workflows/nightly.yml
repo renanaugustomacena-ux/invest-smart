@@ -5,14 +5,41 @@ on:
     - cron: '0 3 * * *'   # Daily at 03:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: nightly
   cancel-in-progress: true
 
 jobs:
+  # ─── Skip if No Recent Changes ─────────────────────────────────────────────
+  check-activity:
+    name: Check Recent Activity
+    runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.check.outputs.has-changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for commits in last 24h
+        id: check
+        run: |
+          RECENT=$(git log --since="24 hours ago" --oneline | wc -l)
+          echo "Recent commits: $RECENT"
+          if [ "$RECENT" -eq 0 ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "No recent commits — skipping nightly"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
   # ─── Integration Tests with Real Infrastructure ────────────────────────────
   integration-tests:
     name: Integration Tests
+    needs: check-activity
+    if: needs.check-activity.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -46,9 +73,12 @@ jobs:
 
       - name: Seed database
         run: |
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y -qq postgresql-client
           for f in program/infra/docker/init-db/*.sql; do
-            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>/dev/null || true
+            echo "::group::Seed: $(basename $f)"
+            PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test -f "$f" 2>&1 || \
+              echo "::warning::Seed script had errors: $f (may be expected)"
+            echo "::endgroup::"
           done
 
       - name: Install dependencies
@@ -176,6 +206,8 @@ jobs:
   # ─── Performance Benchmarks ────────────────────────────────────────────────
   benchmarks:
     name: Performance Benchmarks
+    needs: check-activity
+    if: needs.check-activity.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -33,6 +33,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-${{ inputs.environment }}
   cancel-in-progress: false  # NEVER cancel an in-progress deployment

@@ -5,6 +5,9 @@ on:
     - cron: '0 4 * * 0'   # Every Sunday at 04:00 UTC (market closed)
   workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   cleanup:
     name: Cleanup ${{ matrix.service }}
