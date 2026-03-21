@@ -10,11 +10,11 @@ import logging
 import time
 from datetime import datetime, timezone
 
-_logger = logging.getLogger(__name__)
-
 from moneymaker_console.clients import ClientFactory
 from moneymaker_console.console_logging import log_event
 from moneymaker_console.registry import CommandRegistry
+
+_logger = logging.getLogger(__name__)
 
 _KILL_KEY = "moneymaker:kill_switch"
 _ALERT_CHANNEL = "moneymaker:alerts"

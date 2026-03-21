@@ -12,12 +12,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from moneymaker_common.logging import get_logger
 
 from backend.config import settings
-
-logger = get_logger(__name__)
 from backend.db.connection import get_pool
 from backend.db.queries.trading import get_daily_pnl, get_recent_signals, get_signals_today_count
 from backend.redis_client.client import get_json_key, redis_health
 from backend.ws.manager import manager
+
+logger = get_logger(__name__)
 
 router = APIRouter(tags=["websocket"])
 
