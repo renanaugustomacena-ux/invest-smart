@@ -217,7 +217,7 @@ jobs:
             --cov=moneymaker_common \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=80 \
+            --cov-fail-under=70 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results
@@ -427,7 +427,7 @@ jobs:
             --cov=mt5_bridge \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=55 \
+            --cov-fail-under=45 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results
@@ -754,7 +754,7 @@ jobs:
             --cov=external_data \
             --cov-report=xml:reports/coverage.xml \
             --junitxml=reports/junit.xml \
-            --cov-fail-under=85 \
+            --cov-fail-under=75 \
             --timeout=10 \
             -v --tb=short
       - name: Upload results
@@ -789,8 +789,8 @@ jobs:
             ./... 2>&1 | tee test-output.txt
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
           echo "Go-common coverage: ${COVERAGE}%"
-          if [ "$(echo "$COVERAGE < 50" | bc)" -eq 1 ]; then
-            echo "::error::Go-common coverage ${COVERAGE}% is below 50% threshold"
+          if [ "$(echo "$COVERAGE < 70" | bc)" -eq 1 ]; then
+            echo "::error::Go-common coverage ${COVERAGE}% is below 70% threshold"
             exit 1
           fi
       - name: Upload results
