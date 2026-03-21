@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from decimal import Decimal
-from unittest.mock import patch
 
 import pytest
 
@@ -209,13 +208,10 @@ class TestRateLimiter:
 
     def test_old_timestamps_expire(self):
         rl = SignalRateLimiter(max_per_hour=2)
-        base = time.monotonic()
-        with patch("algo_engine.signals.rate_limiter.time") as mock_time:
-            mock_time.monotonic.return_value = base
-            rl.record()
-            rl.record()
-
-            # 1 hour + 1 second later
-            mock_time.monotonic.return_value = base + 3601
-            assert rl.allow()
-            assert rl.current_count == 0
+        # Insert timestamps from >1 hour ago directly into the internal deque
+        old_ts = time.monotonic() - 3700
+        rl._timestamps.append(old_ts)
+        rl._timestamps.append(old_ts)
+        # Old timestamps should be cleaned up on next check
+        assert rl.allow()
+        assert rl.current_count == 0

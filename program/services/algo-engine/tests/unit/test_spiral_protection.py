@@ -2,7 +2,6 @@
 
 import time
 from decimal import Decimal
-from unittest.mock import patch
 
 from algo_engine.signals.spiral_protection import SpiralProtection
 

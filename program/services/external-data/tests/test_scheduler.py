@@ -1,12 +1,48 @@
-"""Tests for MacroDataScheduler."""
+"""Tests for MacroDataScheduler.
+
+No unittest.mock — uses real async callables with call tracking.
+"""
 
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
-
 
 from external_data.scheduler import MacroDataScheduler
+
+
+# ---------------------------------------------------------------------------
+# Test doubles (NOT mocks — real implementations with tracking)
+# ---------------------------------------------------------------------------
+
+
+class AsyncCallTracker:
+    """Real async callable that tracks invocations."""
+
+    def __init__(self, side_effect: Exception | None = None):
+        self.call_count = 0
+        self.called = False
+        self._side_effect = side_effect
+
+    async def __call__(self):
+        self.call_count += 1
+        self.called = True
+        if self._side_effect:
+            raise self._side_effect
+
+
+class CancellableTask:
+    """Test double for asyncio.Task — tracks cancel() calls."""
+
+    def __init__(self):
+        self.cancel_count = 0
+
+    def cancel(self):
+        self.cancel_count += 1
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 
 class TestMacroDataScheduler:
@@ -19,7 +55,7 @@ class TestMacroDataScheduler:
 
     def test_add_job(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock()
+        func = AsyncCallTracker()
 
         scheduler.add_job("test_job", func, interval_seconds=60, run_immediately=True)
 
@@ -34,7 +70,7 @@ class TestMacroDataScheduler:
 
     def test_add_job_no_immediate(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock()
+        func = AsyncCallTracker()
 
         scheduler.add_job("test_job", func, interval_seconds=30, run_immediately=False)
 
@@ -42,7 +78,7 @@ class TestMacroDataScheduler:
 
     def test_remove_job_exists(self):
         scheduler = MacroDataScheduler()
-        scheduler.add_job("test_job", AsyncMock(), interval_seconds=60)
+        scheduler.add_job("test_job", AsyncCallTracker(), interval_seconds=60)
 
         result = scheduler.remove_job("test_job")
         assert result is True
@@ -55,30 +91,30 @@ class TestMacroDataScheduler:
 
     def test_remove_job_cancels_task(self):
         scheduler = MacroDataScheduler()
-        scheduler.add_job("test_job", AsyncMock(), interval_seconds=60)
+        scheduler.add_job("test_job", AsyncCallTracker(), interval_seconds=60)
 
-        # Simulate a running task — cancel() is sync on asyncio.Task
-        mock_task = MagicMock()
-        scheduler._tasks["test_job"] = mock_task
+        # Simulate a running task with a real test double
+        fake_task = CancellableTask()
+        scheduler._tasks["test_job"] = fake_task
 
         result = scheduler.remove_job("test_job")
         assert result is True
-        mock_task.cancel.assert_called_once()
+        assert fake_task.cancel_count == 1
 
     async def test_execute_job_success(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock()
+        func = AsyncCallTracker()
         scheduler.add_job("test_job", func, interval_seconds=60)
 
         await scheduler._execute_job("test_job", func)
 
-        func.assert_awaited_once()
+        assert func.call_count == 1
         assert scheduler._jobs["test_job"]["run_count"] == 1
         assert scheduler._jobs["test_job"]["last_run"] is not None
 
     async def test_execute_job_error(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock(side_effect=ValueError("test error"))
+        func = AsyncCallTracker(side_effect=ValueError("test error"))
         scheduler.add_job("test_job", func, interval_seconds=60)
 
         await scheduler._execute_job("test_job", func)
@@ -89,11 +125,11 @@ class TestMacroDataScheduler:
     async def test_execute_job_missing(self):
         scheduler = MacroDataScheduler()
         # Should not raise for missing job
-        await scheduler._execute_job("nonexistent", AsyncMock())
+        await scheduler._execute_job("nonexistent", AsyncCallTracker())
 
     async def test_start_and_stop(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock()
+        func = AsyncCallTracker()
         scheduler.add_job("test_job", func, interval_seconds=3600, run_immediately=False)
 
         await scheduler.start()
@@ -106,7 +142,7 @@ class TestMacroDataScheduler:
 
     async def test_start_idempotent(self):
         scheduler = MacroDataScheduler()
-        scheduler.add_job("job", AsyncMock(), interval_seconds=3600, run_immediately=False)
+        scheduler.add_job("job", AsyncCallTracker(), interval_seconds=3600, run_immediately=False)
 
         await scheduler.start()
         # Second start should be a no-op
@@ -123,7 +159,7 @@ class TestMacroDataScheduler:
 
     async def test_start_runs_immediate_job(self):
         scheduler = MacroDataScheduler()
-        func = AsyncMock()
+        func = AsyncCallTracker()
         scheduler.add_job("test_job", func, interval_seconds=3600, run_immediately=True)
 
         await scheduler.start()
@@ -131,7 +167,7 @@ class TestMacroDataScheduler:
         await asyncio.sleep(0.1)
         await scheduler.stop()
 
-        func.assert_awaited()
+        assert func.called
 
     def test_get_job_stats_empty(self):
         scheduler = MacroDataScheduler()
@@ -140,8 +176,8 @@ class TestMacroDataScheduler:
 
     def test_get_job_stats(self):
         scheduler = MacroDataScheduler()
-        scheduler.add_job("job1", AsyncMock(), interval_seconds=60)
-        scheduler.add_job("job2", AsyncMock(), interval_seconds=120)
+        scheduler.add_job("job1", AsyncCallTracker(), interval_seconds=60)
+        scheduler.add_job("job2", AsyncCallTracker(), interval_seconds=120)
 
         stats = scheduler.get_job_stats()
 
