@@ -35,6 +35,7 @@ class MacroDataScheduler:
         func: Callable[[], Coroutine[Any, Any, None]],
         interval_seconds: int,
         run_immediately: bool = True,
+        max_consecutive_errors: int = 10,
     ) -> None:
         """Registra un job periodico.
 
@@ -43,6 +44,7 @@ class MacroDataScheduler:
             func: Funzione asincrona da eseguire
             interval_seconds: Intervallo tra esecuzioni
             run_immediately: Se eseguire subito all'avvio
+            max_consecutive_errors: Soglia errori consecutivi prima di disabilitare il job
         """
         self._jobs[job_id] = {
             "func": func,
@@ -51,6 +53,9 @@ class MacroDataScheduler:
             "last_run": None,
             "run_count": 0,
             "error_count": 0,
+            "consecutive_errors": 0,
+            "max_consecutive_errors": max_consecutive_errors,
+            "disabled": False,
         }
         logger.info(
             "Job registered",
@@ -82,6 +87,10 @@ class MacroDataScheduler:
         if not job:
             return
 
+        if job.get("disabled"):
+            logger.warning("Job is disabled, skipping", job_id=job_id)
+            return
+
         func = job["func"]
         interval = job["interval"]
 
@@ -90,10 +99,18 @@ class MacroDataScheduler:
             await self._execute_job(job_id, func)
 
         while self._running and job_id in self._jobs:
+            if job.get("disabled"):
+                logger.warning("Job disabled by circuit breaker, stopping loop", job_id=job_id)
+                break
+
             try:
                 await asyncio.sleep(interval)
 
                 if not self._running or job_id not in self._jobs:
+                    break
+
+                if job.get("disabled"):
+                    logger.warning("Job disabled by circuit breaker, stopping loop", job_id=job_id)
                     break
 
                 await self._execute_job(job_id, func)
@@ -120,6 +137,7 @@ class MacroDataScheduler:
             await func()
             job["run_count"] += 1
             job["last_run"] = datetime.now(timezone.utc)
+            job["consecutive_errors"] = 0
             logger.debug(
                 "Job executed",
                 job_id=job_id,
@@ -127,12 +145,23 @@ class MacroDataScheduler:
             )
         except Exception as e:
             job["error_count"] += 1
+            job["consecutive_errors"] = job.get("consecutive_errors", 0) + 1
+            max_consecutive = job.get("max_consecutive_errors", 10)
             logger.error(
                 "Job execution failed",
                 job_id=job_id,
                 error=str(e),
                 error_count=job["error_count"],
+                consecutive_errors=job["consecutive_errors"],
             )
+            if job["consecutive_errors"] >= max_consecutive:
+                job["disabled"] = True
+                logger.critical(
+                    "Job disabled after too many consecutive errors",
+                    job_id=job_id,
+                    consecutive_errors=job["consecutive_errors"],
+                    max_consecutive_errors=max_consecutive,
+                )
 
     async def start(self) -> None:
         """Avvia lo scheduler."""
@@ -167,6 +196,33 @@ class MacroDataScheduler:
         self._tasks.clear()
         logger.info("Scheduler stopped")
 
+    def re_enable_job(self, job_id: str) -> bool:
+        """Riabilita un job disabilitato dal circuit breaker.
+
+        Args:
+            job_id: ID del job da riabilitare
+
+        Returns:
+            True se riabilitato, False se non trovato
+        """
+        job = self._jobs.get(job_id)
+        if not job:
+            return False
+
+        job["disabled"] = False
+        job["consecutive_errors"] = 0
+        logger.info(
+            "Job re-enabled manually",
+            job_id=job_id,
+        )
+
+        # Restart the job loop if scheduler is running
+        if self._running and (job_id not in self._tasks or self._tasks[job_id].done()):
+            task = asyncio.create_task(self._run_job_loop(job_id))
+            self._tasks[job_id] = task
+
+        return True
+
     def get_job_stats(self) -> dict[str, dict[str, Any]]:
         """Restituisce statistiche per tutti i job."""
         stats = {}
@@ -175,6 +231,8 @@ class MacroDataScheduler:
                 "interval_seconds": job["interval"],
                 "run_count": job["run_count"],
                 "error_count": job["error_count"],
+                "consecutive_errors": job.get("consecutive_errors", 0),
+                "disabled": job.get("disabled", False),
                 "last_run": job["last_run"].isoformat() if job["last_run"] else None,
                 "running": job_id in self._tasks and not self._tasks[job_id].done(),
             }
