@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -338,5 +339,167 @@ func TestIsProduction(t *testing.T) {
 func TestValidateProductionDevNoOp(t *testing.T) {
 	cfg := &BaseConfig{Env: "development", DBPassword: ""}
 	// Should not panic or exit in development mode
+	cfg.ValidateProduction()
+}
+
+// ---------------------------------------------------------------------------
+// Edge cases added for comprehensive coverage
+// ---------------------------------------------------------------------------
+
+func TestGetEnvIntNegativeValue(t *testing.T) {
+	t.Setenv("MONEYMAKER_METRICS_PORT", "-1")
+	result := getEnvInt("MONEYMAKER_METRICS_PORT", 9090)
+	// strconv.Atoi parses negative numbers successfully
+	if result != -1 {
+		t.Errorf("getEnvInt with -1 = %d, want -1", result)
+	}
+}
+
+func TestGetEnvIntZero(t *testing.T) {
+	t.Setenv("MONEYMAKER_METRICS_PORT", "0")
+	result := getEnvInt("MONEYMAKER_METRICS_PORT", 9090)
+	if result != 0 {
+		t.Errorf("getEnvInt with 0 = %d, want 0", result)
+	}
+}
+
+func TestGetEnvIntLargePort(t *testing.T) {
+	t.Setenv("MONEYMAKER_METRICS_PORT", "65535")
+	result := getEnvInt("MONEYMAKER_METRICS_PORT", 9090)
+	if result != 65535 {
+		t.Errorf("getEnvInt with 65535 = %d, want 65535", result)
+	}
+}
+
+func TestGetEnvIntFloatFallsBack(t *testing.T) {
+	t.Setenv("MONEYMAKER_DB_PORT", "5432.5")
+	result := getEnvInt("MONEYMAKER_DB_PORT", 5432)
+	// strconv.Atoi rejects floats, should fall back
+	if result != 5432 {
+		t.Errorf("getEnvInt with float = %d, want fallback 5432", result)
+	}
+}
+
+func TestGetEnvReturnsSetValue(t *testing.T) {
+	t.Setenv("MONEYMAKER_TEST_VAR", "custom")
+	result := getEnv("MONEYMAKER_TEST_VAR", "default")
+	if result != "custom" {
+		t.Errorf("getEnv = %q, want %q", result, "custom")
+	}
+}
+
+func TestGetEnvReturnsFallback(t *testing.T) {
+	t.Setenv("MONEYMAKER_TEST_VAR", "")
+	result := getEnv("MONEYMAKER_TEST_VAR", "fallback")
+	// Empty string → falls back (getEnv checks v != "")
+	if result != "fallback" {
+		t.Errorf("getEnv with empty = %q, want %q", result, "fallback")
+	}
+}
+
+func TestGetEnvBoolUnrecognizedValue(t *testing.T) {
+	tests := []struct {
+		value    string
+		fallback bool
+		want     bool
+	}{
+		{"maybe", false, false},
+		{"maybe", true, true},
+		{"tRuE", false, false},  // mixed case not in switch
+		{"YES!", false, false},  // with special char
+	}
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			t.Setenv("TEST_BOOL", tt.value)
+			got := getEnvBool("TEST_BOOL", tt.fallback)
+			if got != tt.want {
+				t.Errorf("getEnvBool(%q, %v) = %v, want %v", tt.value, tt.fallback, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDatabaseURLPasswordWithSpecialChars(t *testing.T) {
+	cfg := &BaseConfig{
+		Env:        "development",
+		DBUser:     "user",
+		DBPassword: "p@ss w0rd/&=+#",
+		DBHost:     "localhost",
+		DBPort:     5432,
+		DBName:     "test",
+	}
+	u := cfg.DatabaseURL()
+	// url.PathEscape encodes spaces as %20, / as %2F, # as %23
+	// but preserves @, &, =, + as they are path-safe
+	if !strings.Contains(u, "%20") {
+		t.Errorf("space not escaped in URL: %s", u)
+	}
+	if !strings.Contains(u, "%2F") {
+		t.Errorf("slash not escaped in URL: %s", u)
+	}
+	if !strings.Contains(u, "%23") {
+		t.Errorf("hash not escaped in URL: %s", u)
+	}
+}
+
+func TestDatabaseURLEmptyPassword(t *testing.T) {
+	cfg := &BaseConfig{
+		Env:    "development",
+		DBUser: "user",
+		DBHost: "localhost",
+		DBPort: 5432,
+		DBName: "test",
+	}
+	u := cfg.DatabaseURL()
+	want := "postgres://user:@localhost:5432/test?sslmode=disable"
+	if u != want {
+		t.Errorf("DatabaseURL() = %q, want %q", u, want)
+	}
+}
+
+func TestRedisURLEmptyHost(t *testing.T) {
+	cfg := &BaseConfig{
+		RedisHost: "",
+		RedisPort: 6379,
+	}
+	u := cfg.RedisURL()
+	want := "redis://:6379/0"
+	if u != want {
+		t.Errorf("RedisURL() = %q, want %q", u, want)
+	}
+}
+
+func TestIsProductionVariousEnvs(t *testing.T) {
+	cases := []struct {
+		env  string
+		want bool
+	}{
+		{"production", true},
+		{"Production", false}, // case-sensitive
+		{"PRODUCTION", false}, // case-sensitive
+		{"prod", false},
+		{"staging", false},
+		{"development", false},
+		{"test", false},
+	}
+	for _, tt := range cases {
+		t.Run(tt.env, func(t *testing.T) {
+			cfg := &BaseConfig{Env: tt.env}
+			if got := cfg.IsProduction(); got != tt.want {
+				t.Errorf("IsProduction() with %q = %v, want %v", tt.env, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateProductionWithPassword(t *testing.T) {
+	cfg := &BaseConfig{Env: "production", DBPassword: "s3cret"}
+	// Should not panic or exit — password is set
+	cfg.ValidateProduction()
+}
+
+func TestValidateProductionStagingNoOp(t *testing.T) {
+	cfg := &BaseConfig{Env: "staging", DBPassword: ""}
+	// Non-production env, should be a no-op even without password
 	cfg.ValidateProduction()
 }
