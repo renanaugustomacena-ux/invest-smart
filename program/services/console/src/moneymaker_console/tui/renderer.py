@@ -15,8 +15,7 @@ try:
     from rich.panel import Panel
 except ImportError as _exc:
     raise ImportError(
-        "The 'rich' package is required for the TUI renderer. "
-        "Install it with: pip install rich"
+        "The 'rich' package is required for the TUI renderer. " "Install it with: pip install rich"
     ) from _exc
 
 

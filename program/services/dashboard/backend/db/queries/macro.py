@@ -84,10 +84,12 @@ async def get_cot_reports(pool: asyncpg.Pool, limit: int = 20) -> list[dict]:
 
 async def get_recession_probability(pool: asyncpg.Pool) -> dict | None:
     """Fetch latest recession probability."""
-    row = await pool.fetchrow("""
+    row = await pool.fetchrow(
+        """
         SELECT time, probability_12m, probability_change, signal_level
         FROM recession_probability
         ORDER BY time DESC
         LIMIT 1
-        """)
+        """
+    )
     return dict(row) if row else None
