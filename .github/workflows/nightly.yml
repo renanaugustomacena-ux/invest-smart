@@ -89,6 +89,11 @@ jobs:
           pip install -e "program/services/mt5-bridge/[dev]"
           pip install httpx
 
+      - name: Generate proto (Python)
+        run: |
+          pip install grpcio-tools
+          make -C program/shared/proto python
+
       - name: Database migration verification
         run: |
           TABLE_COUNT=$(PGPASSWORD=test_ci psql -h localhost -U moneymaker_test -d moneymaker_test \
@@ -225,6 +230,11 @@ jobs:
           pip install -e program/shared/python-common/
           pip install -e program/shared/proto/
           pip install -e "program/services/algo-engine/[dev]"
+
+      - name: Generate proto (Python)
+        run: |
+          pip install grpcio-tools
+          make -C program/shared/proto python
 
       - name: Python benchmarks
         working-directory: program/services/algo-engine

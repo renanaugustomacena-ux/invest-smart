@@ -278,6 +278,10 @@ jobs:
           pip install -e program/shared/python-common/
           pip install -e program/shared/proto/
           pip install -e "program/services/algo-engine/[dev]"
+      - name: Generate proto (Python)
+        run: |
+          pip install grpcio-tools
+          make -C program/shared/proto python
       - name: Unit tests
         working-directory: program/services/algo-engine
         env:
@@ -390,6 +394,10 @@ jobs:
           pip install -e program/shared/python-common/
           pip install -e program/shared/proto/
           pip install -e "program/services/mt5-bridge/[dev]"
+      - name: Generate proto (Python)
+        run: |
+          pip install grpcio-tools
+          make -C program/shared/proto python
       - name: Unit tests
         working-directory: program/services/mt5-bridge
         env:
