@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import MarketDataPage from '../../pages/MarketDataPage';
 
-// Mock lightweight-charts createChart
+// Mock lightweight-charts — third-party lib that requires a real canvas/DOM
 vi.mock('lightweight-charts', () => ({
   createChart: vi.fn(() => ({
     addSeries: vi.fn(() => ({ setData: vi.fn() })),
@@ -12,14 +12,6 @@ vi.mock('lightweight-charts', () => ({
     remove: vi.fn(),
   })),
   CandlestickSeries: {},
-}));
-
-vi.mock('../../api/client', () => ({
-  fetchApi: vi.fn((path: string) => {
-    if (path.includes('symbols')) return Promise.resolve({ symbols: ['EURUSD', 'GBPUSD'] });
-    if (path.includes('bars')) return Promise.resolve({ bars: [] });
-    return Promise.resolve({});
-  }),
 }));
 
 describe('MarketDataPage', () => {
@@ -38,5 +30,19 @@ describe('MarketDataPage', () => {
     expect(screen.getByText('M5')).toBeInTheDocument();
     expect(screen.getByText('H1')).toBeInTheDocument();
     expect(screen.getByText('D1')).toBeInTheDocument();
+  });
+
+  it('shows symbol selector with EURUSD', async () => {
+    render(<MemoryRouter><MarketDataPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('EURUSD')).toBeInTheDocument();
+    });
+  });
+
+  it('shows symbol selector with GBPUSD', async () => {
+    render(<MemoryRouter><MarketDataPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('GBPUSD')).toBeInTheDocument();
+    });
   });
 });
