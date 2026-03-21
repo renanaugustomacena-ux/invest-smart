@@ -127,7 +127,7 @@ async def run_engine(settings: AlgoEngineSettings) -> None:
         assert _rc is not None
         health.register_check(
             "redis",
-            lambda: _rc.connection_pool.get_encoding(),
+            lambda: _rc.connection_pool.get_encoder(),
         )
     except Exception as e:
         logger.warning("Redis unavailable for portfolio", error=str(e))
