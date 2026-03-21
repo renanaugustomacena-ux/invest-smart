@@ -1,10 +1,17 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ToastItem, ToastContainer } from '../../components/common/Toast';
 import { useUIStore } from '../../store/uiStore';
 import type { Toast } from '../../store/uiStore';
 
 describe('ToastItem', () => {
+  beforeEach(() => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+    useUIStore.setState({ toasts: [] });
+  });
+
   const toast: Toast = {
     id: 'test-1',
     type: 'success',
@@ -23,10 +30,16 @@ describe('ToastItem', () => {
     expect(screen.getByLabelText('Dismiss notification')).toBeInTheDocument();
   });
 
-  it('calls removeToast on dismiss', () => {
+  it('close button removes toast from store', async () => {
+    const user = userEvent.setup();
+    // Pre-populate the store with the toast
+    useUIStore.setState({ toasts: [toast] });
+
     render(<ToastItem toast={toast} />);
-    fireEvent.click(screen.getByLabelText('Dismiss notification'));
+    await user.click(screen.getByLabelText('Dismiss notification'));
+
     // The toast should be removed from the store
+    expect(useUIStore.getState().toasts).toHaveLength(0);
   });
 
   it('renders without message', () => {
@@ -35,20 +48,37 @@ describe('ToastItem', () => {
     expect(screen.getByText('Info')).toBeInTheDocument();
   });
 
-  it('renders all toast types', () => {
-    const types = ['success', 'error', 'warning', 'info'] as const;
-    for (const type of types) {
-      const t: Toast = { id: `t-${type}`, type, title: `${type} toast` };
-      const { unmount } = render(<ToastItem toast={t} />);
-      expect(screen.getByText(`${type} toast`)).toBeInTheDocument();
-      unmount();
-    }
+  it('renders success toast type with role=alert', () => {
+    const t: Toast = { id: 't-success', type: 'success', title: 'Success toast' };
+    render(<ToastItem toast={t} />);
+    expect(screen.getByText('Success toast')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('renders error toast type', () => {
+    const t: Toast = { id: 't-error', type: 'error', title: 'Error toast' };
+    render(<ToastItem toast={t} />);
+    expect(screen.getByText('Error toast')).toBeInTheDocument();
+  });
+
+  it('renders warning toast type', () => {
+    const t: Toast = { id: 't-warning', type: 'warning', title: 'Warning toast' };
+    render(<ToastItem toast={t} />);
+    expect(screen.getByText('Warning toast')).toBeInTheDocument();
+  });
+
+  it('renders info toast type', () => {
+    const t: Toast = { id: 't-info', type: 'info', title: 'Info toast' };
+    render(<ToastItem toast={t} />);
+    expect(screen.getByText('Info toast')).toBeInTheDocument();
   });
 });
 
 describe('ToastContainer', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
     useUIStore.setState({ toasts: [] });
   });
 
@@ -71,5 +101,49 @@ describe('ToastContainer', () => {
     render(<ToastContainer />);
     expect(screen.getByText('Toast 1')).toBeInTheDocument();
     expect(screen.getByText('Toast 2')).toBeInTheDocument();
+  });
+
+  it('toast auto-dismisses after default timeout', () => {
+    // addToast uses setTimeout with default 4000ms duration
+    useUIStore.getState().addToast({ type: 'info', title: 'Auto dismiss me' });
+
+    expect(useUIStore.getState().toasts).toHaveLength(1);
+
+    // Advance past the default 4000ms timeout
+    vi.advanceTimersByTime(4500);
+
+    expect(useUIStore.getState().toasts).toHaveLength(0);
+  });
+
+  it('toast with custom duration auto-dismisses after that duration', () => {
+    useUIStore.getState().addToast({ type: 'warning', title: 'Custom timeout', duration: 2000 });
+
+    expect(useUIStore.getState().toasts).toHaveLength(1);
+
+    // Should still be there before duration
+    vi.advanceTimersByTime(1500);
+    expect(useUIStore.getState().toasts).toHaveLength(1);
+
+    // Should be gone after duration
+    vi.advanceTimersByTime(1000);
+    expect(useUIStore.getState().toasts).toHaveLength(0);
+  });
+
+  it('toast with duration=0 does not auto-dismiss', () => {
+    useUIStore.getState().addToast({ type: 'error', title: 'Persistent', duration: 0 });
+
+    expect(useUIStore.getState().toasts).toHaveLength(1);
+
+    // Advance a long time - it should still be there
+    vi.advanceTimersByTime(60000);
+    expect(useUIStore.getState().toasts).toHaveLength(1);
+  });
+
+  it('renders the notifications region with role', () => {
+    useUIStore.setState({
+      toasts: [{ id: '1', type: 'info', title: 'Test' }],
+    });
+    render(<ToastContainer />);
+    expect(screen.getByRole('region', { name: 'Notifications' })).toBeInTheDocument();
   });
 });
