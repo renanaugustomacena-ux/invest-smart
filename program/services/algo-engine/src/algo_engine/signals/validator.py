@@ -296,7 +296,7 @@ class SignalValidator:
             )
         if self._correlation_checker is not None:
             symbol = signal.get("symbol", "")
-            dir_str = str(direction)
+            dir_str = direction.value
             positions_detail = portfolio_state.get("positions_detail", [])
             is_ok, corr_reason = self._correlation_checker.check(symbol, dir_str, positions_detail)
             if not is_ok:
@@ -314,7 +314,7 @@ class SignalValidator:
             utc_hour = datetime.now(timezone.utc).hour
             session = self._session_classifier.classify(utc_hour)
             boost = self._session_classifier.get_confidence_boost(session)
-            adjusted_threshold = max(Decimal("0.30"), self.min_confidence - boost)
+            adjusted_threshold = max(Decimal("0.30"), self.min_confidence - Decimal(str(boost)))
             if confidence < adjusted_threshold:
                 reason = (
                     f"Confidenza insufficiente per sessione {session.value}: "
@@ -335,7 +335,8 @@ class SignalValidator:
 
             symbol = signal.get("symbol", "")
             utc_now = datetime.now(timezone.utc)
-            if self._calendar_filter.is_blackout(symbol, utc_now):
+            is_blocked, _cal_desc = self._calendar_filter.is_blackout(symbol, utc_now)
+            if is_blocked:
                 reason = f"Blackout calendario economico per {symbol}"
                 logger.warning(
                     "Segnale rifiutato: blackout economico",
