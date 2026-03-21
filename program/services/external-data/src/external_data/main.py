@@ -29,7 +29,7 @@ from typing import Any
 import asyncpg
 import redis.asyncio as aioredis
 
-from moneymaker_common.logging import get_logger, configure_logging
+from moneymaker_common.logging import get_logger, setup_logging
 
 from .config import ExternalDataSettings
 from .providers.fred import FREDProvider
@@ -411,7 +411,7 @@ class ExternalDataService:
 
 async def main() -> int:
     """Main entry point."""
-    configure_logging("external-data")
+    setup_logging("external-data")
     settings = ExternalDataSettings()
 
     service = ExternalDataService(settings)
